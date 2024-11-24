@@ -3,13 +3,11 @@ const Controller = require("./Controller");
 class WelcomeController extends Controller {
 
     welcome() {
-        this.res.status(200).json({
-            message: 'welcome'
-        });
+        dd(request);
     }
-    test(id) {
-
-        this.res.json({ message: id });
+    test(id, content) {
+        console.log(config('auth'))
+        dd({ id, content, request });
     }
 }
 

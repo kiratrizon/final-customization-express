@@ -11,12 +11,33 @@ class Route {
             const instanceofController = new controller();
             if (typeof instanceofController[method] === 'function') {
                 newOpts = (req, res) => {
-                    instanceofController.init(req, res);
-                    const params = req.params;
+                    const data = {
+                        request: {
+                            method: req.method,
+                            url: req.url,
+                            body: req.body,
+                            params: req.params,
+                            headers: req.headers,
+                            query: req.query,
+                            cookies: req.cookies,
+                            path: req.path,
+                            originalUrl: req.originalUrl,
+                            ip: req.ip,
+                            protocol: req.protocol,
+                            user: req.user || null,
+                            route: req.route || null,
+                            acceptLanguage: req.headers['accept-language'],
+                            referer: req.headers['referer'] || null,
+                            session: req.session || null,
+                            files: req.files || null,
+                        }
+                    };
+                    const params = data.request.params;
+                    instanceofController.init(req, res, data.request);
                     if (Object.keys(params).length > 0) {
                         instanceofController[method](...Object.values(params));
                     } else {
-                        instanceofController[method]
+                        instanceofController[method]();
                     }
                 };
             }

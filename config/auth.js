@@ -1,6 +1,6 @@
-const Admin = require("../libs/Model/Admin");
-const User = require("../libs/Model/User");
-const Developer = require("../libs/Model/Developer");
+// const Admin = require("../libs/Model/Admin");
+// const User = require("../libs/Model/User");
+// const Developer = require("../libs/Model/Developer");
 
 const constant = {
     default: {
@@ -23,7 +23,7 @@ const constant = {
     providers: {
         users: {
             driver: 'eloquent',
-            model: User,
+            // model: User,
             passed: '/dashboard',
             failed: '/login',
             prefix: '/',
@@ -31,7 +31,7 @@ const constant = {
         },
         admins: {
             driver: 'eloquent',
-            model: Admin,
+            // model: Admin,
             passed: '/admin/dashboard',
             failed: '/admin/login',
             prefix: '/admin',
@@ -39,7 +39,7 @@ const constant = {
         },
         developers: {
             driver: 'eloquent',
-            model: Developer,
+            // model: Developer,
             passed: '/developer/dashboard',
             failed: '/developer/login',
             prefix: '/developer',

@@ -2,13 +2,11 @@ const path = require('path');
 const fs = require('fs');
 
 class Configure {
-   constructor() {
-      this.basePath = path.join(__dirname, '..', '..', 'config');
-   }
+   static basePath = path.join(__dirname, '..', '..', 'config');
 
-   read(pathString) {
+   static read(pathString) {
       let keys = pathString.split('.');
-      let basePath = this.basePath;
+      let basePath = Configure.basePath;
       let currentPath;
 
       if (keys.length === 1) {
@@ -47,4 +45,4 @@ class Configure {
    }
 }
 
-module.exports = new Configure();
+module.exports = Configure;
