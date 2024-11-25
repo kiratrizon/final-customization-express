@@ -2,7 +2,7 @@ const MiddlewareHandler = require('../../app/MiddlewareHandler');
 
 class Route {
     static mainRouter = require('express').Router();
-    static handleRequest(requestMethod, prefix, options) {
+    static #handleRequest(requestMethod, prefix, options) {
 
         const newRoute = require('express').Router();
         let newOpts;
@@ -10,7 +10,7 @@ class Route {
             const [controller, method] = options;
             const instanceofController = new controller();
             if (typeof instanceofController[method] === 'function') {
-                newOpts = (req, res) => {
+                newOpts = () => {
                     const data = {
                         request: {
                             method: req.method,
@@ -33,7 +33,7 @@ class Route {
                         }
                     };
                     const params = data.request.params;
-                    instanceofController.init(req, res, data.request);
+                    instanceofController.init(data.request);
                     if (Object.keys(params).length > 0) {
                         instanceofController[method](...Object.values(params));
                     } else {
@@ -50,22 +50,11 @@ class Route {
         }
     }
 
-    static get(prefix, options) {
-        this.handleRequest('get', prefix, options);
-    }
-
-    static post(prefix, options) {
-        this.handleRequest('post', prefix, options);
-    }
-    static put(prefix, options) {
-        this.handleRequest('put', prefix, options);
-    }
-    static delete(prefix, options) {
-        this.handleRequest('delete', prefix, options);
-    }
-    static patch(prefix, options) {
-        this.handleRequest('patch', prefix, options);
-    }
+    static get(prefix, options) {Route.#handleRequest('get', prefix, options);}
+    static post(prefix, options) {Route.#handleRequest('post', prefix, options);}
+    static put(prefix, options) {Route.#handleRequest('put', prefix, options);}
+    static delete(prefix, options) {Route.#handleRequest('delete', prefix, options);}
+    static patch(prefix, options) {Route.#handleRequest('patch', prefix, options);}
 
     static group(opts = {}, callback) {
         const currentPrefix = opts.prefix || '';
@@ -74,23 +63,31 @@ class Route {
         const originalMainRouter = this.mainRouter;
         this.mainRouter = require('express').Router();
 
-        if (currentMiddleware && typeof currentMiddleware === 'string') {
-            const MH = new MiddlewareHandler().middlewareAliases();
-            if (Object.keys(MH).includes(currentMiddleware) && typeof MH[currentMiddleware].handle === 'function') {
-                const middlewareClass = MH[currentMiddleware].handle;
-                originalMainRouter.use(currentPrefix, middlewareClass, this.mainRouter);
-            } else {
-                originalMainRouter.use(currentPrefix, this.mainRouter);
-            }
-        } else if (currentMiddleware && typeof currentMiddleware === 'function') {
-            originalMainRouter.use(currentPrefix, currentMiddleware, this.mainRouter);
-        } else {
-            originalMainRouter.use(currentPrefix, this.mainRouter);
-        }
+        Route.#applyMiddleware(originalMainRouter, currentPrefix, currentMiddleware);
 
         callback();
 
         this.mainRouter = originalMainRouter;
+    }
+
+    static #applyMiddleware(router, prefix, middleware) {
+        if (typeof middleware === 'string') {
+            const middlewareHandler = new MiddlewareHandler().middlewareAliases();
+            if (Object.keys(middlewareHandler).includes(middleware)) {
+                const middlewareClass = middlewareHandler[middleware]?.handle;
+                if (typeof middlewareClass === 'function') {
+                    router.use(prefix, middlewareClass, this.mainRouter);
+                } else {
+                    router.use(prefix, this.mainRouter);
+                }
+            } else {
+                router.use(prefix, this.mainRouter);
+            }
+        } else if (typeof middleware === 'function') {
+            router.use(prefix, middleware, this.mainRouter);
+        } else {
+            router.use(prefix, this.mainRouter);
+        }
     }
 }
 

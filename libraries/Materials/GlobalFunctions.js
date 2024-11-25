@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const Configure = require('./Configure');
+const NodeMailer = require('../../vendor/node-mailer');
 require('dotenv').config();
 
 global.only = (obj, keys) => {
@@ -66,3 +67,6 @@ global.log = (value, destination, text = "") => {
 global.config = (finder) => {
     return Configure.read(finder);
 };
+
+global.Constant = Configure;
+global.Mailer = NodeMailer;

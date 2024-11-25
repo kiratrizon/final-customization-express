@@ -6,7 +6,6 @@ class WelcomeController extends Controller {
         dd(request);
     }
     test(id, content) {
-        console.log(config('auth'))
         dd({ id, content, request });
     }
 }
