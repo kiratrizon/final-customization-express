@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const Configure = require('./Configure');
 const NodeMailer = require('../../vendor/node-mailer');
+const Database = require('../../main/database/Database');
 require('dotenv').config();
 
 global.only = (obj, keys) => {
@@ -70,3 +71,4 @@ global.config = (finder) => {
 
 global.Constant = Configure;
 global.Mailer = NodeMailer;
+global.Database = new Database();

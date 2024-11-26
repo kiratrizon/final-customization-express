@@ -1,12 +1,12 @@
-class BaseController {
-    #req;
-    #res;
-    init(request) {
-        if (global.request === undefined) {
-            global.request = request;
-        }
-        if (global.response === undefined) {
-            global.response = () => res;
+const LoadModel = require("../../libraries/Materials/LoadModel");
+const ConstructorController = require("./ConstructorController");
+class BaseController extends ConstructorController {
+    loadModel(models) {
+        if (Array.isArray(models)) {
+            models.forEach((modelName) => {
+                const ModelClass = LoadModel.init(modelName);
+                this[modelName] = new ModelClass(); // Store instantiated model
+            });
         }
     }
 }

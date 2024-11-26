@@ -35,190 +35,29 @@ class Server {
         Server.app.use(Server.express.json());
         Server.app.use(Server.express.urlencoded({ extended: true }));
         Server.app.use(Server.express.static(path.join(__dirname, '..', 'public')));
+        Server.app.set('view engine', 'ejs');
+        Server.app.set('views', path.join(__dirname, '..', 'resources', 'views'));
         const handleBoot = Server.handle();
         Object.keys(handleBoot).forEach((key) => {
             Server.app.use(handleBoot[key]);
         });
 
-        global.dd = (data) => {
-            const acceptHeader = req.headers['accept'];
-        
-            // Check if it's a JSON request
-            if (acceptHeader && acceptHeader.includes('application/json')) {
-                res.set('Content-Type', 'application/json');
-                res.send(JSON.stringify(data, null, 2)); // Raw JSON with indentation
-            } else {
-                // Tailwind CSS for rendering
-                const tailwindScript = `
-                    <script src="/global_assets/tailwind.js"></script>
-                `;
-        
-                const tailwindStyles = `
-                    <style>
-                        div.debug { font-family: sans-serif; padding: 2rem; background-color: #f7fafc; }
-                        pre { background-color: #000030; padding: 1rem; border-radius: 0.5rem; }
-                        .data-type-wrapper {
-                            display: inline-block;
-                            max-width: 100%;
-                            overflow-wrap: break-word;
-                            word-wrap: break-word;
-                            word-break: break-word;
-                            white-space: pre-wrap; /* Allow text to wrap */
-                        }
-        
-                        .scrollable {
-                            max-width: 100%;
-                            overflow-x: auto; /* Enable horizontal scroll when necessary */
-                        }
-        
-                        /* Tailwind utility classes for color based on data type */
-                        .string { color: #48bb78; } /* Green for strings */
-                        .number { color: #ed8936; } /* Orange for numbers */
-                        .boolean { color: #3182ce; } /* Blue for booleans */
-                        .object-key { color: #a0aec0; font-weight: bold; } /* Gray for object keys */
-                        .object-value { color: #2d3748; } /* Dark text for object values */
-                        .array { color: #805ad5; } /* Purple for arrays */
-                        .null { color: #9b2c2c; } /* Red for null */
-                        .undefined { color: #ed8936; } /* Orange for undefined */
-                        .indentation { padding-left: 20px; } /* Indentation for nested elements */
-                    </style>
-                `;
-        
-                // Recursively format data with Tailwind classes
-                const recursiveRender = (value, level = 0) => {
-                    let content = '';
-        
-                    // Indentation for each level
-                    const indentClass = `indentation level-${level}`;
-        
-                    if (Array.isArray(value)) {
-                        content = `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
-                    } else if (value === null) {
-                        content = `<div class="null ${indentClass}">null</div>`;
-                    } else if (typeof value === 'object') {
-                        content = `<div class="object scrollable ${indentClass}">${Object.keys(value).map(key => 
-                            `<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(value[key], level + 1)}</span></div>`
-                        ).join('')}</div>`;
-                    } else if (typeof value === 'string') {
-                        content = `<div class="string ${indentClass}">"${value}"</div>`;
-                    } else if (typeof value === 'number') {
-                        content = `<div class="number ${indentClass}">${value}</div>`;
-                    } else if (typeof value === 'boolean') {
-                        content = `<div class="boolean ${indentClass}">${value}</div>`;
-                    } else if (typeof value === 'undefined') {
-                        content = `<div class="undefined ${indentClass}">undefined</div>`;
-                    }
-        
-                    return content;
-                };
-        
-                const htmlContent = `
-                    ${tailwindScript}
-                    ${tailwindStyles}
-                    <div class="debug">
-                    <pre class="data-type-wrapper">${recursiveRender(data)}</pre>
-                    </div>
-                `;
-        
-                res.set('Content-Type', 'text/html');
-                res.send(htmlContent); // Send the formatted data as HTML
-            }
-            res.end();
-        };
-        
-        global.dump = (data) => {
-            const acceptHeader = req.headers['accept'];
-        
-            // Check if it's a JSON request
-            if (acceptHeader && acceptHeader.includes('application/json')) {
-                res.set('Content-Type', 'application/json');
-                res.send(JSON.stringify(data, null, 2)); // Raw JSON with indentation
-            } else {
-                // Tailwind CSS for rendering
-                const tailwindScript = `
-                    <script src="/global_assets/tailwind.js"></script>
-                `;
-        
-                const tailwindStyles = `
-                    <style>
-                        div.debug { font-family: sans-serif; padding: 2rem; background-color: #f7fafc; }
-                        pre { background-color: #000030; padding: 1rem; border-radius: 0.5rem; }
-                        .data-type-wrapper {
-                            display: inline-block;
-                            max-width: 100%;
-                            overflow-wrap: break-word;
-                            word-wrap: break-word;
-                            word-break: break-word;
-                            white-space: pre-wrap; /* Allow text to wrap */
-                        }
-        
-                        .scrollable {
-                            max-width: 100%;
-                            overflow-x: auto; /* Enable horizontal scroll when necessary */
-                        }
-        
-                        /* Tailwind utility classes for color based on data type */
-                        .string { color: #48bb78; } /* Green for strings */
-                        .number { color: #ed8936; } /* Orange for numbers */
-                        .boolean { color: #3182ce; } /* Blue for booleans */
-                        .object-key { color: #a0aec0; font-weight: bold; } /* Gray for object keys */
-                        .object-value { color: #2d3748; } /* Dark text for object values */
-                        .array { color: #805ad5; } /* Purple for arrays */
-                        .null { color: #9b2c2c; } /* Red for null */
-                        .undefined { color: #ed8936; } /* Orange for undefined */
-                        .indentation { padding-left: 20px; } /* Indentation for nested elements */
-                    </style>
-                `;
-        
-                // Recursively format data with Tailwind classes
-                const recursiveRender = (value, level = 0) => {
-                    let content = '';
-        
-                    // Indentation for each level
-                    const indentClass = `indentation level-${level}`;
-        
-                    if (Array.isArray(value)) {
-                        content = `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
-                    } else if (value === null) {
-                        content = `<div class="null ${indentClass}">null</div>`;
-                    } else if (typeof value === 'object') {
-                        content = `<div class="object scrollable ${indentClass}">${Object.keys(value).map(key => 
-                            `<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(value[key], level + 1)}</span></div>`
-                        ).join('')}</div>`;
-                    } else if (typeof value === 'string') {
-                        content = `<div class="string ${indentClass}">"${value}"</div>`;
-                    } else if (typeof value === 'number') {
-                        content = `<div class="number ${indentClass}">${value}</div>`;
-                    } else if (typeof value === 'boolean') {
-                        content = `<div class="boolean ${indentClass}">${value}</div>`;
-                    } else if (typeof value === 'undefined') {
-                        content = `<div class="undefined ${indentClass}">undefined</div>`;
-                    }
-        
-                    return content;
-                };
-        
-                const htmlContent = `
-                    ${tailwindScript}
-                    ${tailwindStyles}
-                    <div class="debug">
-                    <pre class="data-type-wrapper">${recursiveRender(data)}</pre>
-                    </div>
-                `;
-        
-                res.set('Content-Type', 'text/html');
-                res.send(htmlContent); // Send the formatted data as HTML
-            }
-        };
         Server.app.use((req, res, next) => {
-            global.req = req;
-            global.res = res;
-            global.forward = next;
             if (!req.session) {
                 req.session = {};
             }
-            forward();
-        })
+        
+            // Attach helpers globally (not ideal for concurrent apps)
+            global.req = req;
+            global.res = res;
+        
+            global.json = (data, status = 200) => res.status(status).json(data);
+            global.view = (view, data = {}) => res.status(data ? 200 : 403).render(view, data);
+            global.redirect = (url) => res.redirect(url);
+            global.back = () => res.redirect(req.get('Referrer') || '/'); // Safeguard for null referrers
+        
+            next();
+        });
     }
 
     static handle() {

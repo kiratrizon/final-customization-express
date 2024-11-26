@@ -37,33 +37,35 @@ class Database {
 
     async runQuery(query, params = []) {
         const isSQLite = process.env.DATABASE === 'sqlite';
-
+    
         try {
             this.openConnection();
-
+    
             if (this.debugger) {
                 console.log('Query:', query);
                 console.log('Params:', params);
             }
+    
             if (!this.connection) {
                 throw new Error('Database connection is not established.');
             }
-
+    
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
                 const queryType = query.trim().toLowerCase().split(' ')[0];
-
-                if (queryType === 'create') {
-                    stmt.run(params);
-                    return null;
-                } else if (queryType === 'insert') {
-                    const result = stmt.run(params);
-                    return result.lastInsertRowid;
-                } else if (queryType === 'update' || queryType === 'delete') {
-                    const result = stmt.run(params);
-                    return result.changes;
-                } else {
-                    return stmt.all(params);
+    
+                switch (queryType) {
+                    case 'insert': {
+                        const result = stmt.run(params);
+                        return result.lastInsertRowid; // Return the primary ID
+                    }
+                    case 'update':
+                    case 'delete': {
+                        const result = stmt.run(params);
+                        return result.changes > 0; // Return a boolean
+                    }
+                    default: // SELECT and other queries
+                        return stmt.all(params); // Return data
                 }
             } else {
                 return new Promise((resolve, reject) => {
@@ -72,12 +74,18 @@ class Database {
                             reject(err);
                         } else {
                             const queryType = query.trim().toLowerCase().split(' ')[0];
-                            if (queryType === 'insert') {
-                                resolve(results.insertId);
-                            } else if (queryType === 'update' || queryType === 'delete') {
-                                resolve(results.affectedRows);
-                            } else {
-                                resolve(results);
+    
+                            switch (queryType) {
+                                case 'insert':
+                                    resolve(results.insertId); // Return the primary ID
+                                    break;
+                                case 'update':
+                                case 'delete':
+                                    resolve(results.affectedRows > 0); // Return a boolean
+                                    break;
+                                default: // SELECT and other queries
+                                    resolve(results); // Return data
+                                    break;
                             }
                         }
                     });
@@ -113,4 +121,4 @@ class Database {
 
 }
 
-module.exports = DatabaseConnection;
+module.exports = Database;
