@@ -1,6 +1,5 @@
-const webRoute = require('../../../Routes/web');
-const apiRoute = require('../../../Routes/api');
 const path = require('path');
+const fs = require('fs');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const flash = require('connect-flash');
@@ -16,7 +15,7 @@ class Server {
     static #baseUrl = '';
     static #routes = {};
 
-    static validateRoute(args1) {
+    static #validateRoute(args1) {
         if (
             !args1 ||
             typeof args1.mainRouter !== 'function' ||
@@ -131,11 +130,17 @@ class Server {
             }
 
             Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
-            global.req_derive = req;
-            global.res_derive = res;
 
             global.json = (data, status = 200) => res.status(status).json(data);
-            global.view = (view, data = {}) => res.status(data ? 200 : 403).render(view, data);
+            global.view = (view, data = {}) => {
+                const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
+            
+                if (fs.existsSync(viewPath)) {
+                    res.status(200).render(view, data);
+                } else {
+                    dump({ "error": `${path.relative(base_path(), view_path())}/${view}.ejs not found` }, true);
+                }
+            };
             global.redirect = (url) => res.redirect(url);
             global.back = () => res.redirect(req.get('Referrer') || '/');
             global.isApiUrl = () => req.path.startsWith('api');
@@ -210,13 +215,29 @@ class Server {
             next(err);
         }
     }
+
+    static loadAndValidateRoutes() {
+        const routesDir = path.join(__dirname, '../../../Routes');
+        const routeFiles = fs.readdirSync(routesDir);
+        const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
+        
+        if (jsFiles.includes('web.js')) {
+            const webRoutePath = path.join(routesDir, 'web.js');
+            const webRoute = require(webRoutePath);
+            Server.#validateRoute(webRoute);
+            jsFiles.splice(jsFiles.indexOf('web.js'), 1);
+        }
+    
+        jsFiles.forEach(file => {
+            const routePath = path.join(routesDir, file);
+            const route = require(routePath);
+            Server.#validateRoute(route);
+        });
+    }
 }
 
 Server.boot();
-
-Server.validateRoute(apiRoute);
-Server.validateRoute(webRoute);
-
+Server.loadAndValidateRoutes();
 Server.finishBoot();
 
 module.exports = Server.app;

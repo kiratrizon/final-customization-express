@@ -2,6 +2,11 @@ const MiddlewareHandler = require('../../../app/MiddlewareHandler');
 
 class Route {
     static #prefix = '/';
+    static setPrefix(pref){
+        Route.#prefix = pref;
+        Route.mainRouter = require('express').Router();
+        Route.#storedRoutes = {};
+    }
     static getPrefix(){
         return Route.#prefix;
     }
@@ -16,9 +21,7 @@ class Route {
             const [controller, method] = options;
             const instanceofController = new controller();
             if (typeof instanceofController[method] === 'function') {
-                newOpts = () => {
-                    const req = req_derive;
-                    const res = res_derive;
+                newOpts = (req, res) => {
                     const data = {
                         request: {
                             method: req.method,
@@ -41,7 +44,8 @@ class Route {
                         }
                     };
                     const params = data.request.params;
-                    instanceofController.init(data.request);
+                    global.request = data.request;
+                    global.dd = (data) => dump(data, true);
                     if (Object.keys(params).length > 0) {
                         instanceofController[method](...Object.values(params));
                     } else {
@@ -50,10 +54,36 @@ class Route {
                 };
             }
         } else if (typeof options === 'function') {
-            newOpts = options;
+            newOpts = (req, res) => {
+                const data = {
+                    request: {
+                        method: req.method,
+                        url: req.originalUrl,
+                        body: req.body,
+                        params: req.params,
+                        headers: req.headers,
+                        query: req.query,
+                        cookies: req.cookies,
+                        path: req.path,
+                        originalUrl: req.originalUrl,
+                        ip: req.ip,
+                        protocol: req.protocol,
+                        user: req.user || null,
+                        route: req.route || null,
+                        acceptLanguage: req.headers['accept-language'],
+                        referer: req.headers['referer'] || null,
+                        session: req.session || null,
+                        files: req.files || null,
+                    }
+                };
+                const params = req.params;
+                global.request = data.request;
+                global.dd = (data) => dump(data, true);
+                options(...Object.values(params));
+            }
         }
         if (newOpts !== undefined) {
-            newRoute[requestMethod](`${prefix}`, newOpts)
+            newRoute[requestMethod](`${prefix}`, newOpts);
             Route.mainRouter.use(newRoute);
         }
     }
@@ -147,6 +177,10 @@ class Route {
     }
     static routes() {
         return Route.#storedRoutes;
+    }
+
+    static middleWare(){
+
     }
 }
 

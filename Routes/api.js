@@ -1,7 +1,8 @@
-const Route = require('../main/express/server/RouteApi');
+const Route = require('../main/express/server/Router');
 
-Route.get('/', ()=>{
-    return json({'welcome': 'Welcome to the API'});
+Route.setPrefix('/api');
+Route.get('/:id?', (id = 0)=>{
+    dd(request)
 });
 
 module.exports = Route;

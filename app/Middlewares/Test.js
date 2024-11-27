@@ -2,7 +2,7 @@ class Test {
 
     static handle(req, res, next) {
 
-        console.log('hello test middleware');
+        console.log(base_path());
         next();
     }
 }

@@ -4,7 +4,7 @@ class MiddlewareHandler {
 
     middlewareAliases() {
         return {
-            test: Test
+            "test": Test
         };
     }
 }
