@@ -32,7 +32,7 @@ class MigrationRunner {
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
     
-            this.db.makeMigration(query, migrationName);
+            this.db.makeMigration(query, migrationName, true);
         }));
     }
     

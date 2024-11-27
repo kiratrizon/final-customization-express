@@ -153,6 +153,7 @@ class BaseModel extends ConstructorModel {
     }
 
     async create(data) {
+        delete data['password_confirmation'];
         try {
             const keys = Object.keys(data);
             const values = Object.values(data);

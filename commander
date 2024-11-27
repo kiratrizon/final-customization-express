@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const { Command } = require('commander');
 const program = new Command();
+const { spawn } = require('child_process');
+const defaultStubPath =  path.join(__dirname, 'main', 'express', 'stubs');
 
 class Generator {
     constructor() {
@@ -16,7 +18,7 @@ class Generator {
 
     // Create a controller
     createController(name, resource = false) {
-        const controllerStub = path.join(__dirname, 'main', 'express', 'stubs', resource ? 'ResourceController.stub' : 'Controller.stub');
+        const controllerStub = path.join(defaultStubPath, resource ? 'ResourceController.stub' : 'Controller.stub');
         const controllerContent = fs.readFileSync(controllerStub, 'utf-8').replace(/{{ ControllerName }}/g, name);
 
         const controllerPath = path.join(this.controllersPath, `${name}.js`);
@@ -27,7 +29,7 @@ class Generator {
 
     // Create a model
     createModel(name, createMigration = false) {
-        const modelStub = path.join(__dirname, 'main', 'express', 'stubs', 'Model.stub');
+        const modelStub = path.join(defaultStubPath, 'Model.stub');
         let modelContent = fs.readFileSync(modelStub, 'utf-8').replace(/{{ ModelName }}/g, name);
     
         const modelPath = path.join(this.modelsPath, `${name}.js`);
@@ -35,17 +37,15 @@ class Generator {
     
         console.log(`Model created at ${modelPath}`);
     
-        // If the -mc flag is passed, create a migration as well
         if (createMigration) {
-            console.log(`-mc flag detected. Creating migration for model ${name}...`);
-            this.createMigration(this.#generateTableNames(name)); // Trigger the migration creation
+            this.createMigration(this.#generateTableNames(name));
         }
     }
 
     // Create a migration
     createMigration(name, alter = false) {
         const tableName = name;
-        const migrationStub = path.join(__dirname, 'main', 'express', 'stubs', `Migration${alter?'Alter':''}.stub`);
+        const migrationStub = path.join(defaultStubPath, `Migration${alter?'Alter':''}.stub`);
         let migrationContent = fs.readFileSync(migrationStub, 'utf-8').replace(/{{ tableName }}/g, tableName);
         
         const migrationFileName = `${Date.now()}_${alter?'alter':'create'}_${tableName.toLowerCase()}_table.js`; // Use timestamp for uniqueness
@@ -84,6 +84,16 @@ class Generator {
         })();
 
         return [...splitWords, pluralizedLastWord].join('').toLowerCase();
+    }
+
+    generateMiddleware(middlename){
+        const middlewareStub = path.join(defaultStubPath, 'Middleware.stub');
+        const middlewareContent = fs.readFileSync(middlewareStub, 'utf-8').replace(/{{ MiddlewareName }}/g, middlename);
+
+        const middlewarePath = path.join(__dirname, 'app', 'Middlewares', `${middlename}.js`);
+        this.#writeFile(middlewarePath, middlewareContent);
+
+        console.log(`Middleware created at ${middlewarePath}`);
     }
 }
 
@@ -136,7 +146,6 @@ program
         console.log('All migrations rolled back successfully.');
     });
 
-const { spawn } = require('child_process');
 
 program
     .command('serve')
@@ -153,6 +162,13 @@ program
                 console.error(`Development server exited with code ${code}.`);
             }
         });
+    });
+
+program
+    .command('make:middleware <name>')
+    .description('Generates a middleware for a given name')
+    .action((name) => {
+        generator.generateMiddleware(name);
     });
 
 program.parse(process.argv);

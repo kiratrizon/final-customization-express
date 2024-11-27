@@ -131,7 +131,7 @@ class Server {
 
             Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 
-            global.json = (data, status = 200) => res.status(status).json(data);
+            global.json_response = (data, status = 200) => res.status(status).json(data);
             global.view = (view, data = {}) => {
                 const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
             
@@ -159,7 +159,7 @@ class Server {
         const corsOptions = {
             origin: origins,
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
-            credentials: true,
+            // credentials: true,
             allowedHeaders: ['Content-Type', 'Authorization'],
             optionsSuccessStatus: 200,
         };

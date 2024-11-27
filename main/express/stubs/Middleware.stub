@@ -1,0 +1,10 @@
+class {{ MiddlewareName }} {
+
+    static handle(req, res, next) {
+
+        console.log('{{ MiddlewareName }}');
+        next();
+    }
+}
+
+module.exports = {{ MiddlewareName }};

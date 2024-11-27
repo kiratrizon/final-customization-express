@@ -67,11 +67,15 @@ class Database {
                     }
                     case 'create':
                     case 'alter':
+                    case 'drop':
                         // For CREATE and ALTER queries, return true if no error occurred
                         stmt.run(params);
                         return true;  // Success
+                    case 'select':
+                        return stmt.all(params);
                     default:
-                        return stmt.all(params);  // Default for SELECT and other queries
+                        stmt.all(params)
+                        return true;  // Default for SELECT and other queries
                 }
             } else {
                 // For MySQL
@@ -92,6 +96,7 @@ class Database {
                                     break;
                                 case 'create':
                                 case 'alter':
+                                case 'drop':
                                     resolve(true);  // Return true for successful CREATE and ALTER
                                     break;
                                 default:
@@ -130,42 +135,47 @@ class Database {
         this.connection = null;
     }
 
-    async makeMigration(query, filename) {
+    async makeMigration(query, filename, rollback = false) {
         let migrationsTableQuery = '';
-        if (process.env.DATABASE === 'mysql') {
-            migrationsTableQuery = `
-                CREATE TABLE IF NOT EXISTS migrations (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    migration_name VARCHAR(255) NOT NULL UNIQUE,
-                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            `;
-        } else if (process.env.DATABASE === 'sqlite') {
-            migrationsTableQuery = `
-                CREATE TABLE IF NOT EXISTS migrations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    migration_name VARCHAR(255) NOT NULL UNIQUE,
-                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            `;
-        }
-    
-        try {
-            await this.#privateRunQuery(migrationsTableQuery);
-    
-            let fileNameChecker = await this.#privateRunQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
-            if (fileNameChecker.length === 0) {
-                const migrationResult = await this.#privateRunQuery(query);
-                
-                if (migrationResult) {
-                    await this.#privateRunQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
-                    console.log(`Migration "${filename}" applied successfully.`);
-                } else {
-                    console.log(`Migration "${filename}" failed to execute.`);
-                }
+        if (rollback){
+            await this.#privateRunQuery(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
+            await this.#privateRunQuery(query);
+        } else {
+            if (process.env.DATABASE === 'mysql') {
+                migrationsTableQuery = `
+                    CREATE TABLE IF NOT EXISTS migrations (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        migration_name VARCHAR(255) NOT NULL UNIQUE,
+                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                `;
+            } else if (process.env.DATABASE === 'sqlite') {
+                migrationsTableQuery = `
+                    CREATE TABLE IF NOT EXISTS migrations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        migration_name VARCHAR(255) NOT NULL UNIQUE,
+                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                `;
             }
-        } catch (err) {
-            console.error(`Error applying migration "${filename}":`, err);
+        
+            try {
+                await this.#privateRunQuery(migrationsTableQuery);
+        
+                let fileNameChecker = await this.#privateRunQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
+                if (fileNameChecker.length === 0) {
+                    const migrationResult = await this.#privateRunQuery(query);
+                    
+                    if (migrationResult) {
+                        await this.#privateRunQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
+                        console.log(`Migration "${filename}" applied successfully.`);
+                    } else {
+                        console.log(`Migration "${filename}" failed to execute.`);
+                    }
+                }
+            } catch (err) {
+                console.error(`Error applying migration "${filename}":`, err);
+            }
         }
     }
 
@@ -196,11 +206,14 @@ class Database {
                     }
                     case 'create':
                     case 'alter':
+                    case 'drop':
                         // For CREATE and ALTER queries, return true if no error occurred
                         stmt.run(params);
                         return true;  // Success
+                    case 'select':
+                        return stmt.all(params);
                     default:
-                        return stmt.all(params);  // Default for SELECT and other queries
+                        return stmt.all(params)
                 }
             } else {
                 // For MySQL
@@ -221,6 +234,7 @@ class Database {
                                     break;
                                 case 'create':
                                 case 'alter':
+                                case 'drop':
                                     resolve(true);  // Return true for successful CREATE and ALTER
                                     break;
                                 default:
