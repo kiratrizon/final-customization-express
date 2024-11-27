@@ -1,0 +1,39 @@
+const Controller = require("./Controller");
+
+class {{ ControllerName }} extends Controller {
+    constructor(){
+        super();
+        this.loadModel([
+            // Load model here strings
+        ]);
+    }
+    async index(){
+        json({message: "{{ ControllerName }} index"})
+    }
+
+    async create(){
+        json({message: "{{ ControllerName }} create"})
+    }
+
+    async store(){
+        json({message: "{{ ControllerName }} store"})
+    }
+
+    async show(id){
+        json({message: "{{ ControllerName }} show"})
+    }
+
+    async edit(id){
+        json({message: "{{ ControllerName }} edit"})
+    }
+
+    async update(id){
+        json({message: "{{ ControllerName }} update"})
+    }
+
+    async destroy(id){
+        json({message: "{{ ControllerName }} destroy"})
+    }
+}
+
+module.exports = {{ ControllerName }};

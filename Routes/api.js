@@ -1,6 +1,7 @@
-const WelcomeController = require('../app/Controllers/WelcomeController');
-const Route = require('../main/express/Route');
+const Route = require('../main/express/server/RouteApi');
 
-// start your route here
-Route.get('/', [WelcomeController, 'welcome']);
+Route.get('/', ()=>{
+    return json({'welcome': 'Welcome to the API'});
+});
+
 module.exports = Route;

@@ -1,4 +1,4 @@
-const BaseController = require("../../main/express/BaseController");
+const BaseController = require("../../main/express/server/BaseController");
 class Controller extends BaseController {
     
 }

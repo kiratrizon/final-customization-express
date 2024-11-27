@@ -1,4 +1,4 @@
-const LoadModel = require("../../libraries/Materials/LoadModel");
+const LoadModel = require("../../../libraries/Materials/LoadModel");
 const ConstructorController = require("./ConstructorController");
 class BaseController extends ConstructorController {
     loadModel(models) {

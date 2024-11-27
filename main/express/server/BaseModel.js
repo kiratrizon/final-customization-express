@@ -160,8 +160,7 @@ class BaseModel extends ConstructorModel {
             const query = `INSERT INTO ${this.getTableName()} (${keys.join(', ')}) VALUES (${placeholders})`;
             return await Database.runQuery(query, values);
         } catch (error) {
-            console.error(`Error in create():`, error);
-            throw error;
+            return error;
         }
     }
 

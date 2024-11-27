@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const Configure = require('./Configure');
-const NodeMailer = require('../../vendor/node-mailer');
-const Database = require('../../main/database/Database');
+const Configure = require('../../../libraries/Materials/Configure');
+const NodeMailer = require('../../../vendor/node-mailer');
+const Database = require('../../database/Database');
 require('dotenv').config();
 
 global.only = (obj, keys) => {
@@ -69,6 +69,29 @@ global.config = (finder) => {
     return Configure.read(finder);
 };
 
-global.Constant = Configure;
 global.Mailer = NodeMailer;
 global.Database = new Database();
+
+global.base_path = () => {
+    return path.join(__dirname, '..', '..', '..');
+}
+
+global.resources_path = () => {
+    return `${base_path()}/resources`;
+}
+
+global.view_path = () => {
+    return `${base_path()}/resources/views`;
+}
+
+global.public_path = () => {
+    return `${base_path()}/public`;
+}
+
+global.database_path = () => {
+    return `${base_path()}/main/database`;
+}
+
+global.app_path = () => {
+    return `${base_path()}/app`;
+}

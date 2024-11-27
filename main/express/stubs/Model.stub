@@ -1,0 +1,9 @@
+const Model = require("./Model");
+
+class {{ ModelName }} extends Model {
+    fillable = [
+
+    ];
+};
+
+module.exports = {{ ModelName }};

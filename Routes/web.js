@@ -1,7 +1,7 @@
-const Route = require('../main/express/Route');
+const Route = require('../main/express/server/Route');
 
-Route.get('/', function(){
-    const message = 'Hello World!';
+Route.get('/', ()=>{
+    const message = 'Hello, Welcome to the Web';
     return view('welcome', {message});
 });
 

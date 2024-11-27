@@ -8,11 +8,19 @@ class WelcomeController extends Controller {
         ]);
     }
     async welcome() {
-        let data = await this.Admin.find(1);
-        response(403).json({data});
+        let data = await this.Admin.update(2, {
+            username: 'kiratrizons',
+            email: 'example@example.com',
+        });
+
+        json({data});
     };
     test(id, content) {
         dd({ id, content, request });
+    }
+
+    index(){
+        json({message: 'Welcome to the index page!'});
     }
 }
 

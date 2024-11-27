@@ -1,4 +1,4 @@
-const BaseModel = require("../main/express/BaseModel");
+const BaseModel = require("../main/express/server/BaseModel");
 
 class Model extends BaseModel {
     

@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+
+const MigrationRunner = require('./main/database/MigrationRunner');
+const Configure = require('./libraries/Materials/Configure');
+const fs = require('fs');
+const path = require('path');
+const { Command } = require('commander');
+const program = new Command();
+
+class Generator {
+    constructor() {
+        this.controllersPath = path.join(__dirname, 'app', 'Controllers');
+        this.modelsPath = path.join(__dirname, 'models');
+        this.migrationsPath = path.join(__dirname, 'main', 'database', 'migrations');
+    }
+
+    // Create a controller
+    createController(name, resource = false) {
+        const controllerStub = path.join(__dirname, 'main', 'express', 'stubs', resource ? 'ResourceController.stub' : 'Controller.stub');
+        const controllerContent = fs.readFileSync(controllerStub, 'utf-8').replace(/{{ ControllerName }}/g, name);
+
+        const controllerPath = path.join(this.controllersPath, `${name}.js`);
+        this.#writeFile(controllerPath, controllerContent);
+
+        console.log(`Controller created at ${controllerPath}`);
+    }
+
+    // Create a model
+    createModel(name, createMigration = false) {
+        const modelStub = path.join(__dirname, 'main', 'express', 'stubs', 'Model.stub');
+        let modelContent = fs.readFileSync(modelStub, 'utf-8').replace(/{{ ModelName }}/g, name);
+    
+        const modelPath = path.join(this.modelsPath, `${name}.js`);
+        this.#writeFile(modelPath, modelContent);
+    
+        console.log(`Model created at ${modelPath}`);
+    
+        // If the -mc flag is passed, create a migration as well
+        if (createMigration) {
+            console.log(`-mc flag detected. Creating migration for model ${name}...`);
+            this.createMigration(this.#generateTableNames(name)); // Trigger the migration creation
+        }
+    }
+
+    // Create a migration
+    createMigration(name, alter = false) {
+        const tableName = name;
+        const migrationStub = path.join(__dirname, 'main', 'express', 'stubs', `Migration${alter?'Alter':''}.stub`);
+        let migrationContent = fs.readFileSync(migrationStub, 'utf-8').replace(/{{ tableName }}/g, tableName);
+        
+        const migrationFileName = `${Date.now()}_${alter?'alter':'create'}_${tableName.toLowerCase()}_table.js`; // Use timestamp for uniqueness
+        const migrationPath = path.join(this.migrationsPath, migrationFileName);
+    
+        this.#writeFile(migrationPath, migrationContent);
+        console.log(`Migration created at ${migrationPath}`);
+    }
+
+    // Write content to a file and ensure directories exist
+    #writeFile(filePath, content) {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, content);
+    }
+
+    // Generate table names using pluralization
+    #generateTableNames(entity) {
+        const irregularPlurals = Configure.read('irregular_words');
+        const splitWords = entity.split(/(?=[A-Z])/);
+        const lastWord = splitWords.pop().toLowerCase();
+
+        const pluralizedLastWord = (() => {
+            if (irregularPlurals[lastWord]) {
+                return irregularPlurals[lastWord];
+            }
+            if (lastWord.endsWith('y')) {
+                return lastWord.slice(0, -1) + 'ies';
+            }
+            if (['s', 'x', 'z', 'ch', 'sh'].some((suffix) => lastWord.endsWith(suffix))) {
+                return lastWord + 'es';
+            }
+            return lastWord + 's';
+        })();
+
+        return [...splitWords, pluralizedLastWord].join('').toLowerCase();
+    }
+}
+
+const generator = new Generator();
+
+// Command to generate a controller
+program
+    .command('make:controller <name>')
+    .option('--resource', 'Generate a resource controller')
+    .action((name, options) => {
+        generator.createController(name, options.resource);
+    });
+
+// Command to generate a model
+program
+    .command('make:model <name>')
+    .option('--mc', 'Generate migration file as well')
+    .action((name, options) => {
+        generator.createModel(name, options.mc);
+    });
+
+// Command to generate a migration
+program
+    .command('make:migration <name>')
+    .option('--alter', 'Generate an ALTER TABLE migration')
+    .action((name, options) => {
+        if (options.alter) {
+            generator.createMigration(name, true);
+        } else {
+            generator.createMigration(name);
+        }
+    });
+
+
+program
+    .command('migrate')
+    .description('Run all migrations')
+    .action(async () => {
+        const runner = new MigrationRunner();
+        await runner.run();
+    });
+
+// Command to rollback migrations
+program
+    .command('rollback')
+    .description('Rollback all migrations')
+    .action(async () => {
+        const runner = new MigrationRunner();
+        await runner.rollback(); // Rollback migrations
+        console.log('All migrations rolled back successfully.');
+    });
+
+const { spawn } = require('child_process');
+
+program
+    .command('serve')
+    .description('Run the application in development mode')
+    .action(() => {
+        console.log('Starting the development server...');
+
+        const devProcess = spawn('npm', ['run', 'dev'], { stdio: 'inherit', shell: true });
+
+        devProcess.on('close', (code) => {
+            if (code === 0) {
+                console.log('Development server stopped successfully.');
+            } else {
+                console.error(`Development server exited with code ${code}.`);
+            }
+        });
+    });
+
+program.parse(process.argv);

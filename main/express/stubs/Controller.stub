@@ -1,0 +1,12 @@
+const Controller = require("./Controller");
+
+class {{ ControllerName }} extends Controller {
+    constructor(){
+        super();
+        this.loadModel([
+            // Load model here strings
+        ]);
+    }
+}
+
+module.exports = {{ ControllerName }};
