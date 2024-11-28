@@ -1,43 +1,79 @@
 const MiddlewareHandler = require('../../../app/MiddlewareHandler');
+const expressRouter = require('express').Router();
 
 class Route {
     static #prefix = '/';
-    static setPrefix(pref){
-        Route.#prefix = pref;
-        Route.mainRouter = require('express').Router();
-        Route.#storedRoutes = {};
+    static mainRouter = expressRouter;
+    static #storedController = {};
+    static #currentUrl = '';
+    static #currentMethod = '';
+    static #groupResource = '';
+    static #middlewareArr = [];
+    static #storedMethodRoutes = {
+        "get": {},
+        "post": {},
+        "put": {},
+        "delete": {},
+        "patch": {},
+    };
+    static #currentAs = '';
+    static #middlewareHandler = new MiddlewareHandler();
+    static setPrefix(prefix){
+        Route.#prefix = prefix;
+        Route.mainRouter = expressRouter;
+        Route.#storedController = {};
+        Route.#currentUrl = '';
+        Route.#currentMethod = '';
+        Route.#groupResource = '';
+        Route.#middlewareArr = [];
+        Route.#storedMethodRoutes = {
+            "get": {},
+            "post": {},
+            "put": {},
+            "delete": {},
+            "patch": {},
+        };
+        Route.#currentAs = '';
     }
     static getPrefix(){
         return Route.#prefix;
     }
-    static #currentName = '';
-    static #storedRoutes = {};
-    static mainRouter = require('express').Router();
-    static #handleRequest(requestMethod, prefix, options) {
-
-        const newRoute = require('express').Router();
+    static #handleRoutes(method, url, args) {
+        Route.#reset();
+    
+        // Prepend the group resource prefix to the URL
+        url = `${Route.#groupResource}${url}`.replace(/\/+/g, '/'); // Ensure no double slashes
+    
         let newOpts;
         let finalConvertion;
-        if (Array.isArray(options)) {
-            const [controller, method] = options;
-            const instanceofController = new controller();
-            if (typeof instanceofController[method] === 'function') {
-                finalConvertion = instanceofController[method];
+    
+        if (Array.isArray(args)) {
+            const [controller, action] = args;
+            if (!Route.#storedController[controller.name]) {
+                Route.#storedController[controller.name] = new controller();
             }
-        } else if (typeof options === 'function') {
-            finalConvertion = options;
+            const controllerInstance = Route.#storedController[controller.name];
+            const actionMethod = controllerInstance[action];
+            if (typeof actionMethod === 'function') {
+                finalConvertion = actionMethod;
+            }
+        } else if (args !== undefined && typeof args === 'function') {
+            finalConvertion = args;
         }
+    
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
                 const type = {};
-                let methodType = req.method.toLowerCase();
-                if (methodType == 'post') {
+                const methodType = req.method.toLowerCase();
+    
+                if (methodType === 'post') {
                     type.post = req.body;
-                } else if (methodType == 'get') {
+                } else if (methodType === 'get') {
                     type.get = req.query;
-                } else if (methodType == 'put') {
+                } else if (methodType === 'put') {
                     type.put = req.body;
                 }
+    
                 const data = {
                     request: {
                         method: methodType,
@@ -53,117 +89,155 @@ class Route {
                         ip: req.ip,
                         protocol: req.protocol,
                         user: req.user || null,
-                        // route: req.route || null,
                         acceptLanguage: req.headers['accept-language'],
                         referer: req.headers['referer'] || null,
                         session: req.session || null,
                         files: req.files || null,
                         received: type[methodType],
-                    }
+                    },
                 };
+    
                 const params = data.request.params;
                 global.dd = (data) => dump(data, true);
-                finalConvertion(req, res, data.request, data.request[methodType], ...Object.values(params));
+                global.request = data.request;
+                finalConvertion(...Object.values(params));
             };
-            newRoute[requestMethod](`${prefix}`, newOpts);
-            Route.mainRouter.use(newRoute);
         }
-    }
-
-    static get(prefix, options) {
-        Route.#handleRequest('get', prefix, options);
-        Route.#currentName = prefix;
-        return Route;
-    }
-    static post(prefix, options) {
-        Route.#handleRequest('post', prefix, options);
-        Route.#currentName = prefix;
-        return Route;
-    }
-    static put(prefix, options) {
-        Route.#handleRequest('put', prefix, options);
-        Route.#currentName = prefix;
-        return Route;
-    }
-    static delete(prefix, options) {
-        Route.#handleRequest('delete', prefix, options);
-        Route.#currentName = prefix;
-        return Route;
-    }
-    static patch(prefix, options) {
-        Route.#handleRequest('patch', prefix, options);
-        Route.#currentName = prefix;
-        return Route;
-    }
-
-    static group(opts = {}, callback) {
-        const currentPrefix = opts.prefix || '';
-        const currentMiddleware = opts.middleware || null;
-
-        const originalMainRouter = Route.mainRouter;
-        Route.mainRouter = require('express').Router();
-
-        Route.#applyMiddleware(originalMainRouter, currentPrefix, currentMiddleware);
-
-        callback();
-
-        Route.mainRouter = originalMainRouter;
-    }
-
-    static #applyMiddleware(originalMainRouter, currentPrefix, currentMiddleware) {
-        if (typeof currentMiddleware === 'string') {
-            const middlewareHandler = new MiddlewareHandler().middlewareAliases();
-            if (Object.keys(middlewareHandler).includes(currentMiddleware)) {
-                const middlewareClass = middlewareHandler[currentMiddleware]?.handle;
-                if (typeof middlewareClass === 'function') {
-                    originalMainRouter.use(`${currentPrefix}`, middlewareClass, Route.mainRouter);
-                } else {
-                    originalMainRouter.use(`${currentPrefix}`, Route.mainRouter);
-                }
-            } else {
-                originalMainRouter.use(`${currentPrefix}`, Route.mainRouter);
+    
+        if (newOpts !== undefined) {
+            if (!Route.#storedMethodRoutes[method][url]) {
+                Route.#storedMethodRoutes[method][url] = {};
             }
-        } else if (typeof currentMiddleware === 'function') {
-            originalMainRouter.use(`${currentPrefix}`, currentMiddleware, Route.mainRouter);
-        } else {
-            originalMainRouter.use(`${currentPrefix}`, Route.mainRouter);
+            Route.#storedMethodRoutes[method][url]['function_use'] = newOpts;
+            Route.#currentUrl = url;
+            Route.#currentMethod = method;
+            if (Route.#middlewareArr.length){
+                Route.#middlewareArrHandler(Route.#middlewareArr);
+            }
+            if (Route.#currentAs !== ''){
+            }
+            Route.name(Route.#currentAs);
         }
+    }
+    
+
+    static name(name){
+        if (Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['name'] !== undefined && Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['name'].endsWith('.')){
+            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['name'] += name;
+        } else {
+            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['name'] = name;
+        }
+        return Route;
+    }
+    static #resourceNaming(name){
+        if (Route.#currentUrl === '/test/hello/testing'){
+            console.log(name);
+        }
+        Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['name'] = name;
+        return Route;
+    }
+    static middleware(middlewareName){
+        if (typeof middlewareName === 'string'){
+            if (!Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares']){
+                Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'] = [];
+            }
+            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'].unshift(Route.#middlewareHandler.middlewareAliases()[middlewareName]['handle']);
+
+        }
+        return Route;
+    }
+
+    static #reset(){
+        Route.#currentUrl = '';
+        Route.#currentMethod = '';
+    }
+
+    static get(url, args){
+        Route.#handleRoutes('get', url, args);
+        return Route;
+    }
+    static post(url, args){
+        Route.#handleRoutes('post', url, args);
+        return Route;
+    }
+    static put(url, args){
+        Route.#handleRoutes('put', url, args);
+        return Route;
+    }
+    static delete(url, args){
+        Route.#handleRoutes('delete', url, args);
+        return Route;
+    }
+    static patch(url, args){
+        Route.#handleRoutes('patch', url, args);
+        return Route;
+    }
+
+    static getStoredRoutes(){
+        return Route.#storedMethodRoutes;
     }
 
     static resource(resource, controller) {
         do {
             resource = resource.substring(1);
         } while (resource.charAt(0) === '/');
-        Route.get(`${resource == '' ? resource : `/${resource}`}`, [controller, 'index']).name(`${resource}.index`);
-        Route.get(`${resource == '' ? resource : `/${resource}`}/create`, [controller, 'create']).name(`${resource}.create`);
-        Route.post(`${resource == '' ? resource : `/${resource}`}`, [controller, 'store']).name(`${resource}.store`);
-        Route.get(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'show']).name(`${resource}.show`);
-        Route.get(`${resource == '' ? resource : `/${resource}`}/:id/edit`, [controller, 'edit']).name(`${resource}.edit`); 
-        Route.put(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'update']).name(`${resource}.update`);
-        Route.delete(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'destroy']).name(`${resource}.destroy`);
-    }
-    static name(name) {
-        let resource = Route.getPrefix();
-        do {
-            resource = resource.substring(1);
-        } while (resource.charAt(0) === '/');
-        if (resource !== ''){
-            resource+= '.';
-        }
-        if (Route.#storedRoutes[`${resource}${name}`] === undefined){
-            Route.#storedRoutes[`${resource}${name}`] = Route.#currentName;
-            Route.#currentName = '';
-        } else {
-            console.error(`Route name ${resource}${name} already exists.`);
-        }
-    }
-    static routes() {
-        return Route.#storedRoutes;
+        let naming = resource == ''?'':`${resource}.`;
+        let as = Route.#currentAs == '' ? '' : `${Route.#currentAs}`;
+        let combine = `${as}${naming}`;
+        Route.get(`${resource == '' ? resource : `/${resource}`}`, [controller, 'index']).#resourceNaming(`${combine}index`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}/create`, [controller, 'create']).#resourceNaming(`${combine}create`);
+        Route.post(`${resource == '' ? resource : `/${resource}`}`, [controller, 'store']).#resourceNaming(`${combine}store`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'show']).#resourceNaming(`${combine}show`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}/:id/edit`, [controller, 'edit']).#resourceNaming(`${combine}edit`); 
+        Route.put(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'update']).#resourceNaming(`${combine}update`);
+        Route.delete(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'destroy']).#resourceNaming(`${combine}destroy`);
+
+        return Route;
     }
 
-    static middleWare(){
-
+    static group(opts, callback) {
+        let resource = opts.prefix.replace(/^\/+/, ''); // Simplified leading slash removal
+        
+        if (!opts.as) {
+            throw new Error("The 'as' property is required when defining a route group.");
+        }
+        
+        const originalMiddleware = Route.#middlewareArr.slice();
+        const originalPrefix = Route.#groupResource;
+        const originalAs = Route.#currentAs;
+        
+        // Set the group resource prefix
+        Route.#groupResource = `${originalPrefix}/${resource}`.replace(/\/+/g, '/');
+        
+        // Apply the group 'as' prefix
+        Route.#currentAs = `${originalAs}${opts.as}.`;
+        
+        // Add middleware if defined in the group options
+        if (opts.middleware) {
+            if (Array.isArray(opts.middleware)) {
+                Route.#middlewareArr.unshift(...opts.middleware);
+            } else {
+                Route.#middlewareArr.unshift(opts.middleware);
+            }
+        }
+        
+        // Run the callback to register routes inside the group
+        callback();
+        
+        // Restore original state after callback
+        Route.#middlewareArr = originalMiddleware;
+        Route.#groupResource = originalPrefix;
+        Route.#currentAs = originalAs;
+        
+        return Route;
     }
+
+    static #middlewareArrHandler(array){
+        for(let middleware of array){
+            Route.middleware(middleware);
+        }
+    }
+    
 }
 
 module.exports = Route;

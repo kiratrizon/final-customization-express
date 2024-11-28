@@ -1,4 +1,4 @@
-const Route = require('../main/express/server/RouterV2');
+const Route = require('../main/express/server/Router');
 
 Route.setPrefix('/api');
 Route.group({prefix:"v1",as:"v1"}, ()=>{
