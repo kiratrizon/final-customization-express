@@ -1,8 +1,10 @@
-const Model = require("./Model");
+const Authenticatable = require("../main/express/server/Authenticatable");
 
-class User extends Model {
+class User extends Authenticatable {
     fillable = [
-
+        'name',
+        'email',
+        'password'
     ];
 };
 

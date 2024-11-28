@@ -1,10 +1,12 @@
+const Hello = require("./Middlewares/Hello");
 const Test = require("./Middlewares/Test");
 
 class MiddlewareHandler {
 
     middlewareAliases() {
         return {
-            "test": Test
+            "test": Test,
+            "hello": Hello
         };
     }
 }

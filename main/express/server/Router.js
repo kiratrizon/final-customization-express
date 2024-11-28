@@ -17,72 +17,54 @@ class Route {
 
         const newRoute = require('express').Router();
         let newOpts;
+        let finalConvertion;
         if (Array.isArray(options)) {
             const [controller, method] = options;
             const instanceofController = new controller();
             if (typeof instanceofController[method] === 'function') {
-                newOpts = (req, res) => {
-                    const data = {
-                        request: {
-                            method: req.method,
-                            url: req.originalUrl,
-                            body: req.body,
-                            params: req.params,
-                            headers: req.headers,
-                            query: req.query,
-                            cookies: req.cookies,
-                            path: req.path,
-                            originalUrl: req.originalUrl,
-                            ip: req.ip,
-                            protocol: req.protocol,
-                            user: req.user || null,
-                            route: req.route || null,
-                            acceptLanguage: req.headers['accept-language'],
-                            referer: req.headers['referer'] || null,
-                            session: req.session || null,
-                            files: req.files || null,
-                        }
-                    };
-                    const params = data.request.params;
-                    global.request = data.request;
-                    global.dd = (data) => dump(data, true);
-                    if (Object.keys(params).length > 0) {
-                        instanceofController[method](...Object.values(params));
-                    } else {
-                        instanceofController[method]();
-                    }
-                };
+                finalConvertion = instanceofController[method];
             }
         } else if (typeof options === 'function') {
+            finalConvertion = options;
+        }
+        if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
+                const type = {};
+                let methodType = req.method.toLowerCase();
+                if (methodType == 'post') {
+                    type.post = req.body;
+                } else if (methodType == 'get') {
+                    type.get = req.query;
+                } else if (methodType == 'put') {
+                    type.put = req.body;
+                }
                 const data = {
                     request: {
-                        method: req.method,
+                        method: methodType,
                         url: req.originalUrl,
-                        body: req.body,
                         params: req.params,
                         headers: req.headers,
+                        body: req.body,
                         query: req.query,
+                        [methodType]: type[methodType],
                         cookies: req.cookies,
                         path: req.path,
                         originalUrl: req.originalUrl,
                         ip: req.ip,
                         protocol: req.protocol,
                         user: req.user || null,
-                        route: req.route || null,
+                        // route: req.route || null,
                         acceptLanguage: req.headers['accept-language'],
                         referer: req.headers['referer'] || null,
                         session: req.session || null,
                         files: req.files || null,
+                        received: type[methodType],
                     }
                 };
-                const params = req.params;
-                global.request = data.request;
+                const params = data.request.params;
                 global.dd = (data) => dump(data, true);
-                options(...Object.values(params));
-            }
-        }
-        if (newOpts !== undefined) {
+                finalConvertion(req, res, data.request, data.request[methodType], ...Object.values(params));
+            };
             newRoute[requestMethod](`${prefix}`, newOpts);
             Route.mainRouter.use(newRoute);
         }
@@ -152,13 +134,13 @@ class Route {
         do {
             resource = resource.substring(1);
         } while (resource.charAt(0) === '/');
-        Route.get(`/${resource}`, [controller, 'index']).name(`${resource}.index`);
-        Route.get(`/${resource}/create`, [controller, 'create']).name(`${resource}.create`);
-        Route.post(`/${resource}`, [controller, 'store']).name(`${resource}.store`);
-        Route.get(`/${resource}/:id`, [controller, 'show']).name(`${resource}.show`);
-        Route.get(`/${resource}/:id/edit`, [controller, 'edit']).name(`${resource}.edit`); 
-        Route.put(`/${resource}/:id`, [controller, 'update']).name(`${resource}.update`);
-        Route.delete(`/${resource}/:id`, [controller, 'destroy']).name(`${resource}.destroy`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}`, [controller, 'index']).name(`${resource}.index`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}/create`, [controller, 'create']).name(`${resource}.create`);
+        Route.post(`${resource == '' ? resource : `/${resource}`}`, [controller, 'store']).name(`${resource}.store`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'show']).name(`${resource}.show`);
+        Route.get(`${resource == '' ? resource : `/${resource}`}/:id/edit`, [controller, 'edit']).name(`${resource}.edit`); 
+        Route.put(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'update']).name(`${resource}.update`);
+        Route.delete(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'destroy']).name(`${resource}.destroy`);
     }
     static name(name) {
         let resource = Route.getPrefix();

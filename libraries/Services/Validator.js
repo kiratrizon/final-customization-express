@@ -17,11 +17,13 @@ class Validator {
     validRules;
     old;
     uniques = [];
+    #database;
     constructor() {
         this.#initialize();
+        this.#database = new Database();
     }
 
-    async handle() {
+    async #handle() {
         let keysToValidate = Object.keys(this.params);
         for (const key of keysToValidate) {
             let rules = this.params[key].split('|');
@@ -39,7 +41,6 @@ class Validator {
         this.errors = {};
         this.old = {};
         this.validRules = validRules;
-        this.database = new Database();
     }
 
     async #validate(key, ruleName, ruleValue = undefined) {
@@ -104,7 +105,7 @@ class Validator {
 
     async #validateUnique(value, table, key) {
         let sql = `SELECT ${key} FROM ${table} WHERE ${key} = ?`;
-        let data = await this.database.runQuery(sql, [value]); // Await the query execution
+        let data = await this.#database.runQuery(sql, [value]); // Await the query execution
         return data.length === 0; // Check if no records were found
     }
 
@@ -118,7 +119,7 @@ class Validator {
             values.push(value[key]);
         });
         sql += params.join(' AND ');
-        let data = await this.database.runQuery(sql, values);
+        let data = await this.#database.runQuery(sql, values);
         return data.length === 0;
     }
 
@@ -158,7 +159,7 @@ class Validator {
         this.#initialize();
         this.params = params;
         this.#data = data;
-        await this.handle(); // Await the handle method for asynchronous operations
+        await this.#handle();
         return this;
     }
 }

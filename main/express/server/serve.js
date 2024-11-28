@@ -14,7 +14,7 @@ class Server {
     static app = Server.express();
     static #baseUrl = '';
     static #routes = {};
-
+    static router = Server.express.Router();
     static #validateRoute(args1) {
         if (
             !args1 ||
@@ -25,8 +25,24 @@ class Server {
             return;
         }
 
-        Server.#duplicateRoutesDetector(Server.#routes, args1.routes());
-        Server.app.use(args1.getPrefix(), args1.mainRouter);
+        // Server.#duplicateRoutesDetector(Server.#routes, args1.routes());
+        const storedRoutes = Object.entries(args1.getStoredRoutes());
+        // console.log(args1.getStoredRoutes());
+        storedRoutes.forEach(([method, routes]) => {
+            // console.log(`Method: ${method}`);
+            
+            Object.entries(routes).forEach(([url, values]) => {
+                // console.log(`URL: ${url}`);
+                // console.log(`Values: `,values);
+                if (values['function_use'] === undefined && typeof values['function_use'] !== 'function') {
+                    return;
+                }
+                const middlewares = values['middleware'] || [];
+                Server.router[method](url == '' ? '/' : url, ...middlewares, values['function_use']);
+            });
+        });
+        Server.app.use(args1.getPrefix(), Server.router);
+        Server.router = Server.express.Router();
     }
 
     static boot() {

@@ -40,7 +40,7 @@ global.getFutureDate = (addTime = 60) => {
     } else {
         const now = new Date();
         const futureDate = new Date(now.getTime() + addTime * 24 * 60 * 60 * 1000);
-        return global.formatDate(futureDate);
+        return formatDate(futureDate);
     }
 };
 

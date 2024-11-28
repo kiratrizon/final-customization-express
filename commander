@@ -106,15 +106,13 @@ program
     .action((name, options) => {
         generator.createController(name, options.resource);
     });
-
-// Command to generate a model
+// Command to generate a middleware
 program
-    .command('make:model <name>')
-    .option('--mc', 'Generate migration file as well')
-    .action((name, options) => {
-        generator.createModel(name, options.mc);
+    .command('make:middleware <name>')
+    .description('Generates a middleware for a given name')
+    .action((name) => {
+        generator.generateMiddleware(name);
     });
-
 // Command to generate a migration
 program
     .command('make:migration <name>')
@@ -126,8 +124,14 @@ program
             generator.createMigration(name);
         }
     });
-
-
+// Command to generate a model
+program
+    .command('make:model <name>')
+    .option('--mc', 'Generate migration file as well')
+    .action((name, options) => {
+        generator.createModel(name, options.mc);
+    });
+// Command to run migrations
 program
     .command('migrate')
     .description('Run all migrations')
@@ -145,8 +149,7 @@ program
         await runner.rollback(); // Rollback migrations
         console.log('All migrations rolled back successfully.');
     });
-
-
+// Command to start the development server
 program
     .command('serve')
     .description('Run the application in development mode')
@@ -162,13 +165,6 @@ program
                 console.error(`Development server exited with code ${code}.`);
             }
         });
-    });
-
-program
-    .command('make:middleware <name>')
-    .description('Generates a middleware for a given name')
-    .action((name) => {
-        generator.generateMiddleware(name);
     });
 
 program.parse(process.argv);

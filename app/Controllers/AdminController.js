@@ -11,7 +11,7 @@ class UserController extends Controller {
         ]);
     }
     async index(){
-        json_response({"data":request, test:super.test()});
+        json_response({"data":request, test:this.test()});
     }
 
     async create(){

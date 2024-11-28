@@ -15,6 +15,10 @@ class Boot {
             dump({message:"Not Found"});
         }
     }
+
+    static hasher(){
+        return 'bcryptjs';
+    }
 }
 
 module.exports = Boot;

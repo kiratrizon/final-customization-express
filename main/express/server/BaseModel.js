@@ -1,3 +1,5 @@
+const Carbon = require("../../../libraries/Materials/Carbon");
+const Database = require("../../database/Database");
 const ConstructorModel = require("./ConstructorModel");
 
 class BaseModel extends ConstructorModel {
@@ -9,9 +11,12 @@ class BaseModel extends ConstructorModel {
     #offsetQuery = null;
     #groupByQuery = [];
     #selectQuery = [];
+    timestamp = true;
+    fillable = [];
     constructor() {
         super();
-        this.table = this.table || null; // Allows custom table names via subclass
+        this.table = this.table || null;
+        this.database = new Database();
     }
 
     #generateTableNames(entity) {
@@ -45,7 +50,7 @@ class BaseModel extends ConstructorModel {
     async find(id) {
         try {
             const query = `SELECT * FROM ${this.getTableName()} WHERE id = ?`;
-            const result = await Database.runQuery(query, [id]);
+            const result = await this.database.runQuery(query, [id]);
             return result.length ? result[0] : null;
         } catch (error) {
             console.error(`Error in find():`, error);
@@ -56,7 +61,7 @@ class BaseModel extends ConstructorModel {
     async all() {
         try {
             const query = `SELECT * FROM ${this.getTableName()}`;
-            return await Database.runQuery(query);
+            return await this.database.runQuery(query);
         } catch (error) {
             console.error(`Error in all():`, error);
             throw error;
@@ -121,7 +126,7 @@ class BaseModel extends ConstructorModel {
             if (this.#orderByQuery.length) query += ` ORDER BY ${this.#orderByQuery.join(' ')}`;
             if (this.#limitQuery) query += ` LIMIT ${this.#limitQuery}`;
             if (this.#offsetQuery) query += ` OFFSET ${this.#offsetQuery}`;
-            const results = await Database.runQuery(query, this.#valueQuery);
+            const results = await this.database.runQuery(query, this.#valueQuery);
             this.clear();
             return results;
         } catch (error) {
@@ -153,13 +158,18 @@ class BaseModel extends ConstructorModel {
     }
 
     async create(data) {
-        delete data['password_confirmation'];
         try {
+            data = only(data, this.fillable);
+            if (this.timestamp){
+                const dateNow = Carbon.getDateTime();
+                data['created_at'] = dateNow;
+                data['updated_at'] = dateNow;
+            }
             const keys = Object.keys(data);
             const values = Object.values(data);
             const placeholders = keys.map(() => '?').join(', ');
             const query = `INSERT INTO ${this.getTableName()} (${keys.join(', ')}) VALUES (${placeholders})`;
-            return await Database.runQuery(query, values);
+            return await this.database.runQuery(query, values);
         } catch (error) {
             return error;
         }
@@ -167,12 +177,15 @@ class BaseModel extends ConstructorModel {
 
     async update(id, data) {
         try {
+            if (this.timestamp){
+                data['updated_at'] = Carbon.getDateTime();
+            }
             const keys = Object.keys(data);
             const values = Object.values(data);
             const setClause = keys.map((key) => `${key} = ?`).join(', ');
             const query = `UPDATE ${this.getTableName()} SET ${setClause} WHERE id = ?`;
-            const result = await Database.runQuery(query, [...values, id]);
-            return result; // Relying on your Database.runQuery to return boolean or relevant output
+            const result = await this.database.runQuery(query, [...values, id]);
+            return result; // Relying on your this.database.runQuery to return boolean or relevant output
         } catch (error) {
             console.error(`Error in update():`, error);
             throw error;
@@ -182,8 +195,8 @@ class BaseModel extends ConstructorModel {
     async delete(id) {
         try {
             const query = `DELETE FROM ${this.getTableName()} WHERE id = ?`;
-            const result = await Database.runQuery(query, [id]);
-            return result; // Relying on your Database.runQuery to return boolean or relevant output
+            const result = await this.database.runQuery(query, [id]);
+            return result; // Relying on your this.database.runQuery to return boolean or relevant output
         } catch (error) {
             console.error(`Error in delete():`, error);
             throw error;
@@ -197,7 +210,7 @@ class BaseModel extends ConstructorModel {
             this.limit(perPage).offset(offset);
             const results = await this.get();
             const countQuery = `SELECT COUNT(*) AS total FROM ${this.getTableName()}`;
-            const countResult = await Database.runQuery(countQuery);
+            const countResult = await this.database.runQuery(countQuery);
             const total = countResult[0].total;
             return {
                 data: results,
@@ -226,7 +239,7 @@ class BaseModel extends ConstructorModel {
 
     async query(rawQuery, params = []) {
         try {
-            return await Database.runQuery(rawQuery, params);
+            return await this.database.runQuery(rawQuery, params);
         } catch (error) {
             console.error(`Error in query():`, error);
             throw error;
