@@ -17,7 +17,7 @@ class Boot {
     }
 
     static hasher(){
-        return 'bcryptjs';
+        return 'argon2';
     }
 }
 

@@ -11,19 +11,16 @@ const validRules = [
 const Database = require('../../main/database/Database');
 
 class Validator {
-    params;
-    #data;
-    errors;
-    validRules;
-    old;
-    uniques = [];
-    #database;
-    constructor() {
-        this.#initialize();
-        this.#database = new Database();
-    }
+    static params;
+    static #data;
+    static errors;
+    static validRules = validRules;
+    static old;
+    static uniques = [];
+    static #database = new Database();
 
-    async #handle() {
+    // Handle the validation for each field
+    static async #handle() {
         let keysToValidate = Object.keys(this.params);
         for (const key of keysToValidate) {
             let rules = this.params[key].split('|');
@@ -37,13 +34,14 @@ class Validator {
         }
     }
 
-    #initialize() {
+    // Initialize errors and old values
+    static #initialize() {
         this.errors = {};
         this.old = {};
-        this.validRules = validRules;
     }
 
-    async #validate(key, ruleName, ruleValue = undefined) {
+    // Validate a field based on its rules
+    static async #validate(key, ruleName, ruleValue = undefined) {
         let returnData = true;
 
         switch (ruleName) {
@@ -87,7 +85,7 @@ class Validator {
             case 'exists':
                 const isNotExist = await this.#validateExists(this.#data[key], ruleValue);
                 if (!isNotExist) {
-                    this.errors[key] = 'This value exist.';
+                    this.errors[key] = 'This value exists.';
                     returnData = false;
                 }
                 break;
@@ -98,20 +96,23 @@ class Validator {
         return returnData;
     }
 
-    #validateEmail(value) {
+    // Validate email format
+    static #validateEmail(value) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(value);
     }
 
-    async #validateUnique(value, table, key) {
+    // Check if the value is unique in the database
+    static async #validateUnique(value, table, key) {
         let sql = `SELECT ${key} FROM ${table} WHERE ${key} = ?`;
-        let data = await this.#database.runQuery(sql, [value]); // Await the query execution
-        return data.length === 0; // Check if no records were found
+        let data = await this.#database.runQuery(sql, [value]);
+        return data.length === 0;
     }
 
-    async #validateExists(value, table) {
+    // Check if the value exists in the database
+    static async #validateExists(value, table) {
         let keys = Object.keys(value);
-        let sql = `SELECT id from ${table} WHERE `;
+        let sql = `SELECT id FROM ${table} WHERE `;
         let params = [];
         let values = [];
         keys.forEach(key => {
@@ -123,13 +124,8 @@ class Validator {
         return data.length === 0;
     }
 
-    /**
-     * Checks if there are any validation errors.
-     *
-     * @returns {Object|boolean} Returns an object containing errors if validation fails, 
-     *                           or false if there are no errors.
-     */
-    fails() {
+    // Checks if there are any validation errors
+    static fails() {
         let returnData = (Object.keys(this.errors).length > 0);
         if (returnData) {
             let returnKeys = {};
@@ -143,19 +139,14 @@ class Validator {
         return returnData;
     }
 
-    revoke() {
+    // Revoke all errors and old data
+    static revoke() {
         this.errors = {};
         this.old = {};
     }
 
-    /**
-     * Initializes the validator with the given data and parameters.
-     *
-     * @param {Object} req - The data to be validated.
-     * @param {Object} [params={}] - Optional parameters for validation rules.
-     * @returns {void} This function does not return a value. It handles validation.
-     */
-    async make(data = {}, params = {}) {
+    // Initialize the validator with data and parameters
+    static async make(data = {}, params = {}) {
         this.#initialize();
         this.params = params;
         this.#data = data;
@@ -164,4 +155,4 @@ class Validator {
     }
 }
 
-module.exports = new Validator();
+module.exports = Validator;

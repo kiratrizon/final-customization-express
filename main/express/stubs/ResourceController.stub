@@ -1,38 +1,34 @@
+const Validator = require("../../libraries/Services/Validator");
 const Controller = require("./Controller");
 
 class {{ ControllerName }} extends Controller {
-    constructor(){
-        super();
-        this.loadModel([
-            // Load model here strings
-        ]);
-    }
+    // get
     async index(){
-        json({message: "{{ ControllerName }} index"})
+        json_response(route('user.index'));
     }
-
+    // get
     async create(){
-        json({message: "{{ ControllerName }} create"})
+        json_response({message: "{{ ControllerName }} create"})
     }
-
+    // post
     async store(){
-        json({message: "{{ ControllerName }} store"})
+        json_response({message: "{{ ControllerName }} store"});
     }
-
+    // get
     async show(id){
-        json({message: "{{ ControllerName }} show"})
+        json_response({message: "{{ ControllerName }} show"})
     }
-
+    // get
     async edit(id){
-        json({message: "{{ ControllerName }} edit"})
+        json_response({get})
     }
-
+    // put
     async update(id){
-        json({message: "{{ ControllerName }} update"})
+        json_response({message: "{{ ControllerName }} update"})
     }
-
+    // delete
     async destroy(id){
-        json({message: "{{ ControllerName }} destroy"})
+        json_response({message: "{{ ControllerName }} destroy"})
     }
 }
 

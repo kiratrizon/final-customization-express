@@ -1,9 +1,10 @@
 class Hello {
 
-    static handle(req, res, next) {
-
-        console.log('Hello');
-        // next();
+    static handle(next) {
+        // your middleware logic here
+        if (true){
+        }
+        next();
     }
 }
 

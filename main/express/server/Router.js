@@ -3,7 +3,7 @@ const expressRouter = require('express').Router();
 
 class Route {
     static #prefix = '/';
-    static mainRouter = expressRouter;
+    
     static #storedController = {};
     static #currentUrl = '';
     static #currentMethod = '';
@@ -18,6 +18,13 @@ class Route {
     };
     static #currentAs = '';
     static #middlewareHandler = new MiddlewareHandler();
+    #newStoredMethodRoutes;
+    #newPrefix;
+    constructor(){
+        this.#newStoredMethodRoutes = Route.#storedMethodRoutes;
+        this.#newPrefix = Route.#prefix;
+        this.mainRouter = expressRouter;
+    }
     static setPrefix(prefix){
         Route.#prefix = prefix;
         Route.mainRouter = expressRouter;
@@ -35,10 +42,13 @@ class Route {
         };
         Route.#currentAs = '';
     }
-    static getPrefix(){
-        return Route.#prefix;
+    getPrefix(){
+        return this.#newPrefix;
     }
     static #handleRoutes(method, url, args) {
+        // if (!url.startsWith('/')) {
+        //     throw new Error(`Route.${method}('must start with a forward slash')`);
+        // }
         Route.#reset();
     
         // Prepend the group resource prefix to the URL
@@ -98,8 +108,8 @@ class Route {
                 };
     
                 const params = data.request.params;
-                global.dd = (data) => dump(data, true);
                 global.request = data.request;
+                global[methodType] = type[methodType];
                 finalConvertion(...Object.values(params));
             };
         }
@@ -137,12 +147,24 @@ class Route {
         return Route;
     }
     static middleware(middlewareName){
+        let functionUsed;
+        let middlewareCustom;
+        if (!Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares']){
+            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'] = [];
+        }
         if (typeof middlewareName === 'string'){
-            if (!Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares']){
-                Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'] = [];
+            const testMiddleware = Route.#middlewareHandler.middlewareAliases()[middlewareName]['handle'];
+            if (typeof testMiddleware === 'function'){
+                functionUsed = testMiddleware;
             }
-            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'].unshift(Route.#middlewareHandler.middlewareAliases()[middlewareName]['handle']);
-
+        }
+        if (typeof functionUsed === 'function'){
+            middlewareCustom = (req, res, next) => {
+                functionUsed(next);
+            }
+        }
+        if (typeof middlewareCustom === 'function'){
+            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'].unshift(middlewareCustom);
         }
         return Route;
     }
@@ -173,11 +195,14 @@ class Route {
         return Route;
     }
 
-    static getStoredRoutes(){
-        return Route.#storedMethodRoutes;
+    getStoredRoutes(){
+        return this.#newStoredMethodRoutes;
     }
 
     static resource(resource, controller) {
+        if (resource === '/'){
+            throw new Error("The root resource cannot be named.");
+        }
         do {
             resource = resource.substring(1);
         } while (resource.charAt(0) === '/');
@@ -191,14 +216,12 @@ class Route {
         Route.get(`${resource == '' ? resource : `/${resource}`}/:id/edit`, [controller, 'edit']).#resourceNaming(`${combine}edit`); 
         Route.put(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'update']).#resourceNaming(`${combine}update`);
         Route.delete(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'destroy']).#resourceNaming(`${combine}destroy`);
-
-        return Route;
     }
 
     static group(opts, callback) {
         let resource = opts.prefix.replace(/^\/+/, ''); // Simplified leading slash removal
         
-        if (!opts.as) {
+        if (!opts.as || opts.as === '') {
             throw new Error("The 'as' property is required when defining a route group.");
         }
         

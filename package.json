@@ -13,7 +13,7 @@
     "@vitalets/google-translate-api": "^9.2.0",
     "argon2": "^0.41.1",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.5.0",
+    "better-sqlite3": "^11.6.0",
     "commander": "^12.1.0",
     "connect-flash": "^0.1.1",
     "cookie-parser": "^1.4.7",
@@ -21,12 +21,13 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.21.1",
+    "express": "^5.0.1",
     "express-session": "^1.18.1",
     "luxon": "^3.5.0",
     "morgan": "^1.10.0",
-    "mysql2": "^3.11.4",
-    "nodemailer": "^6.9.16"
+    "mysql2": "^3.11.5",
+    "nodemailer": "^6.9.16",
+    "npm-check-updates": "^17.1.11"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

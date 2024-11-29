@@ -1,19 +1,14 @@
-const Carbon = require("../../libraries/Materials/Carbon");
 const Validator = require("../../libraries/Services/Validator");
 const Controller = require("./Controller");
 
 class UserController extends Controller {
-    constructor(){
-        super();
-        this.loadModel([
-            // Load model here strings
-            'User'
-        ]);
-    }
     async index(){
-        json_response({"data":request, test:super.test()});
+        const id = 1;
+        json_response(route('user.index'));
     }
-
+    static testFunction(){
+        json_response("Hello World");
+    }
     async create(){
         json_response({message: "UserController create"})
     }
