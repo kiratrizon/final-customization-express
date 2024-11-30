@@ -1,6 +1,6 @@
-const BaseController = require("../../main/express/server/BaseController");
+const BaseController = require("../express/server/BaseController");
 class Controller extends BaseController {
-    test(){
+    test() {
         return "Hello World";
     }
 }

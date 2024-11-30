@@ -95,3 +95,36 @@ global.database_path = () => {
 global.app_path = () => {
     return `${base_path()}/app`;
 }
+
+global.stub_path = () => {
+    return `${base_path()}/main/express/stubs`;
+}
+
+global.env = (ENV_NAME, defaultValue = null) => {
+    if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
+        return process.env[ENV_NAME] !== undefined ? process.env[ENV_NAME] : defaultValue;
+    } else {
+        return null;
+    }
+}
+
+global.generateTableNames = (entity) => {
+    const irregularPlurals = config('irregular_words');
+    const splitWords = entity.split(/(?=[A-Z])/);
+    const lastWord = splitWords.pop().toLowerCase();
+
+    const pluralizedLastWord = (() => {
+        if (irregularPlurals[lastWord]) {
+            return irregularPlurals[lastWord];
+        }
+        if (lastWord.endsWith('y')) {
+            return lastWord.slice(0, -1) + 'ies';
+        }
+        if (['s', 'x', 'z', 'ch', 'sh'].some((suffix) => lastWord.endsWith(suffix))) {
+            return lastWord + 'es';
+        }
+        return lastWord + 's';
+    })();
+
+    return [...splitWords, pluralizedLastWord].join('').toLowerCase()
+}

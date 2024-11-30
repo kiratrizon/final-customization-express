@@ -1,4 +1,4 @@
-const Authenticatable = require("../main/express/server/Authenticatable");
+const Authenticatable = require("../main/base/Authenticatable");
 
 class User extends Authenticatable {
     fillable = [

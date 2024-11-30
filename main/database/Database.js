@@ -37,24 +37,24 @@ class Database {
 
     async runQuery(query, params = []) {
         const isSQLite = process.env.DATABASE === 'sqlite';
-    
+
         try {
             this.openConnection();
-    
+
             if (this.debugger) {
                 console.log('Query:', query);
                 console.log('Params:', params);
             }
-    
+
             if (!this.connection) {
                 throw new Error('Database connection is not established.');
             }
-    
+
             // For SQLite
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
                 const queryType = query.trim().toLowerCase().split(' ')[0];
-    
+
                 switch (queryType) {
                     case 'insert': {
                         const result = stmt.run(params);
@@ -85,7 +85,7 @@ class Database {
                             reject(err);
                         } else {
                             const queryType = query.trim().toLowerCase().split(' ')[0];
-    
+
                             switch (queryType) {
                                 case 'insert':
                                     resolve(results.insertId);  // Return last inserted ID
@@ -137,7 +137,7 @@ class Database {
 
     async makeMigration(query, filename, rollback = false) {
         let migrationsTableQuery = '';
-        if (rollback){
+        if (rollback) {
             await this.#privateRunQuery(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
             await this.#privateRunQuery(query);
         } else {
@@ -158,14 +158,14 @@ class Database {
                     );
                 `;
             }
-        
+
             try {
                 await this.#privateRunQuery(migrationsTableQuery);
-        
+
                 let fileNameChecker = await this.#privateRunQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
                 if (fileNameChecker.length === 0) {
                     const migrationResult = await this.#privateRunQuery(query);
-                    
+
                     if (migrationResult) {
                         await this.#privateRunQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
                         console.log(`Migration "${filename}" applied successfully.`);
@@ -181,19 +181,19 @@ class Database {
 
     async #privateRunQuery(query, params = []) {
         const isSQLite = process.env.DATABASE === 'sqlite';
-    
+
         try {
             this.openConnection();
-    
+
             if (!this.connection) {
                 throw new Error('Database connection is not established.');
             }
-    
+
             // For SQLite
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
                 const queryType = query.trim().toLowerCase().split(' ')[0];
-    
+
                 switch (queryType) {
                     case 'insert': {
                         const result = stmt.run(params);
@@ -223,7 +223,7 @@ class Database {
                             reject(err);
                         } else {
                             const queryType = query.trim().toLowerCase().split(' ')[0];
-    
+
                             switch (queryType) {
                                 case 'insert':
                                     resolve(results.insertId);  // Return last inserted ID
@@ -250,6 +250,34 @@ class Database {
             return false;  // Return false if there is an error
         } finally {
             await this.close();
+        }
+    }
+
+    async searchPrimaryName(modelName) {
+        const tableName = generateTableNames(modelName);
+        const databaseProp = config('app.database');
+        const isSqlite = databaseProp.type == 'sqlite';
+        let string = '';
+        if (isSqlite) {
+            string = `SELECT name
+                        FROM pragma_table_info('${tableName}')
+                        WHERE pk = 1;
+                    `;
+        } else {
+            string = `SELECT COLUMN_NAME
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_SCHEMA = '${databaseProp.mysql.database}'
+                        AND TABLE_NAME = '${tableName}'
+                        AND COLUMN_KEY = 'PRI';
+                    `;
+        }
+        try {
+            this.debugger = false;
+            return await this.runQuery(string);
+        } catch (e) {
+
+        } finally {
+            this.debugger = env('DEBUGGER');
         }
     }
 }

@@ -1,13 +1,12 @@
 #!/usr/bin/env node
-
+require('./main/express/server/GlobalFunctions');
 const MigrationRunner = require('./main/database/MigrationRunner');
-const Configure = require('./libraries/Materials/Configure');
 const fs = require('fs');
 const path = require('path');
 const { Command } = require('commander');
 const program = new Command();
 const { spawn } = require('child_process');
-const defaultStubPath =  path.join(__dirname, 'main', 'express', 'stubs');
+const defaultStubPath = stub_path();
 
 class Generator {
     constructor() {
@@ -31,26 +30,26 @@ class Generator {
     createModel(name, createMigration = false) {
         const modelStub = path.join(defaultStubPath, 'Model.stub');
         let modelContent = fs.readFileSync(modelStub, 'utf-8').replace(/{{ ModelName }}/g, name);
-    
+
         const modelPath = path.join(this.modelsPath, `${name}.js`);
         this.#writeFile(modelPath, modelContent);
-    
+
         console.log(`Model created at ${modelPath}`);
-    
+
         if (createMigration) {
-            this.createMigration(this.#generateTableNames(name));
+            this.createMigration(generateTableNames(name));
         }
     }
 
     // Create a migration
     createMigration(name, alter = false) {
         const tableName = name;
-        const migrationStub = path.join(defaultStubPath, `Migration${alter?'Alter':''}.stub`);
+        const migrationStub = path.join(defaultStubPath, `Migration${alter ? 'Alter' : ''}.stub`);
         let migrationContent = fs.readFileSync(migrationStub, 'utf-8').replace(/{{ tableName }}/g, tableName);
-        
-        const migrationFileName = `${Date.now()}_${alter?'alter':'create'}_${tableName.toLowerCase()}_table.js`; // Use timestamp for uniqueness
+
+        const migrationFileName = `${Date.now()}_${alter ? 'alter' : 'create'}_${tableName.toLowerCase()}_table.js`; // Use timestamp for uniqueness
         const migrationPath = path.join(this.migrationsPath, migrationFileName);
-    
+
         this.#writeFile(migrationPath, migrationContent);
         console.log(`Migration created at ${migrationPath}`);
     }
@@ -64,29 +63,7 @@ class Generator {
         fs.writeFileSync(filePath, content);
     }
 
-    // Generate table names using pluralization
-    #generateTableNames(entity) {
-        const irregularPlurals = Configure.read('irregular_words');
-        const splitWords = entity.split(/(?=[A-Z])/);
-        const lastWord = splitWords.pop().toLowerCase();
-
-        const pluralizedLastWord = (() => {
-            if (irregularPlurals[lastWord]) {
-                return irregularPlurals[lastWord];
-            }
-            if (lastWord.endsWith('y')) {
-                return lastWord.slice(0, -1) + 'ies';
-            }
-            if (['s', 'x', 'z', 'ch', 'sh'].some((suffix) => lastWord.endsWith(suffix))) {
-                return lastWord + 'es';
-            }
-            return lastWord + 's';
-        })();
-
-        return [...splitWords, pluralizedLastWord].join('').toLowerCase();
-    }
-
-    generateMiddleware(middlename){
+    generateMiddleware(middlename) {
         const middlewareStub = path.join(defaultStubPath, 'Middleware.stub');
         const middlewareContent = fs.readFileSync(middlewareStub, 'utf-8').replace(/{{ MiddlewareName }}/g, middlename);
 

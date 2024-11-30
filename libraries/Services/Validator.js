@@ -38,6 +38,7 @@ class Validator {
     static #initialize() {
         this.errors = {};
         this.old = {};
+        this.#data = undefined;
     }
 
     // Validate a field based on its rules
@@ -126,17 +127,7 @@ class Validator {
 
     // Checks if there are any validation errors
     static fails() {
-        let returnData = (Object.keys(this.errors).length > 0);
-        if (returnData) {
-            let returnKeys = {};
-            Object.keys(this.#data).forEach(key => {
-                if (this.#data[key] !== '' && this.#data[key] !== null && typeof this.#data[key] !== 'undefined' && this.#data[key]) {
-                    returnKeys[key] = this.#data[key];
-                }
-            });
-            this.old = returnKeys;
-        }
-        return returnData;
+        return (Object.keys(this.errors).length > 0);
     }
 
     // Revoke all errors and old data
@@ -151,6 +142,16 @@ class Validator {
         this.params = params;
         this.#data = data;
         await this.#handle();
+        let returnData = (Object.keys(this.errors).length > 0);
+        if (returnData) {
+            let returnKeys = {};
+            Object.keys(this.#data).forEach(key => {
+                if (this.#data[key] !== '' && this.#data[key] !== null && typeof this.#data[key] !== 'undefined' && this.#data[key]) {
+                    returnKeys[key] = this.#data[key];
+                }
+            });
+            this.old = returnKeys;
+        }
         return this;
     }
 }

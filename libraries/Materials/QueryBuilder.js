@@ -9,24 +9,28 @@ class QueryBuilder {
     #groupByQuery = [];
     #selectQuery = [];
     #valueQuery = [];
-    #database
+    #database;
+    #modelName;
+    #table;
+    #model;
     constructor(model) {
-        this.modelName = model.name;
-        this.table = this.#generateTableNames(this.modelName);
+        this.#model = model;
+        this.#modelName = model.name;
+        this.#table = this.#generateTableNames(this.#modelName);
         this.#database = new Database();
     }
 
     // Where clause
     where(...args) {
         let field, operator, value;
-    
+
         if (args.length === 2) {
             [field, value] = args;
             operator = '=';  // Default to '=' if only 2 arguments
         } else if (args.length === 3) {
             [field, operator, value] = args;
         }
-    
+
         // Handle BETWEEN case
         if (operator.toUpperCase() === 'BETWEEN') {
             if (Array.isArray(value) && value.length === 2) {
@@ -48,21 +52,21 @@ class QueryBuilder {
             }
             this.#valueQuery.push(value);
         }
-    
+
         return this;
     }
 
     // OrWhere clause
     orWhere(...args) {
         let field, operator, value;
-    
+
         if (args.length === 2) {
             [field, value] = args;
             operator = '=';  // Default to '=' if only 2 arguments
         } else if (args.length === 3) {
             [field, operator, value] = args;
         }
-    
+
         // Handle BETWEEN case
         if (operator.toUpperCase() === 'BETWEEN') {
             if (Array.isArray(value) && value.length === 2) {
@@ -84,10 +88,10 @@ class QueryBuilder {
             }
             this.#valueQuery.push(value);
         }
-    
+
         return this;
     }
-    
+
 
     // Join clause
     join(table, firstKey, operator, secondKey, type = 'INNER') {
@@ -133,22 +137,20 @@ class QueryBuilder {
         } catch (error) {
             console.error('Error in get():', error);
             throw error;
-        } finally {
-            this.#clear();
         }
     }
 
     // Return SQL query as string
     toSql() {
-        let query = `SELECT ${this.#selectQuery.length === 0 ? '*' : this.#selectQuery.join(', ')} FROM ${this.table} as ${this.modelName}`;
-        
+        let query = `SELECT ${this.#selectQuery.length === 0 ? '*' : this.#selectQuery.join(', ')} FROM ${this.#table} as ${this.#modelName}`;
+
         if (this.#joinQuery.length) query += ` ${this.#joinQuery.join(' ')}`;
         if (this.#whereQuery.length) query += ` WHERE ${this.#whereQuery.join(' ')}`;
         if (this.#groupByQuery.length) query += ` GROUP BY ${this.#groupByQuery.join(', ')}`;
         if (this.#orderByQuery.length) query += ` ORDER BY ${this.#orderByQuery.join(' ')}`;
         if (this.#limitQuery) query += ` LIMIT ${this.#limitQuery}`;
         if (this.#offsetQuery) query += ` OFFSET ${this.#offsetQuery}`;
-        
+        this.#clear();
         return query;
     }
 
@@ -165,35 +167,18 @@ class QueryBuilder {
     }
 
     #generateTableNames(entity) {
-        if (!this.table) {
-            const irregularPlurals = config('irregular_words');
-            const splitWords = entity.split(/(?=[A-Z])/);
-            const lastWord = splitWords.pop().toLowerCase();
-
-            const pluralizedLastWord = (() => {
-                if (irregularPlurals[lastWord]) {
-                    return irregularPlurals[lastWord];
-                }
-                if (lastWord.endsWith('y')) {
-                    return lastWord.slice(0, -1) + 'ies';
-                }
-                if (['s', 'x', 'z', 'ch', 'sh'].some((suffix) => lastWord.endsWith(suffix))) {
-                    return lastWord + 'es';
-                }
-                return lastWord + 's';
-            })();
-
-            return [...splitWords, pluralizedLastWord].join('').toLowerCase();
+        if (!this.#table) {
+            return generateTableNames(entity);
         }
-        return this.table;
+        return this.#table;
     }
 
-    async create(data){
+    async create(data) {
         let keys = Object.keys(data);
         let values = Object.values(data);
         let columns = keys.join(', ');
         let placeholders = keys.map(() => '?').join(', ');
-        let sql = `INSERT INTO ${this.table} (${columns}) VALUES (${placeholders})`;
+        let sql = `INSERT INTO ${this.#table} (${columns}) VALUES (${placeholders})`;
         try {
             return await this.#database.runQuery(sql, values);
         } catch (error) {
@@ -202,42 +187,67 @@ class QueryBuilder {
         }
     }
 
-    async update(id, data = {}){
+    async update(id, data = {}) {
         let keys = Object.keys(data);
         let values = Object.values(data);
         let setQuery = keys.map(key => `${key} = ?`).join(', ');
-        let sql = `UPDATE ${this.table} SET ${setQuery} WHERE id = ?`;
+        let sql = `UPDATE ${this.#table} SET ${setQuery} WHERE id = ?`;
         values.push(id);
         try {
             return await this.#database.runQuery(sql, values);
         } catch (error) {
             console.error('Error in update():', error);
             throw error;
-        }        
+        }
     }
 
-    async find(id){
-        let sql = `SELECT * FROM ${this.table} as ${this.modelName} WHERE id = ?`;
+    async find(id) {
+        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE id = ?`;
         try {
-            return await this.#database.runQuery(sql, [id]);
+            let found = await this.#database.runQuery(sql, [id]);
+            found = found[0] || null;
+            if (!!found) {
+                const model = new this.#model();
+                model.setIdentifier(null);
+                if (model.isAuth()) {
+                    let identifier = await this.#database.searchPrimaryName(model.constructor.name);
+                    if (identifier.length) {
+                        model.setIdentifier(identifier[0].name);
+                    }
+                }
+                delete model.fillable;
+                delete model.timestamp;
+                delete model.guarded;
+                found = Object.assign(model, found);
+            }
+            return found;
         } catch (error) {
             console.error('Error in find():', error);
             throw error;
         }
     }
 
-    async findByEmail(email){
-        let sql = `SELECT * FROM ${this.table} as ${this.modelName} WHERE email = ?`;
+    async findByEmail(email) {
+        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE email = ? LIMIT 1;`;
         try {
-            return await this.#database.runQuery(sql, [email]);
+            let found = await this.#database.runQuery(sql, [email]);
+            found = found[0] || null;
+            if (!!found) {
+                const model = new this.#model();
+                delete model.fillable;
+                delete model.timestamp;
+                delete model.guarded;
+                found = Object.assign(model, found);
+            }
+            return found;
         } catch (error) {
-            console.error('Error in findByEmail():', error);
+            console.error('Error in find():', error);
             throw error;
         }
     }
 
-    async findAll(){
-        let sql = `SELECT * FROM ${this.table} as ${this.modelName}`;
+    async findAll() {
+        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName}`;
         try {
             return await this.#database.runQuery(sql);
         } catch (error) {

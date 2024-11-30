@@ -31,10 +31,10 @@ class Server {
         // console.log(args1.getStoredRoutes());
         storedRoutes.forEach(([method, routes]) => {
             // console.log(`Method: ${method}`);
-            
+
             Object.entries(routes).forEach(([url, values]) => {
-                console.log(`URL: ${url}`);
-                console.log(`Values: `,values);
+                // console.log(`URL: ${url}`);
+                // console.log(`Values: `,values);
                 if (values['function_use'] === undefined && typeof values['function_use'] !== 'function') {
                     return;
                 }
@@ -65,7 +65,7 @@ class Server {
         Server.app.use((req, res, next) => {
             global.renderData = (data, shouldExit = false) => {
                 const acceptHeader = req.headers['accept'];
-        
+
                 if (acceptHeader && acceptHeader.includes('application/json')) {
                     res.set('Content-Type', 'application/json');
                     res.send(JSON.stringify(data, null, 2));
@@ -98,7 +98,7 @@ class Server {
                             .indentation { padding-left: 20px; }
                         </style>
                     `;
-        
+
                     const recursiveRender = (value, level = 0) => {
                         const indentClass = `indentation level-${level}`;
                         if (Array.isArray(value)) {
@@ -106,7 +106,7 @@ class Server {
                         } else if (value === null) {
                             return `<div class="null ${indentClass}">null</div>`;
                         } else if (typeof value === 'object') {
-                            return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) => 
+                            return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) =>
                                 `<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(val, level + 1)}</span></div>`
                             ).join('')}</div>`;
                         } else if (typeof value === 'string') {
@@ -120,7 +120,7 @@ class Server {
                         }
                         return `<div>${value}</div>`;
                     };
-        
+
                     const htmlContent = `
                         ${tailwindScript}
                         ${tailwindStyles}
@@ -131,7 +131,7 @@ class Server {
                     res.set('Content-Type', 'text/html');
                     res.send(htmlContent);
                 }
-        
+
                 if (shouldExit) res.end();
             }
             global.dump = (data, end = false) => global.renderData(data, end);
@@ -144,7 +144,7 @@ class Server {
             global.json_response = (data, status = 200) => res.status(status).json(data);
             global.view = (view, data = {}) => {
                 const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
-            
+
                 if (fs.existsSync(viewPath)) {
                     res.status(200).render(view, data);
                 } else {
@@ -159,12 +159,12 @@ class Server {
             global.route = (name, args = {}) => {
                 if (Server.#routes.hasOwnProperty(name)) {
                     let route = Server.#routes[name];
-            
+
                     // Replace :id or :id? placeholders with the corresponding values or remove optional ones
                     Object.entries(args).forEach(([key, value]) => {
                         const regexOptional = new RegExp(`:${key}\\?`, "g"); // Match optional parameter
                         const regexRequired = new RegExp(`:${key}`, "g"); // Match required parameter
-            
+
                         if (value !== undefined) {
                             // Replace both required and optional parameters with the value
                             route = route.replace(regexOptional, value).replace(regexRequired, value);
@@ -173,10 +173,10 @@ class Server {
                             route = route.replace(regexOptional, "");
                         }
                     });
-            
+
                     // Remove any leftover optional placeholders (e.g., /user/:id?)
                     route = route.replace(/\/:[^\/]+\?/g, ""); // Remove segments like /:id?
-            
+
                     return `${Server.#baseUrl}${route}`;
                 }
                 const stack = new Error().stack;
@@ -194,7 +194,7 @@ class Server {
             saveUninitialized: false,
             cookie: { secure: false },
         };
-        const origins = config('origins.origins').length ? config('origins.origins') :  '*'
+        const origins = config('origins.origins').length ? config('origins.origins') : '*'
         const corsOptions = {
             origin: origins,
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -220,7 +220,7 @@ class Server {
     }
 
     static finishBoot() {
-        if (typeof Boot['404'] === 'function'){
+        if (typeof Boot['404'] === 'function') {
             Server.app.use(Boot['404']);
         }
     }
@@ -233,7 +233,7 @@ class Server {
                     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
                         callback(null, true);
                     } else {
-                        callback(new Error('Not allowed by CORS')); 
+                        callback(new Error('Not allowed by CORS'));
                     }
                 },
                 methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -245,7 +245,7 @@ class Server {
             resolve(corsOptions);
         });
     }
-    
+
     static async #corsAsync(req, res, next) {
         try {
             const corsOptions = await Server.#getCorsOptions();
@@ -259,14 +259,14 @@ class Server {
         const routesDir = path.join(__dirname, '../../../Routes');
         const routeFiles = fs.readdirSync(routesDir);
         const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
-        
+
         if (jsFiles.includes('web.js')) {
             const webRoutePath = path.join(routesDir, 'web.js');
             const webRoute = require(webRoutePath);
             Server.#validateRoute(webRoute);
             jsFiles.splice(jsFiles.indexOf('web.js'), 1);
         }
-    
+
         jsFiles.forEach(file => {
             const routePath = path.join(routesDir, file);
             const route = require(routePath);

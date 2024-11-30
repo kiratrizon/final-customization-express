@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon ./main/express/server/run-server.js"
+    "dev": "cross-env NODE_NO_WARNINGS=1 nodemon --trace-deprecation ./main/express/server/run-server.js"
   },
   "keywords": [],
   "author": "",
@@ -27,9 +27,12 @@
     "morgan": "^1.10.0",
     "mysql2": "^3.11.5",
     "nodemailer": "^6.9.16",
-    "npm-check-updates": "^17.1.11"
+    "npm-check-updates": "^17.1.11",
+    "punycode": "^2.3.1",
+    "whatwg-url": "^14.0.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^3.1.7"
   }
 }
