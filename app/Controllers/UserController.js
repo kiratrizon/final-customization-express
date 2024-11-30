@@ -1,11 +1,16 @@
 const Validator = require("../../libraries/Services/Validator");
 const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
+const Hash = require("../../libraries/Services/Hash");
 
 class UserController extends Controller {
     async index() {
-        const user = await User.find(1);
-        json_response({ user });
+        const user = new User();
+        user.name = "Throy";
+        user.email = "tgenesistroy@gmail.com";
+        user.password = await Hash.make('asterda23');
+        user.save();
+        json_response({ users: await User.find(2) });
     }
     static testFunction() {
         json_response("Hello World");

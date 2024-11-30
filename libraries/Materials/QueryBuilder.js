@@ -13,10 +13,15 @@ class QueryBuilder {
     #modelName;
     #table;
     #model;
+    #instanceModel;
+    #fillable = [];
+    #timestamp = true;
+    #guarded = [];
     constructor(model) {
         this.#model = model;
+        this.#instanceModel = new model();
         this.#modelName = model.name;
-        this.#table = this.#generateTableNames(this.#modelName);
+        this.#table = generateTableNames(this.#modelName);
         this.#database = new Database();
     }
 
@@ -166,13 +171,6 @@ class QueryBuilder {
         this.#selectQuery = [];
     }
 
-    #generateTableNames(entity) {
-        if (!this.#table) {
-            return generateTableNames(entity);
-        }
-        return this.#table;
-    }
-
     async create(data) {
         let keys = Object.keys(data);
         let values = Object.values(data);
@@ -187,12 +185,13 @@ class QueryBuilder {
         }
     }
 
-    async update(id, data = {}) {
+    async update(data = {}) {
         let keys = Object.keys(data);
         let values = Object.values(data);
         let setQuery = keys.map(key => `${key} = ?`).join(', ');
-        let sql = `UPDATE ${this.#table} SET ${setQuery} WHERE id = ?`;
-        values.push(id);
+        let sql = `UPDATE ${this.#table} SET ${setQuery}`;
+        if (this.#whereQuery.length) sql += ` WHERE ${this.#whereQuery.join(', ')}`;
+        values.push(...this.#valueQuery);
         try {
             return await this.#database.runQuery(sql, values);
         } catch (error) {
@@ -207,7 +206,7 @@ class QueryBuilder {
             let found = await this.#database.runQuery(sql, [id]);
             found = found[0] || null;
             if (!!found) {
-                const model = new this.#model();
+                const model = this.#instanceModel;
                 model.setIdentifier(null);
                 if (model.isAuth()) {
                     let identifier = await this.#database.searchPrimaryName(model.constructor.name);
@@ -215,8 +214,12 @@ class QueryBuilder {
                         model.setIdentifier(identifier[0].name);
                     }
                 }
+
+                this.#fillable = model.fillable;
                 delete model.fillable;
+                this.#timestamp = model.timestamp;
                 delete model.timestamp;
+                this.#guarded = model.guarded;
                 delete model.guarded;
                 found = Object.assign(model, found);
             }
@@ -233,9 +236,12 @@ class QueryBuilder {
             let found = await this.#database.runQuery(sql, [email]);
             found = found[0] || null;
             if (!!found) {
-                const model = new this.#model();
+                const model = this.#instanceModel;
+                this.#fillable = model.fillable;
                 delete model.fillable;
+                this.#timestamp = model.timestamp;
                 delete model.timestamp;
+                this.#guarded = model.guarded;
                 delete model.guarded;
                 found = Object.assign(model, found);
             }
