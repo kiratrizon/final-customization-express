@@ -29,85 +29,59 @@ class Blueprint {
     }
 
     // Method for adding a string column with optional constraints
-    string(name, length = 255, { nullable = true, unique = false, defaultValue = null } = {}) {
+    string(name, length = 255, args = {}) {
         const type = process.env.DATABASE === 'sqlite' ? 'TEXT' : `VARCHAR(${length})`;
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT '${defaultValue}'`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a text column with optional constraints
-    text(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    text(name, args = {}) {
         const type = 'TEXT';
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT '${defaultValue}'`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding an integer column with optional constraints
-    integer(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    integer(name, args = {}) {
         const type = 'INTEGER';
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT ${defaultValue}`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a float column with optional constraints
-    float(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    float(name, args = {}) {
         const type = process.env.DATABASE === 'sqlite' ? 'REAL' : 'FLOAT';
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT ${defaultValue}`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a double column with optional constraints
-    double(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    double(name, args = {}) {
         const type = process.env.DATABASE === 'sqlite' ? 'REAL' : 'DOUBLE';
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT ${defaultValue}`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a boolean column with optional constraints
-    boolean(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    boolean(name, args = {}) {
         const type = process.env.DATABASE === 'sqlite' ? 'INTEGER' : 'BOOLEAN';
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT ${defaultValue}`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a date column with optional constraints
-    date(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    date(name, args = {}) {
         const type = 'DATE';
-        let constraints = [];
-        if (!nullable) constraints.push('NOT NULL');
-        if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT '${defaultValue}'`);
-        this.columns.push({ name, type, constraints });
+        this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a datetime column with optional constraints
-    datetime(name, { nullable = true, unique = false, defaultValue = null } = {}) {
+    datetime(name, args = {}) {
         const type = 'DATETIME';
+        this.#handleCreateColumn(name, type, args);
+    }
+    #handleCreateColumn(name, type, { nullable = true, unique = false, defaultValue = 'NULL' } = {}) {
         let constraints = [];
         if (!nullable) constraints.push('NOT NULL');
         if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT '${defaultValue}'`);
+        if (defaultValue !== 'NULL') constraints.push(`DEFAULT ${defaultValue}`);
         this.columns.push({ name, type, constraints });
     }
-
     // Method for adding timestamp columns (created_at, updated_at)
     timestamp() {
         const createdAt = process.env.DATABASE === 'sqlite'
@@ -130,11 +104,11 @@ class Blueprint {
     }
 
     // ALTER TABLE methods for adding, dropping, changing, and renaming columns
-    addColumn(name, type, { nullable = true, unique = false, defaultValue = null } = {}) {
+    addColumn(name, type, { nullable = true, unique = false, defaultValue = 'NULL' } = {}) {
         let constraints = [];
         if (!nullable) constraints.push('NOT NULL');
         if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT ${defaultValue}`);
+        if (defaultValue !== 'NULL') constraints.push(`DEFAULT ${defaultValue}`);
         this.alterOperations.push(`ADD COLUMN ${name} ${type}${constraints.length ? ' ' + constraints.join(' ') : ''}`);
     }
 
@@ -142,11 +116,11 @@ class Blueprint {
         this.alterOperations.push(`DROP COLUMN ${name}`);
     }
 
-    changeColumn(name, newType, { nullable = true, unique = false, defaultValue = null } = {}) {
+    changeColumn(name, newType, { nullable = true, unique = false, defaultValue = 'NULL' } = {}) {
         let constraints = [];
         if (!nullable) constraints.push('NOT NULL');
         if (unique) constraints.push('UNIQUE');
-        if (defaultValue !== null) constraints.push(`DEFAULT ${defaultValue}`);
+        if (defaultValue !== 'NULL') constraints.push(`DEFAULT ${defaultValue}`);
         this.alterOperations.push(`CHANGE COLUMN ${name} ${newType}${constraints.length ? ' ' + constraints.join(' ') : ''}`);
     }
 

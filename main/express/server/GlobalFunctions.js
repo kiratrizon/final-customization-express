@@ -128,3 +128,18 @@ global.generateTableNames = (entity) => {
 
     return [...splitWords, pluralizedLastWord].join('').toLowerCase()
 }
+
+global.base64_encode = function(str) {
+    return Buffer.from(str)
+        .toString('base64')        // Standard Base64 encode
+        .replace(/\+/g, '-')       // Replace `+` with `-`
+        .replace(/\//g, '_')       // Replace `/` with `_`
+        .replace(/=+$/, '');       // Remove any trailing `=` padding
+}
+
+global.base64_decode = function(str) {
+    // Add necessary padding if missing
+    const padding = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
+    const base64 = str.replace(/-/g, '+').replace(/_/g, '/') + padding;
+    return Buffer.from(base64, 'base64').toString('utf8');
+}

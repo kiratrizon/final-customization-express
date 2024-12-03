@@ -2,6 +2,7 @@ class ConstructorModel {
     // all instantiated methods here
     #identifier;
     #primaryValue = null;
+    #queriedValue = {};
     setIdentifier(identifier) {
         this.#identifier = identifier;
         if (identifier) {
@@ -13,6 +14,13 @@ class ConstructorModel {
     }
     getPrimaryValue() {
         return this.#primaryValue;
+    }
+    setPrivates(data = {}){
+        Object.assign(this.#queriedValue, data);
+    }
+
+    getPrivates(){
+        return this.#queriedValue;
     }
 }
 

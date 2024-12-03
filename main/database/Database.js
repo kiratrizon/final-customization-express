@@ -1,6 +1,7 @@
 const mysql = require('mysql2');
 const sqlite = require('better-sqlite3');
 const path = require('path');
+const sqlFormatter = require('sql-formatter');
 require('dotenv').config();
 
 class Database {
@@ -37,7 +38,7 @@ class Database {
 
     async runQuery(query, params = []) {
         const isSQLite = process.env.DATABASE === 'sqlite';
-
+        query = sqlFormatter.format(query);
         try {
             this.openConnection();
 
@@ -54,8 +55,7 @@ class Database {
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
                 const queryType = query.trim().toLowerCase().split(' ')[0];
-
-                switch (queryType) {
+                switch (queryType.trim()) {
                     case 'insert': {
                         const result = stmt.run(params);
                         return result.lastInsertRowid;
@@ -86,7 +86,80 @@ class Database {
                         } else {
                             const queryType = query.trim().toLowerCase().split(' ')[0];
 
-                            switch (queryType) {
+                            switch (queryType.trim()) {
+                                case 'insert':
+                                    resolve(results.insertId);  // Return last inserted ID
+                                    break;
+                                case 'update':
+                                case 'delete':
+                                    resolve(results.affectedRows > 0);  // Return true if affected rows > 0
+                                    break;
+                                case 'create':
+                                case 'alter':
+                                case 'drop':
+                                    resolve(true);  // Return true for successful CREATE and ALTER
+                                    break;
+                                default:
+                                    resolve(results);  // Return the results for SELECT and other queries
+                                    break;
+                            }
+                        }
+                    });
+                });
+            }
+        } catch (err) {
+            console.error('Query Error:', err);
+            return false;  // Return false if there is an error
+        } finally {
+            await this.close();
+        }
+    }
+    async runQueryNoLogs(query, params = []) {
+        const isSQLite = process.env.DATABASE === 'sqlite';
+        query = sqlFormatter.format(query);
+        try {
+            this.openConnection();
+
+            if (!this.connection) {
+                throw new Error('Database connection is not established.');
+            }
+
+            // For SQLite
+            if (isSQLite) {
+                const stmt = this.connection.prepare(query);
+                const queryType = query.trim().toLowerCase().split(' ')[0];
+                switch (queryType.trim()) {
+                    case 'insert': {
+                        const result = stmt.run(params);
+                        return result.lastInsertRowid;
+                    }
+                    case 'update':
+                    case 'delete': {
+                        const result = stmt.run(params);
+                        return result.changes > 0;
+                    }
+                    case 'create':
+                    case 'alter':
+                    case 'drop':
+                        // For CREATE and ALTER queries, return true if no error occurred
+                        stmt.run(params);
+                        return true;  // Success
+                    case 'select':
+                        return stmt.all(params);
+                    default:
+                        stmt.all(params)
+                        return true;  // Default for SELECT and other queries
+                }
+            } else {
+                // For MySQL
+                return new Promise((resolve, reject) => {
+                    this.connection.query(query, params, (err, results) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            const queryType = query.trim().toLowerCase().split(' ')[0];
+
+                            switch (queryType.trim()) {
                                 case 'insert':
                                     resolve(results.insertId);  // Return last inserted ID
                                     break;

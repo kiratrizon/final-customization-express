@@ -29,6 +29,7 @@
     "nodemailer": "^6.9.16",
     "npm-check-updates": "^17.1.11",
     "punycode": "^2.3.1",
+    "sql-formatter": "^15.4.6",
     "whatwg-url": "^14.0.0"
   },
   "devDependencies": {

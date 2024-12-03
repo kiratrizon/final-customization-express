@@ -1,4 +1,6 @@
 const Database = require("../../main/database/Database");
+const Carbon = require("./Carbon");
+const RawSqlExecutor = require("./RawSqlExecutor");
 
 class QueryBuilder {
     #whereQuery = [];
@@ -17,9 +19,18 @@ class QueryBuilder {
     #fillable = [];
     #timestamp = true;
     #guarded = [];
+    #hidden = [];
     constructor(model) {
         this.#model = model;
         this.#instanceModel = new model();
+        this.#fillable = this.#instanceModel.fillable;
+        this.#timestamp = this.#instanceModel.timestamp;
+        this.#guarded = this.#instanceModel.guarded;
+        this.#hidden = this.#instanceModel.hidden;
+        delete this.#instanceModel.fillable;
+        delete this.#instanceModel.timestamp;
+        delete this.#instanceModel.guarded;
+        delete this.#instanceModel.hidden;
         this.#modelName = model.name;
         this.#table = generateTableNames(this.#modelName);
         this.#database = new Database();
@@ -57,7 +68,6 @@ class QueryBuilder {
             }
             this.#valueQuery.push(value);
         }
-
         return this;
     }
 
@@ -99,8 +109,17 @@ class QueryBuilder {
 
 
     // Join clause
-    join(table, firstKey, operator, secondKey, type = 'INNER') {
-        this.#joinQuery.push(`${type} JOIN ${table} ON ${firstKey} ${operator} ${secondKey}`);
+    join(table, firstKey, operator, secondKey) {
+        this.#joinQuery.push(`INNER JOIN ${table} ON ${firstKey} ${operator} ${secondKey}`);
+        return this;
+    }
+
+    leftJoin(table, firstKey, operator, secondKey) {
+        this.#joinQuery.push(`LEFT JOIN ${table} ON ${firstKey} ${operator} ${secondKey}`);
+        return this;
+    }
+    rightJoin(table, firstKey, operator, secondKey) {
+        this.#joinQuery.push(`RIGHT JOIN ${table} ON ${firstKey} ${operator} ${secondKey}`);
         return this;
     }
 
@@ -135,14 +154,16 @@ class QueryBuilder {
     }
 
     // Final query generation and execution
-    async get() {
+    async get(defaultLogs = true) {
         let sql = this.toSql();
-        try {
-            return await this.#database.runQuery(sql, this.#valueQuery);
-        } catch (error) {
-            console.error('Error in get():', error);
-            throw error;
+        let returnData;
+        if (defaultLogs) {
+            data = await RawSqlExecutor.run(sql, this.#valueQuery);
+        } else {
+            data = await RawSqlExecutor.runNoLogs(sql, this.#valueQuery);
         }
+        this.#valueQuery = [];
+        return returnData;
     }
 
     // Return SQL query as string
@@ -162,7 +183,6 @@ class QueryBuilder {
     // Helper to clear query state
     #clear() {
         this.#whereQuery = [];
-        this.#valueQuery = [];
         this.#joinQuery = [];
         this.#orderByQuery = [];
         this.#limitQuery = null;
@@ -172,94 +192,130 @@ class QueryBuilder {
     }
 
     async create(data) {
-        let keys = Object.keys(data);
-        let values = Object.values(data);
+        let filteredData = {};
+        for (let key of Object.keys(data)) {
+            if (this.#fillable.includes(key)) {
+                filteredData[key] = data[key];
+            }
+        }
+        this.#guarded.forEach((key) => {
+            delete filteredData[key];
+        });
+        if (this.#timestamp) {
+            filteredData['created_at'] = Carbon.getDateTime();
+            filteredData['updated_at'] = Carbon.getDateTime();
+        }
+        let keys = Object.keys(filteredData);
+        let values = Object.values(filteredData);
         let columns = keys.join(', ');
         let placeholders = keys.map(() => '?').join(', ');
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES (${placeholders})`;
-        try {
-            return await this.#database.runQuery(sql, values);
-        } catch (error) {
-            console.error('Error in create():', error);
-            throw error;
-        }
+        return await RawSqlExecutor.run(sql, values);
     }
 
     async update(data = {}) {
-        let keys = Object.keys(data);
-        let values = Object.values(data);
+        let filteredData = {};
+        for (let key of Object.keys(data)) {
+            if (this.#fillable.includes(key)) {
+                filteredData[key] = data[key];
+            }
+        }
+        this.#guarded.forEach((key) => {
+            delete filteredData[key];
+        });
+        if (this.#timestamp) {
+            filteredData['updated_at'] = Carbon.getDateTime();
+        }
+        let keys = Object.keys(filteredData);
+        let values = Object.values(filteredData);
         let setQuery = keys.map(key => `${key} = ?`).join(', ');
         let sql = `UPDATE ${this.#table} SET ${setQuery}`;
         if (this.#whereQuery.length) sql += ` WHERE ${this.#whereQuery.join(', ')}`;
         values.push(...this.#valueQuery);
-        try {
-            return await this.#database.runQuery(sql, values);
-        } catch (error) {
-            console.error('Error in update():', error);
-            throw error;
-        }
+        return await RawSqlExecutor.run(sql, values);
+        
     }
 
     async find(id) {
-        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE id = ?`;
-        try {
-            let found = await this.#database.runQuery(sql, [id]);
-            found = found[0] || null;
-            if (!!found) {
-                const model = this.#instanceModel;
-                model.setIdentifier(null);
-                if (model.isAuth()) {
-                    let identifier = await this.#database.searchPrimaryName(model.constructor.name);
-                    if (identifier.length) {
-                        model.setIdentifier(identifier[0].name);
-                    }
-                }
-
-                this.#fillable = model.fillable;
-                delete model.fillable;
-                this.#timestamp = model.timestamp;
-                delete model.timestamp;
-                this.#guarded = model.guarded;
-                delete model.guarded;
-                found = Object.assign(model, found);
+        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.id = ?`;
+        let found = await RawSqlExecutor.run(sql, [id]);
+        found = found[0] || null;
+        if (!!found) {
+            const data = found;
+            found = Object.assign(this.#instanceModel, found);
+            // this.#hidden.forEach((key)=>{
+            //     delete found[key];
+            // });
+            let identifier = await this.#database.searchPrimaryName(found.constructor.name);
+            if (identifier.length) {
+                found.setIdentifier(identifier[0].name);
             }
-            return found;
-        } catch (error) {
-            console.error('Error in find():', error);
-            throw error;
+            found.setPrivates(data);
         }
+        return found;
     }
 
     async findByEmail(email) {
-        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE email = ? LIMIT 1;`;
-        try {
-            let found = await this.#database.runQuery(sql, [email]);
-            found = found[0] || null;
-            if (!!found) {
-                const model = this.#instanceModel;
-                this.#fillable = model.fillable;
-                delete model.fillable;
-                this.#timestamp = model.timestamp;
-                delete model.timestamp;
-                this.#guarded = model.guarded;
-                delete model.guarded;
-                found = Object.assign(model, found);
+        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.email = ? LIMIT 1;`;
+        let found = await RawSqlExecutor.run(sql, [email]);
+        found = found[0] || null;
+        if (!!found) {
+            const data = found;
+            found = Object.assign(this.#instanceModel, found);
+            // this.#hidden.forEach((key)=>{
+            //     delete found[key];
+            // });
+            let identifier = await this.#database.searchPrimaryName(found.constructor.name);
+            if (identifier.length) {
+                found.setIdentifier(identifier[0].name);
             }
-            return found;
-        } catch (error) {
-            console.error('Error in find():', error);
-            throw error;
+            found.setPrivates(data);
         }
+        return found;
     }
 
     async findAll() {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName}`;
-        try {
-            return await this.#database.runQuery(sql);
-        } catch (error) {
-            console.error('Error in findAll():', error);
-            throw error;
+        return await RawSqlExecutor.run(sql);
+    }
+
+    async query(...args){
+        // allowed select, insert, update and delete only
+        const [sql, params] = args;
+        const allowed = ['select', 'insert', 'update', 'delete'];
+        const queryType = sql.trim().toLowerCase().split(' ')[0];
+        if (!allowed.includes(queryType)) {
+            throw new Error(`Invalid SQL query type: ${queryType}`);
         }
+        return await RawSqlExecutor.run(sql, params);
+    }
+    async findByKey(key, value) {
+        let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.${key} = ?;`;
+        const data = await RawSqlExecutor.run(sql, [value]);
+        if (!!data && data.length) {
+            return data[0];
+        }
+        return false;
+    }
+    async first(defaultLogs = true) {
+        let sql = this.toSql();
+        sql += ' LIMIT 1;';
+        let data;
+        if (defaultLogs) {
+            data = await RawSqlExecutor.run(sql, this.#valueQuery);
+        } else {
+            data = await RawSqlExecutor.runNoLogs(sql, this.#valueQuery);
+        }
+        this.#valueQuery = [];
+        if (!!data && data.length) {
+            let returndata = data[0];
+            returndata = Object.assign(this.#instanceModel, returndata);
+            // this.#hidden.forEach((key)=>{
+            //     delete returndata[key];
+            // });
+            return returndata;
+        }
+        return false;
     }
 }
 

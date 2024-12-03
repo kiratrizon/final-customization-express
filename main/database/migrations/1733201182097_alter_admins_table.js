@@ -1,12 +1,12 @@
 const Blueprint = require('../Blueprint');
 
 class Migrate {
-    tableName = '{{ tableName }}';
+    tableName = 'admins';
     up() {
         const blueprint = new Blueprint();
     
         const alterTable = blueprint.alter(this.tableName, (table) => {
-            table.changeColumn('username', 'name');
+            table.addColumn('password', 'TEXT');
         });
 
         return alterTable;

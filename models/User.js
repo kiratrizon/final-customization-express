@@ -6,6 +6,9 @@ class User extends Authenticatable {
         'email',
         'password'
     ];
+    hidden = [
+        'password'
+    ];
 };
 
 module.exports = User;

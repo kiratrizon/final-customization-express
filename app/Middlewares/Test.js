@@ -1,8 +1,12 @@
+const Auth = require("../../main/express/server/Auth");
+
 class Test {
 
-    static handle(next) {
+    static async handle(next) {
         // your middleware logic here
-        if (true){
+        const checker = await Auth.check();
+        if (!checker){
+            return json_response({ message: "Unauthorized" }, 401);
         }
         next();
     }

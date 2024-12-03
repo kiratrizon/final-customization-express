@@ -73,43 +73,7 @@ class Route {
 
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
-                const type = {};
-                const methodType = req.method.toLowerCase();
-
-                if (methodType === 'post') {
-                    type.post = req.body;
-                } else if (methodType === 'get') {
-                    type.get = req.query;
-                } else if (methodType === 'put') {
-                    type.put = req.body;
-                }
-
-                const data = {
-                    request: {
-                        method: methodType,
-                        url: req.originalUrl,
-                        params: req.params,
-                        headers: req.headers,
-                        body: req.body,
-                        query: req.query,
-                        [methodType]: type[methodType],
-                        cookies: req.cookies,
-                        path: req.path,
-                        originalUrl: req.originalUrl,
-                        ip: req.ip,
-                        protocol: req.protocol,
-                        user: req.user || null,
-                        acceptLanguage: req.headers['accept-language'],
-                        referer: req.headers['referer'] || null,
-                        session: req.session || null,
-                        files: req.files || null,
-                        received: type[methodType],
-                    },
-                };
-
-                const params = data.request.params;
-                global.request = data.request;
-                global[methodType] = type[methodType];
+                const params = request.params;
                 finalConvertion(...Object.values(params));
             };
         }
@@ -210,9 +174,9 @@ class Route {
         do {
             resource = resource.substring(1);
         } while (resource.charAt(0) === '/');
-        let naming = resource == '' ? '' : `${resource}.`;
+        let naming = resource == '' ? '' : `${resource}`;
         let as = Route.#currentAs == '' ? '' : `${Route.#currentAs}`;
-        let combine = `${as}${naming}`;
+        let combine = `${as}.${naming}`;
         const resources = {
             index: Route.get(`${resource == '' ? resource : `/${resource}`}`, [controller, 'index']).#resourceNaming(`${combine}index`).middleware(middleware),
             create: Route.get(`${resource == '' ? resource : `/${resource}`}/create`, [controller, 'create']).#resourceNaming(`${combine}create`).middleware(middleware),

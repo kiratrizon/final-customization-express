@@ -63,6 +63,41 @@ class Server {
 
         // Global request/response handlers
         Server.app.use((req, res, next) => {
+            const type = {};
+            const methodType = req.method.toLowerCase();
+
+            if (methodType === 'post') {
+                type.post = req.body;
+            } else if (methodType === 'get') {
+                type.get = req.query;
+            } else if (methodType === 'put') {
+                type.put = req.body;
+            }
+
+            const data = {
+                request: {
+                    method: methodType,
+                    url: req.originalUrl,
+                    params: req.params,
+                    headers: req.headers,
+                    body: req.body,
+                    query: req.query,
+                    [methodType]: type[methodType],
+                    cookies: req.cookies,
+                    path: req.path,
+                    originalUrl: req.originalUrl,
+                    ip: req.ip,
+                    protocol: req.protocol,
+                    user: req.user || null,
+                    acceptLanguage: req.headers['accept-language'],
+                    referer: req.headers['referer'] || null,
+                    session: req.session || null,
+                    files: req.files || null,
+                    received: type[methodType],
+                },
+            };
+            global.request = data.request;
+            global[methodType] = type[methodType];
             global.renderData = (data, shouldExit = false) => {
                 const acceptHeader = req.headers['accept'];
 
