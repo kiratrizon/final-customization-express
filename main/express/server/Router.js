@@ -73,7 +73,7 @@ class Route {
 
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
-                const params = request.params;
+                const params = REQUEST.params;
                 finalConvertion(...Object.values(params));
             };
         }

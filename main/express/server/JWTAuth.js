@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 class JWTAuth {
     static getToken(){
-        const headerToken = request.headers['authorization'];
+        const headerToken = REQUEST.headers['authorization'];
         if (!headerToken){
             return false;
         }

@@ -158,9 +158,9 @@ class QueryBuilder {
         let sql = this.toSql();
         let returnData;
         if (defaultLogs) {
-            data = await RawSqlExecutor.run(sql, this.#valueQuery);
+            returnData = await RawSqlExecutor.run(sql, this.#valueQuery);
         } else {
-            data = await RawSqlExecutor.runNoLogs(sql, this.#valueQuery);
+            returnData = await RawSqlExecutor.runNoLogs(sql, this.#valueQuery);
         }
         this.#valueQuery = [];
         return returnData;

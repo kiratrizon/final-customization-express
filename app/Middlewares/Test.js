@@ -6,7 +6,7 @@ class Test {
         // your middleware logic here
         const checker = await Auth.check();
         if (!checker){
-            return json_response({ message: "Unauthorized" }, 401);
+            return jsonResponse({ message: "Unauthorized" }, 401);
         }
         next();
     }

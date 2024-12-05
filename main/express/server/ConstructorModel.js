@@ -2,7 +2,8 @@ class ConstructorModel {
     // all instantiated methods here
     #identifier;
     #primaryValue = null;
-    #queriedValue = {};
+    #privates = {};
+    #privateArea = {};
     setIdentifier(identifier) {
         this.#identifier = identifier;
         if (identifier) {
@@ -16,11 +17,11 @@ class ConstructorModel {
         return this.#primaryValue;
     }
     setPrivates(data = {}){
-        Object.assign(this.#queriedValue, data);
+        Object.assign(this.#privates, data);
     }
 
     getPrivates(){
-        return this.#queriedValue;
+        return this.#privates;
     }
 }
 

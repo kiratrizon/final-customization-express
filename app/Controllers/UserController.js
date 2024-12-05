@@ -6,68 +6,67 @@ const Auth = require("../../main/express/server/Auth");
 
 class UserController extends Controller {
     async index() {
-        const user = await User.find(1);
-        console.log(user);
-        user.name = "Eirazen";
-        user.email = "tgenesistroy@gmail.com";
-        user.password = await Hash.make('asterda23');
-        user.save();
-        json_response({ users: await User.find(1) });
+        jsonResponse({REQUEST});
     }
     static testFunction() {
-        json_response("Hello World");
+        jsonResponse("Hello World");
     }
     async create() {
-        json_response({ message: "UserController create" })
+        jsonResponse({ message: "UserController create" })
     }
 
     async store() {
-        let validate = await Validator.make(post, {
+        let validate = await Validator.make(POST, {
             name: "required",
             email: "required|email|unique:users",
             password: "required|min:6|confirmed"
         });
         if (validate.fails()) {
-            return json_response({ errors: validate.errors }, 400);
+            return jsonResponse({ errors: validate.errors }, 400);
         }
-        const user = await User.create(post);
-        return json_response({ user }, user ? 201 : 403);
+        const user = await User.create(POST);
+        return jsonResponse({ user }, user ? 201 : 403);
     }
 
     async show(id) {
-        const user = await User.find(id);
-        json_response({ user });
+        jsonResponse(ORIGINAL_URL);
     }
 
     async edit(id) {
-        json_response({ get })
+        jsonResponse(GET)
     }
 
     async update(id) {
-        json_response({ message: "UserController update" })
+        jsonResponse({ message: "UserController update" })
     }
 
     async destroy(id) {
-        json_response({ message: "UserController destroy" })
+        jsonResponse({ message: "UserController destroy" })
     }
 
     async login(){
-        let validate = await Validator.make(post, {
+        let validate = await Validator.make(POST, {
             email: "required|email",
             password: "required"
         });
         if (validate.fails()){
-            return json_response({ errors: validate.errors }, 400);
+            return jsonResponse({ errors: validate.errors }, 400);
         }
-        const token = await Auth.attempt(post);
+        const token = await Auth.attempt(POST);
         if (!token){
-            return json_response({ message: "Token not generated" }, 401);
+            return jsonResponse({ message: "Token not generated" }, 401);
         }
-        json_response({ token }, 200);
+        jsonResponse({ token });
     }
 
-    getUser(){
-        json_response({ user: Auth.user() });
+    async getUser(){
+        const user = await Auth.user();
+        console.log(user);
+        jsonResponse({ user });
+    }
+
+    async sessionUser(){
+        jsonResponse(REQUEST);
     }
 }
 

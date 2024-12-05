@@ -64,14 +64,14 @@ class Server {
         // Global request/response handlers
         Server.app.use((req, res, next) => {
             const type = {};
-            const methodType = req.method.toLowerCase();
+            const methodType = req.method.toUpperCase();
 
-            if (methodType === 'post') {
-                type.post = req.body;
-            } else if (methodType === 'get') {
-                type.get = req.query;
-            } else if (methodType === 'put') {
-                type.put = req.body;
+            if (methodType === 'POST') {
+                type.POST = req.body;
+            } else if (methodType === 'GET') {
+                type.GET = req.query;
+            } else if (methodType === 'PUT') {
+                type.PUT = req.body;
             }
 
             const data = {
@@ -96,87 +96,28 @@ class Server {
                     received: type[methodType],
                 },
             };
-            global.request = data.request;
+            global.REQUEST = data.request;
             global[methodType] = type[methodType];
-            global.renderData = (data, shouldExit = false) => {
-                const acceptHeader = req.headers['accept'];
-
-                if (acceptHeader && acceptHeader.includes('application/json')) {
-                    res.set('Content-Type', 'application/json');
-                    res.send(JSON.stringify(data, null, 2));
-                } else {
-                    const tailwindScript = `<script src="/global_assets/tailwind.js"></script>`;
-                    const tailwindStyles = `
-                        <style>
-                            div.debug { font-family: sans-serif; padding: 2rem; background-color: #f7fafc; }
-                            pre { background-color: #000030; padding: 1rem; border-radius: 0.5rem; }
-                            .data-type-wrapper {
-                                display: inline-block;
-                                max-width: 100%;
-                                overflow-wrap: break-word;
-                                word-wrap: break-word;
-                                word-break: break-word;
-                                white-space: pre-wrap;
-                            }
-                            .scrollable {
-                                max-width: 100%;
-                                overflow-x: auto;
-                            }
-                            .string { color: #48bb78; } /* Green for strings */
-                            .number { color: #ed8936; } /* Orange for numbers */
-                            .boolean { color: #3182ce; } /* Blue for booleans */
-                            .object-key { color: #a0aec0; font-weight: bold; } /* Gray for object keys */
-                            .object-value { color: #2d3748; }
-                            .array { color: #805ad5; } /* Purple for arrays */
-                            .null { color: #9b2c2c; } /* Red for null */
-                            .undefined { color: #ed8936; } /* Orange for undefined */
-                            .indentation { padding-left: 20px; }
-                        </style>
-                    `;
-
-                    const recursiveRender = (value, level = 0) => {
-                        const indentClass = `indentation level-${level}`;
-                        if (Array.isArray(value)) {
-                            return `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
-                        } else if (value === null) {
-                            return `<div class="null ${indentClass}">null</div>`;
-                        } else if (typeof value === 'object') {
-                            return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) =>
-                                `<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(val, level + 1)}</span></div>`
-                            ).join('')}</div>`;
-                        } else if (typeof value === 'string') {
-                            return `<div class="string ${indentClass}">"${value}"</div>`;
-                        } else if (typeof value === 'number') {
-                            return `<div class="number ${indentClass}">${value}</div>`;
-                        } else if (typeof value === 'boolean') {
-                            return `<div class="boolean ${indentClass}">${value}</div>`;
-                        } else if (typeof value === 'undefined') {
-                            return `<div class="undefined ${indentClass}">undefined</div>`;
-                        }
-                        return `<div>${value}</div>`;
-                    };
-
-                    const htmlContent = `
-                        ${tailwindScript}
-                        ${tailwindStyles}
-                        <div class="debug">
-                            <pre class="data-type-wrapper">${recursiveRender(data)}</pre>
-                        </div>
-                    `;
-                    res.set('Content-Type', 'text/html');
-                    res.send(htmlContent);
-                }
-
-                if (shouldExit) res.end();
-            }
-            global.dump = (data, end = false) => global.renderData(data, end);
+            global.dump = (data) => renderData(data, false, res);
+            global.dd = (data) => {
+                renderData(data, true, res);
+            };
+            res.locals.dump = (data) => renderData(data);
+            res.locals.dd = (data) => {
+                renderData(data);
+                process.exit(0);
+            };
             if (!req.session) {
                 req.session = {};
             }
-
+            if (!req.session.session_auth){
+                req.session.session_auth = {};
+            }
+            global.SESSION = req.session;
+            global.SESSION_AUTH = SESSION.session_auth;
             Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 
-            global.json_response = (data, status = 200) => res.status(status).json(data);
+            global.jsonResponse = (data, status = 200) => res.status(status).json(data);
             global.view = (view, data = {}) => {
                 const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
 
@@ -189,7 +130,6 @@ class Server {
             global.redirect = (url) => res.redirect(url);
             global.back = () => res.redirect(req.get('Referrer') || '/');
             global.isApiUrl = () => req.path.startsWith('api');
-            global.dd = (data) => dump(data, true);
             // Set up global functions
             global.route = (name, args = {}) => {
                 if (Server.#routes.hasOwnProperty(name)) {
@@ -218,6 +158,14 @@ class Server {
                 const caller = stack.split("\n")[2].trim();
                 dd([`route("${name}") not found.`, caller]);
             };
+            global.BASE_URL = Server.#baseUrl;
+            res.locals.BASE_URL = Server.#baseUrl;
+            global.PATH_URL = REQUEST.path;
+            res.locals.PATH_URL = REQUEST.path;
+            global.PATH_QUERY = REQUEST.originalUrl;
+            res.locals.PATH_QUERY = REQUEST.originalUrl;
+            global.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
+            res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
             next();
         });
     }

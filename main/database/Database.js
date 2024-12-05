@@ -72,7 +72,8 @@ class Database {
                         stmt.run(params);
                         return true;  // Success
                     case 'select':
-                        return stmt.all(params);
+                        const results = stmt.all(params);
+                        return results.length > 0 ? results : [];
                     default:
                         stmt.all(params)
                         return true;  // Default for SELECT and other queries
@@ -98,6 +99,9 @@ class Database {
                                 case 'alter':
                                 case 'drop':
                                     resolve(true);  // Return true for successful CREATE and ALTER
+                                    break;
+                                case 'select':
+                                    resolve(results.length > 0 ? results : []);  // Return empty array if no rows are found
                                     break;
                                 default:
                                     resolve(results);  // Return the results for SELECT and other queries
@@ -145,7 +149,8 @@ class Database {
                         stmt.run(params);
                         return true;  // Success
                     case 'select':
-                        return stmt.all(params);
+                        const results = stmt.all(params);
+                        return results.length > 0 ? results : [];
                     default:
                         stmt.all(params)
                         return true;  // Default for SELECT and other queries
@@ -171,6 +176,9 @@ class Database {
                                 case 'alter':
                                 case 'drop':
                                     resolve(true);  // Return true for successful CREATE and ALTER
+                                    break;
+                                case 'select':
+                                    resolve(results.length > 0 ? results : []);  // Return empty array if no rows are found
                                     break;
                                 default:
                                     resolve(results);  // Return the results for SELECT and other queries
