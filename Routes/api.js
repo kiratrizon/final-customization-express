@@ -1,8 +1,9 @@
+const UserController = require('../app/Controllers/UserController');
 const Route = require('../main/express/server/Router');
 
 Route.setPrefix('/api');
-Route.get('/', (id = 0)=>{
-    dd(REQUEST);
-}).name('api.index');
+Route.group({"as":"user", prefix:"/user"}, ()=>{
+    Route.resource('/register', UserController, {only: ['store']});
+});
 
 module.exports = Route;
