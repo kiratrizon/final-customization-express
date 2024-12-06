@@ -1,12 +1,11 @@
 const Validator = require("../../libraries/Services/Validator");
 const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
-const Hash = require("../../libraries/Services/Hash");
 const Auth = require("../../main/express/server/Auth");
 
 class UserController extends Controller {
     async index() {
-        jsonResponse({REQUEST});
+        dd(REQUEST);
     }
     static testFunction() {
         jsonResponse("Hello World");
@@ -52,16 +51,15 @@ class UserController extends Controller {
         if (validate.fails()){
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const token = await Auth.attempt(POST);
-        if (!token){
-            return jsonResponse({ message: "Token not generated" }, 401);
+        const logged = await Auth.attempt(POST);
+        if (!logged){
+            return back();
         }
-        jsonResponse({ token });
+        redirect('/');
     }
 
     async getUser(){
         const user = await Auth.user();
-        console.log(user);
         jsonResponse({ user });
     }
 

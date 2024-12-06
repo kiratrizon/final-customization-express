@@ -66,6 +66,8 @@ class Route {
             const actionMethod = controllerInstance[action];
             if (typeof actionMethod === 'function') {
                 finalConvertion = actionMethod;
+            } else {
+                throw new Error(`${action} is not a valid method for ${controller.name}`);
             }
         } else if (args !== undefined && typeof args === 'function') {
             finalConvertion = args;
@@ -76,6 +78,8 @@ class Route {
                 const params = REQUEST.params;
                 finalConvertion(...Object.values(params));
             };
+        } else {
+            throw new Error("Invalid route handler.");
         }
 
         if (newOpts !== undefined) {
@@ -104,15 +108,12 @@ class Route {
         return Route;
     }
     static #resourceNaming(name) {
-        if (Route.#currentUrl === '/test/hello/testing') {
-            console.log(name);
-        }
         Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['name'] = name;
         return Route;
     }
     static middleware(middlewareName) {
         let functionUsed;
-        let middlewareCustom;
+        let middleware;
         if (!Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares']) {
             Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'] = [];
         }
@@ -126,12 +127,12 @@ class Route {
             functionUsed = middlewareName;
         }
         if (typeof functionUsed === 'function') {
-            middlewareCustom = (req, res, next) => {
+            middleware = (req, res, next) => {
                 functionUsed(next);
             }
         }
-        if (typeof middlewareCustom === 'function') {
-            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'].unshift(middlewareCustom);
+        if (typeof middleware === 'function') {
+            Route.#storedMethodRoutes[Route.#currentMethod][Route.#currentUrl]['middlewares'].unshift(middleware);
         }
         return Route;
     }
@@ -176,25 +177,23 @@ class Route {
         } while (resource.charAt(0) === '/');
         let naming = resource == '' ? '' : `${resource}`;
         let as = Route.#currentAs == '' ? '' : `${Route.#currentAs}`;
-        let combine = `${as}.${naming}`;
+        let combine = `${as}${naming}`;
         const resources = {
-            index: Route.get(`${resource == '' ? resource : `/${resource}`}`, [controller, 'index']).#resourceNaming(`${combine}index`).middleware(middleware),
-            create: Route.get(`${resource == '' ? resource : `/${resource}`}/create`, [controller, 'create']).#resourceNaming(`${combine}create`).middleware(middleware),
-            store: Route.post(`${resource == '' ? resource : `/${resource}`}`, [controller, 'store']).#resourceNaming(`${combine}store`).middleware(middleware),
-            show: Route.get(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'show']).#resourceNaming(`${combine}show`).middleware(middleware),
-            edit: Route.get(`${resource == '' ? resource : `/${resource}`}/:id/edit`, [controller, 'edit']).#resourceNaming(`${combine}edit`).middleware(middleware),
-            update: Route.put(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'update']).#resourceNaming(`${combine}update`).middleware(middleware),
-            destroy: Route.delete(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'destroy']).#resourceNaming(`${combine}destroy`).middleware(middleware),
+            index: "Route.get(`${resource == '' ? resource : `/${resource}`}`, [controller, 'index']).#resourceNaming(`${combine}.index`).middleware(middleware)",
+            create: "Route.get(`${resource == '' ? resource : `/${resource}`}/create`, [controller, 'create']).#resourceNaming(`${combine}.create`).middleware(middleware)",
+            store: "Route.post(`${resource == '' ? resource : `/${resource}`}`, [controller, 'store']).#resourceNaming(`${combine}.store`).middleware(middleware)",
+            show: "Route.get(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'show']).#resourceNaming(`${combine}.show`).middleware(middleware)",
+            edit: "Route.get(`${resource == '' ? resource : `/${resource}`}/:id/edit`, [controller, 'edit']).#resourceNaming(`${combine}.edit`).middleware(middleware)",
+            update: "Route.put(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'update']).#resourceNaming(`${combine}.update`).middleware(middleware)",
+            destroy: "Route.delete(`${resource == '' ? resource : `/${resource}`}/:id`, [controller, 'destroy']).#resourceNaming(`${combine}.destroy`).middleware(middleware)",
         }
         if (!only.length) {
             Object.entries(resources).forEach(([key, value]) => {
-                value;
+                eval(value);
             });
         } else {
-            Object.entries(resources).forEach(([key, value]) => {
-                if (only.includes(key)) {
-                    value;
-                }
+            only.forEach((key) => {
+                eval(resources[key]);
             });
         }
     }

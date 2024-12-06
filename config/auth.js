@@ -6,7 +6,7 @@ const constant = {
     },
     guards: {
         user: {
-            driver: 'jwt',
+            driver: 'session',
             provider: 'users',
         }
     },

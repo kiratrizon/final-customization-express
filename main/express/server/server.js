@@ -25,10 +25,10 @@ class Server {
         ) {
             return;
         }
-
-        // Server.#duplicateRoutesDetector(Server.#routes, args1.routes());
+        const routePrefix = instantiatedRoutes.getPrefix();
         const storedRoutes = Object.entries(instantiatedRoutes.getStoredRoutes());
         // console.log(args1.getStoredRoutes());
+        const routeNames = {};
         storedRoutes.forEach(([method, routes]) => {
             // console.log(`Method: ${method}`);
 
@@ -38,14 +38,25 @@ class Server {
                 if (values['function_use'] === undefined && typeof values['function_use'] !== 'function') {
                     return;
                 }
-                if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
-                    Server.#routes[values['name']] = url;
-                }
                 const middlewares = values['middlewares'] || [];
+                let newUrl = '';
+                if (routePrefix !== '/'){
+                    newUrl = `${routePrefix}${url == '' ? '/' : url}`;
+                } else {
+                    newUrl = url == '' ? '/' : url;
+                }
+                if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
+                    if (!values['name'].endsWith('.')){
+                        routeNames[values['name']] = newUrl;
+                    } else {
+                        console.warn(`Route.${method}(${url}, callback)`,`name is incomplete ${values['name']}`);
+                    }
+                }
                 Server.router[method](url == '' ? '/' : url, ...middlewares, values['function_use']);
             });
         });
-        Server.app.use(instantiatedRoutes.getPrefix(), Server.router);
+        Server.#duplicateRoutesDetector(Server.#routes, routeNames);
+        Server.app.use(routePrefix, Server.router);
         Server.router = Server.express.Router();
     }
 
@@ -91,7 +102,7 @@ class Server {
                     user: req.user || null,
                     acceptLanguage: req.headers['accept-language'],
                     referer: req.headers['referer'] || null,
-                    session: req.session || null,
+                    // session: req.session || null,
                     files: req.files || null,
                     received: type[methodType],
                 },
@@ -134,12 +145,22 @@ class Server {
             global.route = (name, args = {}) => {
                 if (Server.#routes.hasOwnProperty(name)) {
                     let route = Server.#routes[name];
-
-                    // Replace :id or :id? placeholders with the corresponding values or remove optional ones
+            
+                    // Validate required parameters
+                    const requiredParams = (route.match(/:([^\/\?]+)(?=[\/\?]|$)/g) || []).map(param => param.substring(1));
+                    requiredParams.forEach(param => {
+                        if (!(param in args) || args[param] === undefined || args[param] === null) {
+                            const stack = new Error().stack;
+                            const callerLine = stack.split("\n")[4].trim();
+                            throw `Missing required parameter "${param}" for route "${name}".\n    ${callerLine}`;
+                        }
+                    });
+            
+                    // Replace placeholders with values from args
                     Object.entries(args).forEach(([key, value]) => {
                         const regexOptional = new RegExp(`:${key}\\?`, "g"); // Match optional parameter
                         const regexRequired = new RegExp(`:${key}`, "g"); // Match required parameter
-
+            
                         if (value !== undefined) {
                             // Replace both required and optional parameters with the value
                             route = route.replace(regexOptional, value).replace(regexRequired, value);
@@ -148,16 +169,18 @@ class Server {
                             route = route.replace(regexOptional, "");
                         }
                     });
-
-                    // Remove any leftover optional placeholders (e.g., /user/:id?)
-                    route = route.replace(/\/:[^\/]+\?/g, ""); // Remove segments like /:id?
-
+            
+                    // Remove leftover optional placeholders (e.g., /user/:id?)
+                    route = route.replace(/\/:[^\/]+\?/g, "");
+            
                     return `${Server.#baseUrl}${route}`;
                 }
+            
                 const stack = new Error().stack;
                 const caller = stack.split("\n")[2].trim();
-                dd([`route("${name}") not found.`, caller]);
+                throw `route("${name}") not found.\n${caller}`;
             };
+            
             global.BASE_URL = Server.#baseUrl;
             res.locals.BASE_URL = Server.#baseUrl;
             global.PATH_URL = REQUEST.path;

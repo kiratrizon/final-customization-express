@@ -152,8 +152,21 @@ class Guarder {
         }
         return null;
     }
-    logout(){
-
+    async logout(){
+        if (this.#guardDriver === 'jwt'){
+            let token = this.getBearerToken();
+            if (!token) return false;
+            const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
+            const revoked = await RawSqlExecutor.runNoLogs(`UPDATE ${this.#jwtTable} SET is_revoked =? WHERE token =? AND user_type =?`, [1, token, user_type]);
+            if (revoked){
+                return true;
+            }
+        } else if (this.#guardDriver === 'session'){
+            const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
+            delete SESSION_AUTH[user_type];
+            return true;
+        }
+        return false;
     }
     #jwtSigner(payload, time, user_type){
         const algo = config('jwt.algorithm');
