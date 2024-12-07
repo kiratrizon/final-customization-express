@@ -7,7 +7,7 @@ const guards = config('auth.guards');
 const providers = config('auth.providers');
 
 class Guard {
-    constructor(data){
+    constructor(data) {
         Object.keys(data).forEach(key => {
             this[key] = data[key];
         });
@@ -17,48 +17,48 @@ class Guarder {
     #guardDriver;
     #guardProvider;
     #jwtTable = config('jwt.oauth_db');
-    constructor(guard){
-        if (!Object.keys(guards).includes(guard)){
+    constructor(guard) {
+        if (!Object.keys(guards).includes(guard)) {
             throw new Error(`Guard ${guard} is not defined`);
         }
         this.#guardDriver = guards[guard].driver;
         this.#guardProvider = providers[guards[guard].provider];
-        if (this.#guardProvider.driver === 'eloquent'){
-            if (!this.#guardProvider.model){
+        if (this.#guardProvider.driver === 'eloquent') {
+            if (!this.#guardProvider.model) {
                 throw new Error('Model is not defined');
             }
-            if (!this.#guardProvider.model.authenticatableClass){
+            if (!this.#guardProvider.model.authenticatableClass) {
                 throw new Error(`Model ${this.#guardProvider.model.name} is not authenticatable. Please extend Authenticatable class`);
             }
         }
     }
-    async check(){
-        if (this.#guardDriver === 'jwt'){
+    async check() {
+        if (this.#guardDriver === 'jwt') {
             const token = this.getBearerToken();
             if (!token) return false;
             if (!this.#verifyJwtSignature(token)) return false;
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             const data = await RawSqlExecutor.runNoLogs(`SELECT * FROM ${this.#jwtTable} WHERE token = ? and user_type = ? and is_revoked = ? and expires_at > ?`, [token, user_type, 0, Carbon.getDateTime()]);
-            if (data.length){
+            if (data.length) {
                 return true;
             }
-        } else if (this.#guardDriver === 'session'){
+        } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             const userEncoded = SESSION_AUTH[user_type];
             if (!!userEncoded) return true;
         }
         return false;
     }
-    async attempt(data){
-        if (this.#guardDriver === 'jwt'){
+    async attempt(data) {
+        if (this.#guardDriver === 'jwt') {
             return await this.#tokenGenerator(data, this.#guardProvider.driver.toLowerCase());
-        } else if (this.#guardDriver === 'session'){
+        } else if (this.#guardDriver === 'session') {
             return await this.#sessionGenerator(data, this.#guardProvider.driver.toLowerCase());
         }
         return false;
     }
-    async #tokenGenerator(...args){
-        const {data, type, selectedKey} = this.#validateData(...args);
+    async #tokenGenerator(...args) {
+        const { data, type, selectedKey } = this.#validateData(...args);
         let user_type;
         let fetchedData;
         if (type === 'eloquent') {
@@ -76,12 +76,12 @@ class Guarder {
         if (checkToken && fetchedData.expires_at > Carbon.getDateTime() && fetchedData.is_revoked == 0) return checkToken;
         const now = Carbon.getDateTime();
         const token = this.#jwtSigner(fetchedData, now, user_type);
-        const inserted = await RawSqlExecutor.runNoLogs(`INSERT INTO ${this.#jwtTable} (token, user_id, 'user_type', 'expires_at', 'created_at', 'updated_at') VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
+        const inserted = await RawSqlExecutor.runNoLogs(`INSERT INTO ${this.#jwtTable} (token, user_id, user_type, expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
         if (inserted) return token;
         return false;
     }
-    async #sessionGenerator(...args){
-        const {data, type, selectedKey} = this.#validateData(...args);
+    async #sessionGenerator(...args) {
+        const { data, type, selectedKey } = this.#validateData(...args);
         let user_type;
         let fetchedData;
         if (type === 'eloquent') {
@@ -98,22 +98,22 @@ class Guarder {
         }
         return false;
     }
-    #validateData(...args){
+    #validateData(...args) {
         const data = args[0];
         const type = args[1];
         const selectKey = Object.keys(data);
-        if (selectKey.length !== 2){
+        if (selectKey.length !== 2) {
             throw new Error('Invalid attempt data needs to be an object with 2 keys identifier and password');
         }
         const selectedKey = selectKey[0] === 'password' ? selectKey[1] : selectKey[0];
-        return {data, type, selectedKey};
+        return { data, type, selectedKey };
     }
-    async user(){
+    async user() {
         let user = null;
         let dataFetched = {};
         let id = this.id();
-        if (id){
-            if (this.#guardProvider.driver === 'eloquent'){
+        if (id) {
+            if (this.#guardProvider.driver === 'eloquent') {
                 const useModel = new this.#guardProvider.model();
                 const hidden = useModel.hidden;
                 delete useModel.hidden;
@@ -125,50 +125,50 @@ class Guarder {
                 hidden.forEach((key) => {
                     delete dataFetched[key];
                 });
-            } else if (this.#guardProvider.driver === 'database'){
+            } else if (this.#guardProvider.driver === 'database') {
                 [dataFetched] = await RawSqlExecutor.runNoLogs(`SELECT * FROM ${this.#guardProvider.table} WHERE id =? LIMIT 1`, [id]);
             }
         }
-        if (dataFetched){
+        if (dataFetched) {
             user = new Guard(dataFetched);
         }
         return user;
     }
-    id(){
+    id() {
         let user = null;
-        if (this.#guardDriver === 'jwt'){
+        if (this.#guardDriver === 'jwt') {
             let token = this.getBearerToken();
             if (!token) return null;
-            const [,middleToken,] = token.split('.');
+            const [, middleToken,] = token.split('.');
             user = JSON.parse(base64_decode(middleToken));
-        } else if (this.#guardDriver === 'session'){
+        } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             const userEncoded = SESSION_AUTH[user_type];
             if (!userEncoded) return null;
             user = JSON.parse(base64_decode(userEncoded));
         }
-        if (user && user.id){
+        if (user && user.id) {
             return user.id;
         }
         return null;
     }
-    async logout(){
-        if (this.#guardDriver === 'jwt'){
+    async logout() {
+        if (this.#guardDriver === 'jwt') {
             let token = this.getBearerToken();
             if (!token) return false;
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             const revoked = await RawSqlExecutor.runNoLogs(`UPDATE ${this.#jwtTable} SET is_revoked =? WHERE token =? AND user_type =?`, [1, token, user_type]);
-            if (revoked){
+            if (revoked) {
                 return true;
             }
-        } else if (this.#guardDriver === 'session'){
+        } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             delete SESSION_AUTH[user_type];
             return true;
         }
         return false;
     }
-    #jwtSigner(payload, time, user_type){
+    #jwtSigner(payload, time, user_type) {
         const algo = config('jwt.algorithm');
         const secretKey = config('jwt.secret_key');
         const header = {
@@ -178,7 +178,7 @@ class Guarder {
 
         const { id, email, username, name } = payload;
         const filteredPayload = { id };
-        
+
         if (email) {
             filteredPayload.email = email;
         }
@@ -209,10 +209,10 @@ class Guarder {
         // Return the JWT token
         return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
     }
-    #sessionSigner(payload, user_type){
+    #sessionSigner(payload, user_type) {
         const { id, email, username, name } = payload;
         const filteredPayload = { id };
-        
+
         if (email) {
             filteredPayload.email = email;
         }
@@ -223,12 +223,12 @@ class Guarder {
             filteredPayload.name = name;
         }
         SESSION_AUTH[user_type] = base64_encode(filteredPayload);
-        if (SESSION_AUTH[user_type]){
+        if (SESSION_AUTH[user_type]) {
             return true;
         }
         return false;
     }
-    #verifyJwtSignature(token){
+    #verifyJwtSignature(token) {
         const [header, payload, signature] = token.split('.');
         const algo = config('jwt.algorithm');
         const secretKey = config('jwt.secret_key');
@@ -240,13 +240,13 @@ class Guarder {
         return signature === newSignature;
     }
 
-    getBearerToken(){
+    getBearerToken() {
         const headerToken = REQUEST.headers['authorization'];
-        if (!headerToken){
+        if (!headerToken) {
             return false;
         }
-        const [headerName,token] = headerToken.split(' ');
-        if (headerName !== 'Bearer'){
+        const [headerName, token] = headerToken.split(' ');
+        if (headerName !== 'Bearer') {
             return false;
         }
         return token;
@@ -254,22 +254,22 @@ class Guarder {
 }
 
 class Auth {
-    static guard(guard){
+    static guard(guard) {
         return new Guarder(guard);
     }
-    static check(){
+    static check() {
         return new Guarder(defaultGuard).check();
     }
-    static async attempt(data){
+    static async attempt(data) {
         return await new Guarder(defaultGuard).attempt(data);
     }
-    static user(){
+    static user() {
         return new Guarder(defaultGuard).user();
     }
-    static id(){
+    static id() {
         return new Guarder(defaultGuard).id();
     }
-    static logout(){
+    static logout() {
         return new Guarder(defaultGuard).logout();
     }
 }

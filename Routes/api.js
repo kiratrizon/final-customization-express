@@ -8,6 +8,7 @@ Route.group({ "as": "user", prefix: "/user" }, () => {
 });
 
 Route.group({ "as": "admin", prefix: "/admin" }, () => {
+    Route.post('/login', [AdminController, 'login']).name('login');
     Route.resource('/register', AdminController, { only: ['store'] });
 });
 

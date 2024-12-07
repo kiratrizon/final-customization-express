@@ -39,7 +39,10 @@ class Database {
     async runQuery(query, params = []) {
         const isSQLite = process.env.DATABASE === 'sqlite';
         query = sqlFormatter.format(query);
+
+        let result;
         try {
+            // Open the connection at the start of the method
             this.openConnection();
 
             if (this.debugger) {
@@ -55,39 +58,40 @@ class Database {
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
                 const queryType = query.trim().toLowerCase().split(' ')[0];
+
                 switch (queryType.trim()) {
                     case 'insert': {
-                        const result = stmt.run(params);
-                        return result.lastInsertRowid;
+                        result = stmt.run(params).lastInsertRowid;
+                        break;
                     }
                     case 'update':
                     case 'delete': {
-                        const result = stmt.run(params);
-                        return result.changes > 0;
+                        result = stmt.run(params).changes > 0;
+                        break;
                     }
                     case 'create':
                     case 'alter':
                     case 'drop':
-                        // For CREATE and ALTER queries, return true if no error occurred
                         stmt.run(params);
-                        return true;  // Success
+                        result = true;  // Success
+                        break;
                     case 'select':
-                        const results = stmt.all(params);
-                        return results.length > 0 ? results : [];
+                        result = stmt.all(params);
+                        break;
                     default:
-                        stmt.all(params)
-                        return true;  // Default for SELECT and other queries
+                        result = stmt.all(params);
+                        break;
                 }
             } else {
                 // For MySQL
-                return new Promise((resolve, reject) => {
+                result = await new Promise((resolve, reject) => {
                     this.connection.query(query, params, (err, results) => {
                         if (err) {
                             reject(err);
                         } else {
                             const queryType = query.trim().toLowerCase().split(' ')[0];
 
-                            switch (queryType.trim()) {
+                            switch (queryType) {
                                 case 'insert':
                                     resolve(results.insertId);  // Return last inserted ID
                                     break;
@@ -111,17 +115,25 @@ class Database {
                     });
                 });
             }
+            if (this.connection) {
+                await this.close();
+            }
+            return result;
         } catch (err) {
             console.error('Query Error:', err);
             return false;  // Return false if there is an error
         } finally {
-            await this.close();
+            // Ensure the connection is closed after the query has completed (successful or not)
         }
     }
+
     async runQueryNoLogs(query, params = []) {
         const isSQLite = process.env.DATABASE === 'sqlite';
         query = sqlFormatter.format(query);
+
+        let result;
         try {
+            // Open the connection at the start of the method
             this.openConnection();
 
             if (!this.connection) {
@@ -132,39 +144,40 @@ class Database {
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
                 const queryType = query.trim().toLowerCase().split(' ')[0];
+
                 switch (queryType.trim()) {
                     case 'insert': {
-                        const result = stmt.run(params);
-                        return result.lastInsertRowid;
+                        result = stmt.run(params).lastInsertRowid;
+                        break;
                     }
                     case 'update':
                     case 'delete': {
-                        const result = stmt.run(params);
-                        return result.changes > 0;
+                        result = stmt.run(params).changes > 0;
+                        break;
                     }
                     case 'create':
                     case 'alter':
                     case 'drop':
-                        // For CREATE and ALTER queries, return true if no error occurred
                         stmt.run(params);
-                        return true;  // Success
+                        result = true;  // Success
+                        break;
                     case 'select':
-                        const results = stmt.all(params);
-                        return results.length > 0 ? results : [];
+                        result = stmt.all(params);
+                        break;
                     default:
-                        stmt.all(params)
-                        return true;  // Default for SELECT and other queries
+                        result = stmt.all(params);
+                        break;
                 }
             } else {
                 // For MySQL
-                return new Promise((resolve, reject) => {
+                result = await new Promise((resolve, reject) => {
                     this.connection.query(query, params, (err, results) => {
                         if (err) {
                             reject(err);
                         } else {
                             const queryType = query.trim().toLowerCase().split(' ')[0];
 
-                            switch (queryType.trim()) {
+                            switch (queryType) {
                                 case 'insert':
                                     resolve(results.insertId);  // Return last inserted ID
                                     break;
@@ -188,11 +201,15 @@ class Database {
                     });
                 });
             }
+            if (this.connection) {
+                await this.close();
+            }
+            return result;
         } catch (err) {
             console.error('Query Error:', err);
             return false;  // Return false if there is an error
         } finally {
-            await this.close();
+            // Ensure the connection is closed after the query has completed (successful or not)
         }
     }
     async close() {
@@ -201,15 +218,10 @@ class Database {
         if (process.env.DATABASE === 'sqlite') {
             this.connection.close();
         } else {
-            await new Promise((resolve, reject) => {
-                this.connection.end((err) => {
-                    if (err) {
-                        console.error('Error closing the MySQL connection:', err.message);
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
+            this.connection.end((err) => {
+                if (err) {
+                    console.error('Error closing the MySQL connection:', err.message);
+                }
             });
         }
 
@@ -219,8 +231,8 @@ class Database {
     async makeMigration(query, filename, rollback = false) {
         let migrationsTableQuery = '';
         if (rollback) {
-            await this.#privateRunQuery(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
-            await this.#privateRunQuery(query);
+            await this.runQueryNoLogs(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
+            await this.runQueryNoLogs(query);
         } else {
             if (process.env.DATABASE === 'mysql') {
                 migrationsTableQuery = `
@@ -241,14 +253,14 @@ class Database {
             }
 
             try {
-                await this.#privateRunQuery(migrationsTableQuery);
+                await this.runQueryNoLogs(migrationsTableQuery);
 
-                let fileNameChecker = await this.#privateRunQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
+                let fileNameChecker = await this.runQueryNoLogs(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
                 if (fileNameChecker.length === 0) {
-                    const migrationResult = await this.#privateRunQuery(query);
+                    const migrationResult = await this.runQueryNoLogs(query);
 
                     if (migrationResult) {
-                        await this.#privateRunQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
+                        await this.runQueryNoLogs(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
                         console.log(`Migration "${filename}" applied successfully.`);
                     } else {
                         console.log(`Migration "${filename}" failed to execute.`);
@@ -257,80 +269,6 @@ class Database {
             } catch (err) {
                 console.error(`Error applying migration "${filename}":`, err);
             }
-        }
-    }
-
-    async #privateRunQuery(query, params = []) {
-        const isSQLite = process.env.DATABASE === 'sqlite';
-
-        try {
-            this.openConnection();
-
-            if (!this.connection) {
-                throw new Error('Database connection is not established.');
-            }
-
-            // For SQLite
-            if (isSQLite) {
-                const stmt = this.connection.prepare(query);
-                const queryType = query.trim().toLowerCase().split(' ')[0];
-
-                switch (queryType) {
-                    case 'insert': {
-                        const result = stmt.run(params);
-                        return result.lastInsertRowid;
-                    }
-                    case 'update':
-                    case 'delete': {
-                        const result = stmt.run(params);
-                        return result.changes > 0;
-                    }
-                    case 'create':
-                    case 'alter':
-                    case 'drop':
-                        // For CREATE and ALTER queries, return true if no error occurred
-                        stmt.run(params);
-                        return true;  // Success
-                    case 'select':
-                        return stmt.all(params);
-                    default:
-                        return stmt.all(params)
-                }
-            } else {
-                // For MySQL
-                return new Promise((resolve, reject) => {
-                    this.connection.query(query, params, (err, results) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            const queryType = query.trim().toLowerCase().split(' ')[0];
-
-                            switch (queryType) {
-                                case 'insert':
-                                    resolve(results.insertId);  // Return last inserted ID
-                                    break;
-                                case 'update':
-                                case 'delete':
-                                    resolve(results.affectedRows > 0);  // Return true if affected rows > 0
-                                    break;
-                                case 'create':
-                                case 'alter':
-                                case 'drop':
-                                    resolve(true);  // Return true for successful CREATE and ALTER
-                                    break;
-                                default:
-                                    resolve(results);  // Return the results for SELECT and other queries
-                                    break;
-                            }
-                        }
-                    });
-                });
-            }
-        } catch (err) {
-            console.error('Query Error:', err);
-            return false;  // Return false if there is an error
-        } finally {
-            await this.close();
         }
     }
 

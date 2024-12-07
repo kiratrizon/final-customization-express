@@ -16,11 +16,11 @@ class ConstructorModel {
     getPrimaryValue() {
         return this.#primaryValue;
     }
-    setPrivates(data = {}){
+    setPrivates(data = {}) {
         Object.assign(this.#privates, data);
     }
 
-    getPrivates(){
+    getPrivates() {
         return this.#privates;
     }
 }

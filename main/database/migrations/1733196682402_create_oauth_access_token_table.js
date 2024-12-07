@@ -8,7 +8,7 @@ class Migrate {
         const createTableSQL = blueprint.create(this.tableName, (table) => {
             table.id();
             table.string('name');
-            table.string('token');
+            table.text('token');
             table.integer('user_id');
             table.boolean('is_revoked', { defaultValue: 0 });
             table.datetime('expires_at');

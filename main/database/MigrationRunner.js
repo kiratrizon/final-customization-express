@@ -10,32 +10,32 @@ class MigrationRunner {
 
     async run() {
         const migrationFiles = this.getMigrationFiles();
-    
+
         // Use a for loop to ensure order
         await Promise.all(migrationFiles.map(async (file) => {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.up();
-    
-            this.db.makeMigration(query, migrationName);
+
+            await this.db.makeMigration(query, migrationName);
         }));
     }
-    
+
     async rollback() {
         const migrationFiles = this.getMigrationFiles();
-    
+
         // Use a for loop to ensure order
         await Promise.all(migrationFiles.map(async (file) => {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
-    
-            this.db.makeMigration(query, migrationName, true);
+
+            await this.db.makeMigration(query, migrationName, true);
         }));
     }
-    
+
 
     getMigrationFiles() {
         return fs.readdirSync(this.migrationsPath).filter(file => file.endsWith('.js'));

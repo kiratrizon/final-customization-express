@@ -50,7 +50,6 @@ class Route {
         //     throw new Error(`Route.${method}('must start with a forward slash')`);
         // }
         Route.#reset();
-
         // Prepend the group resource prefix to the URL
         url = `${Route.#groupResource}${url}`.replace(/\/+/g, '/'); // Ensure no double slashes
 
@@ -196,6 +195,7 @@ class Route {
                 eval(resources[key]);
             });
         }
+        return Route;
     }
 
     static group(opts, callback) {

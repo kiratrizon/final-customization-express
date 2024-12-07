@@ -29,7 +29,9 @@ class Blueprint {
     }
 
     // Method for adding a string column with optional constraints
-    string(name, length = 255, args = {}) {
+    string(name, args = {}) {
+        let { length } = args;
+        if (length === undefined) length = 255;
         const type = process.env.DATABASE === 'sqlite' ? 'TEXT' : `VARCHAR(${length})`;
         this.#handleCreateColumn(name, type, args);
     }

@@ -30,11 +30,9 @@ class Server {
         // console.log(args1.getStoredRoutes());
         const routeNames = {};
         storedRoutes.forEach(([method, routes]) => {
-            // console.log(`Method: ${method}`);
-
             Object.entries(routes).forEach(([url, values]) => {
                 // console.log(`URL: ${url}`);
-                // console.log(`Values: `,values);
+                // console.log(`Values: `, values);
                 if (values['function_use'] === undefined && typeof values['function_use'] !== 'function') {
                     return;
                 }
@@ -46,12 +44,12 @@ class Server {
                     newUrl = url == '' ? '/' : url;
                 }
                 if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
-                    if (!values['name'].endsWith('.')) {
-                        routeNames[values['name']] = newUrl;
-                    } else {
+                    routeNames[values['name']] = newUrl;
+                    if (values['name'].endsWith('.')) {
                         console.warn(`Route.${method}(${url}, callback)`, `name is incomplete ${values['name']}`);
                     }
                 }
+                // console.log(`Method: ${method}`);
                 Server.router[method](url == '' ? '/' : url, ...middlewares, values['function_use']);
             });
         });
@@ -229,6 +227,8 @@ class Server {
         if (typeof Boot['404'] === 'function') {
             Server.app.use(Boot['404']);
         }
+
+        // console.log(Server.#routes);
     }
 
     static async #getCorsOptions() {
@@ -243,7 +243,7 @@ class Server {
                     }
                 },
                 methods: ['GET', 'POST', 'PUT', 'DELETE'],
-                credentials: true,
+                // credentials: true,
                 allowedHeaders: ['Content-Type', 'Authorization'],
                 optionsSuccessStatus: 200,
             };

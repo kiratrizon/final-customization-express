@@ -46,18 +46,18 @@ class BaseModel extends ConstructorModel {
             delete this.fillable;
             delete this.timestamp;
             delete this.guarded;
-            if (timestamp){
+            if (timestamp) {
                 data['created_at'] = Carbon.getDateTime();
                 data['updated_at'] = Carbon.getDateTime();
             }
         } else {
-            if (timestamp){
+            if (timestamp) {
                 data['updated_at'] = Carbon.getDateTime();
             }
         }
         const obj = { ...this, ...data };
         const lastData = this.getPrivates();
-        if (primary){
+        if (primary) {
             Object.keys(lastData).forEach((key) => {
                 if (obj[key] === lastData[key]) delete obj[key];
             });
@@ -65,7 +65,7 @@ class BaseModel extends ConstructorModel {
         const objKeys = Object.keys(obj).filter(key => obj[key] !== undefined);
         const objValues = objKeys.map(key => obj[key]);
 
-        if (objKeys.length && objValues.length){
+        if (objKeys.length && objValues.length) {
             let rawSql = '';
             let placeholders = objKeys.map(() => '?').join(', ');
 

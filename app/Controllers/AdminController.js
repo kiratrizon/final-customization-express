@@ -1,5 +1,6 @@
 const Validator = require("../../libraries/Services/Validator");
 const Controller = require("../../main/base/Controller");
+const Auth = require("../../main/express/server/Auth");
 
 class AdminController extends Controller {
     constructor() {
@@ -45,6 +46,21 @@ class AdminController extends Controller {
     // delete
     async destroy(id) {
         jsonResponse({ message: "AdminController destroy" })
+    }
+    async login() {
+        const validate = await Validator.make(POST, {
+            email: "required|email",
+            password: "required"
+        });
+        if (validate.fails()) {
+            return jsonResponse({ errors: validate.errors }, 400);
+        }
+        const data = {
+            email: POST.email,
+            password: POST.password
+        }
+        const token = await Auth.guard('jwt_admin').attempt(data);
+        return jsonResponse({ token });
     }
 }
 

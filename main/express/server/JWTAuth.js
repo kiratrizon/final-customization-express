@@ -3,31 +3,31 @@ const RawSqlExecutor = require("../../../libraries/Materials/RawSqlExecutor");
 const crypto = require('crypto');
 
 class JWTAuth {
-    static getToken(){
+    static getToken() {
         const headerToken = REQUEST.headers['authorization'];
-        if (!headerToken){
+        if (!headerToken) {
             return false;
         }
         const [headerName, token] = headerToken.split(' ');
-        if (headerName !== 'Bearer'){
+        if (headerName !== 'Bearer') {
             return false;
         }
         return token;
     }
 
-    static async verifyToken(){
+    static async verifyToken() {
         const token = this.getToken();
-        if (!!token && JWTAuth.#verifySignature(token)){
+        if (!!token && JWTAuth.#verifySignature(token)) {
             const data = await RawSqlExecutor.run(`SELECT * FROM ${config('jwt.oauth_db')} WHERE token = ? AND expires_at >= ? AND is_revoked = ?`, [token, Carbon.getDateTime(), 0]);
-            if (data.length){
+            if (data.length) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
-    static #verifySignature(token){
+    static #verifySignature(token) {
         const [header, payload, signature] = token.split('.');
         const algo = config('jwt.algorithm');
         const secretKey = config('jwt.secret_key');
@@ -38,7 +38,7 @@ class JWTAuth {
             .digest('base64url');
         return signature === newSignature;
     }
-    static revokeToken(token){
+    static revokeToken(token) {
         return RawSqlExecutor.run(`UPDATE ${config('jwt.oauth_db')} SET is_revoked =? WHERE token =?`, [1, token]);
     }
 }
