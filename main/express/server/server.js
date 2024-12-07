@@ -40,16 +40,16 @@ class Server {
                 }
                 const middlewares = values['middlewares'] || [];
                 let newUrl = '';
-                if (routePrefix !== '/'){
+                if (routePrefix !== '/') {
                     newUrl = `${routePrefix}${url == '' ? '/' : url}`;
                 } else {
                     newUrl = url == '' ? '/' : url;
                 }
                 if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
-                    if (!values['name'].endsWith('.')){
+                    if (!values['name'].endsWith('.')) {
                         routeNames[values['name']] = newUrl;
                     } else {
-                        console.warn(`Route.${method}(${url}, callback)`,`name is incomplete ${values['name']}`);
+                        console.warn(`Route.${method}(${url}, callback)`, `name is incomplete ${values['name']}`);
                     }
                 }
                 Server.router[method](url == '' ? '/' : url, ...middlewares, values['function_use']);
@@ -121,7 +121,7 @@ class Server {
             if (!req.session) {
                 req.session = {};
             }
-            if (!req.session.session_auth){
+            if (!req.session.session_auth) {
                 req.session.session_auth = {};
             }
             global.SESSION = req.session;
@@ -145,7 +145,7 @@ class Server {
             global.route = (name, args = {}) => {
                 if (Server.#routes.hasOwnProperty(name)) {
                     let route = Server.#routes[name];
-            
+
                     // Validate required parameters
                     const requiredParams = (route.match(/:([^\/\?]+)(?=[\/\?]|$)/g) || []).map(param => param.substring(1));
                     requiredParams.forEach(param => {
@@ -155,12 +155,12 @@ class Server {
                             throw `Missing required parameter "${param}" for route "${name}".\n    ${callerLine}`;
                         }
                     });
-            
+
                     // Replace placeholders with values from args
                     Object.entries(args).forEach(([key, value]) => {
                         const regexOptional = new RegExp(`:${key}\\?`, "g"); // Match optional parameter
                         const regexRequired = new RegExp(`:${key}`, "g"); // Match required parameter
-            
+
                         if (value !== undefined) {
                             // Replace both required and optional parameters with the value
                             route = route.replace(regexOptional, value).replace(regexRequired, value);
@@ -169,18 +169,18 @@ class Server {
                             route = route.replace(regexOptional, "");
                         }
                     });
-            
+
                     // Remove leftover optional placeholders (e.g., /user/:id?)
                     route = route.replace(/\/:[^\/]+\?/g, "");
-            
+
                     return `${Server.#baseUrl}${route}`;
                 }
-            
+
                 const stack = new Error().stack;
                 const caller = stack.split("\n")[2].trim();
                 throw `route("${name}") not found.\n${caller}`;
             };
-            
+
             global.BASE_URL = Server.#baseUrl;
             res.locals.BASE_URL = Server.#baseUrl;
             global.PATH_URL = REQUEST.path;
@@ -204,7 +204,7 @@ class Server {
         const corsOptions = {
             origin: origins,
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
-            // credentials: true,
+            credentials: true,
             allowedHeaders: ['Content-Type', 'Authorization'],
             optionsSuccessStatus: 200,
         };

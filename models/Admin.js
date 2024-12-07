@@ -1,8 +1,13 @@
-const Model = require("../main/base/Model");
+const Authenticatable = require("../main/base/Authenticatable");
 
-class Admin extends Model {
+class Admin extends Authenticatable {
     fillable = [
-
+        'name',
+        'email',
+        'password'
+    ];
+    hidden = [
+        'password'
     ];
 };
 
