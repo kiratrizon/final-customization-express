@@ -1,22 +1,23 @@
 class Boot {
-    static use(){
+    static use() {
         return [
             'cors',
             'cookieParser',
             'session',
             'flash',
+            'helmet'
         ]
     }
 
-    static 404(){
-        if (isApiUrl()){
-            json({message:"Not Found"}, 404);
+    static 404() {
+        if (isApiUrl()) {
+            json({ message: "Not Found" }, 404);
         } else {
-            dump({message:"Not Found"});
+            dump({ message: "Not Found" });
         }
     }
 
-    static hasher(){
+    static hasher() {
         return 'argon2';
     }
 }
