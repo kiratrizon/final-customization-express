@@ -202,8 +202,8 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['created_at'] = Carbon.getDateTime();
-            filteredData['updated_at'] = Carbon.getDateTime();
+            filteredData['created_at'] = 'now()';
+            filteredData['updated_at'] = 'now()';
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);
@@ -224,7 +224,7 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['updated_at'] = Carbon.getDateTime();
+            filteredData['updated_at'] = 'now()';
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);
@@ -233,7 +233,7 @@ class QueryBuilder {
         if (this.#whereQuery.length) sql += ` WHERE ${this.#whereQuery.join(', ')}`;
         values.push(...this.#valueQuery);
         return await RawSqlExecutor.run(sql, values);
-        
+
     }
 
     async find(id) {
@@ -243,14 +243,16 @@ class QueryBuilder {
         if (!!found) {
             const data = found;
             found = Object.assign(this.#instanceModel, found);
-            // this.#hidden.forEach((key)=>{
-            //     delete found[key];
-            // });
+            const hiddens = {};
+            this.#hidden.forEach((key) => {
+                hiddens[key] = found[key];
+                delete found[key];
+            });
             let identifier = await this.#database.searchPrimaryName(found.constructor.name);
             if (identifier.length) {
                 found.setIdentifier(identifier[0].name);
             }
-            found.setPrivates(data);
+            found.setPrivates(data, hiddens);
         }
         return found;
     }
@@ -262,24 +264,32 @@ class QueryBuilder {
         if (!!found) {
             const data = found;
             found = Object.assign(this.#instanceModel, found);
-            // this.#hidden.forEach((key)=>{
-            //     delete found[key];
-            // });
+            const hiddens = {};
+            this.#hidden.forEach((key) => {
+                hiddens[key] = found[key];
+                delete found[key];
+            });
             let identifier = await this.#database.searchPrimaryName(found.constructor.name);
             if (identifier.length) {
                 found.setIdentifier(identifier[0].name);
             }
-            found.setPrivates(data);
+            found.setPrivates(data, hiddens);
         }
         return found;
     }
 
-    async findAll() {
+    async all() {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName}`;
-        return await RawSqlExecutor.run(sql);
+        const data = await RawSqlExecutor.run(sql);
+        data.forEach((ele) => {
+            this.#hidden.forEach((key) => {
+                delete ele[key];
+            });
+        });
+        return data;
     }
 
-    async query(...args){
+    async query(...args) {
         // allowed select, insert, update and delete only
         const [sql, params] = args;
         const allowed = ['select', 'insert', 'update', 'delete'];

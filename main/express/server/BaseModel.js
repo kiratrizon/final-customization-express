@@ -28,9 +28,9 @@ class BaseModel extends ConstructorModel {
         return await builder.findByEmail(email);
     }
 
-    static async findAll() {
+    static async all() {
         const builder = new QueryBuilder(this);
-        return await builder.findAll();
+        return await builder.all();
     }
 
     static where(...args) {
@@ -56,7 +56,7 @@ class BaseModel extends ConstructorModel {
             }
         }
         const obj = { ...this, ...data };
-        const lastData = this.getPrivates();
+        const lastData = { ...this.getPrivates(), ...this.getHiddens() };
         if (primary) {
             Object.keys(lastData).forEach((key) => {
                 if (obj[key] === lastData[key]) delete obj[key];

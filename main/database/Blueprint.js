@@ -88,10 +88,10 @@ class Blueprint {
     timestamp() {
         const createdAt = process.env.DATABASE === 'sqlite'
             ? 'DATETIME DEFAULT CURRENT_TIMESTAMP'
-            : 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP';
+            : 'DATETIME DEFAULT CURRENT_TIMESTAMP';  // Change to DATETIME for MySQL
         const updatedAt = process.env.DATABASE === 'sqlite'
             ? 'DATETIME DEFAULT CURRENT_TIMESTAMP'
-            : 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
+            : 'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
 
         this.columns.push({ name: 'created_at', type: createdAt });
         this.columns.push({ name: 'updated_at', type: updatedAt });

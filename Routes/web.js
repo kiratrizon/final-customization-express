@@ -1,8 +1,6 @@
 const UserController = require('../app/Controllers/UserController');
 const Route = require('../main/express/server/Router');
 
-Route.get('/', ()=>{
-    dd(REQUEST);
-});
+Route.get('/', [UserController, 'index']).name('home');
 
 module.exports = Route;

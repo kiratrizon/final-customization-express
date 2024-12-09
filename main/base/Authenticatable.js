@@ -12,7 +12,7 @@ class Authenticatable extends Model {
         return this.getAuthIdentifierName() ? this[this.getAuthIdentifierName()] : null;
     }
     getAuthPassword() {
-        return this.password;
+        return super.getProtected('password');
     }
     getAuthIdentifierName() {
         return super.getIdentifier();

@@ -3,7 +3,7 @@ class ConstructorModel {
     #identifier;
     #primaryValue = null;
     #privates = {};
-    #privateArea = {};
+    #hiddens = {};
     setIdentifier(identifier) {
         this.#identifier = identifier;
         if (identifier) {
@@ -16,12 +16,20 @@ class ConstructorModel {
     getPrimaryValue() {
         return this.#primaryValue;
     }
-    setPrivates(data = {}) {
+    setPrivates(data = {}, hiddens = {}) {
         Object.assign(this.#privates, data);
+        Object.assign(this.#hiddens, hiddens);
     }
 
     getPrivates() {
         return this.#privates;
+    }
+    getHiddens() {
+        return this.#hiddens;
+    }
+
+    getProtected(key) {
+        return this.#hiddens[key];
     }
 }
 

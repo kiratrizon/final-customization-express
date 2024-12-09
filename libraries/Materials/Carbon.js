@@ -52,7 +52,7 @@ class Carbon {
     }
 
     static #generateDateTime() {
-        if (Carbon.#dateTime === undefined){
+        if (Carbon.#dateTime === undefined) {
             return DateTime.now().setZone(Configure.read('app.timzone'));
         } else {
             return Carbon.#dateTime;
@@ -60,18 +60,18 @@ class Carbon {
     }
 
     static getDateTime() {
-        return Carbon.#getByFormat(Configure.read('app.datetime_format'));
+        return Carbon.#getByFormat(Configure.read('app.datetime_format') || 'Y-m-d H:i:s');
     }
 
     static getDate() {
-        return Carbon.#getByFormat(Configure.read('app.date_format'));
+        return Carbon.#getByFormat(Configure.read('app.date_format') || 'Y-m-d');
     }
 
     static getTime() {
-        return Carbon.#getByFormat(Configure.read('app.time_format'));
+        return Carbon.#getByFormat(Configure.read('app.time_format') || 'H:i:s');
     }
     static #getByFormat(format) {
-        if (Carbon.#dateTime === undefined){
+        if (Carbon.#dateTime === undefined) {
             Carbon.#dateTime = Carbon.#generateDateTime();
         }
         const time = Carbon.#dateTime;

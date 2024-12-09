@@ -122,9 +122,6 @@ class Guarder {
                 delete useModel.guarded;
                 dataFetched = await this.#guardProvider.model.find(id);
                 if (!dataFetched) return null;
-                hidden.forEach((key) => {
-                    delete dataFetched[key];
-                });
             } else if (this.#guardProvider.driver === 'database') {
                 [dataFetched] = await RawSqlExecutor.runNoLogs(`SELECT * FROM ${this.#guardProvider.table} WHERE id =? LIMIT 1`, [id]);
             }

@@ -2,8 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const Configure = require('../../../libraries/Materials/Configure');
 const NodeMailer = require('../../../vendor/node-mailer');
-const Database = require('../../database/Database');
 require('dotenv').config();
+
+global.env = (ENV_NAME, defaultValue = null) => {
+    if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
+        return process.env[ENV_NAME] !== undefined ? process.env[ENV_NAME] : defaultValue;
+    } else {
+        return null;
+    }
+}
 
 global.only = (obj, keys) => {
     let newObj = {};
@@ -70,7 +77,6 @@ global.config = (finder) => {
 };
 
 global.Mailer = NodeMailer;
-global.Database = new Database();
 
 global.base_path = () => {
     return path.join(__dirname, '..', '..', '..');
@@ -98,14 +104,6 @@ global.app_path = () => {
 
 global.stub_path = () => {
     return `${base_path()}/main/express/stubs`;
-}
-
-global.env = (ENV_NAME, defaultValue = null) => {
-    if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
-        return process.env[ENV_NAME] !== undefined ? process.env[ENV_NAME] : defaultValue;
-    } else {
-        return null;
-    }
 }
 
 global.generateTableNames = (entity) => {

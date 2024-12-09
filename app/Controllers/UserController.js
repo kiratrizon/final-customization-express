@@ -5,7 +5,14 @@ const Auth = require("../../main/express/server/Auth");
 
 class UserController extends Controller {
     async index() {
-        dd(REQUEST);
+        // await User.create({
+        //     name: "John Doe",
+        //     email: "johndoe@example.com",
+        //     password: "password123",
+        // });
+        const user = await User.find(1);
+        if (user) user.description = "First User";
+        jsonResponse({ user });
     }
     static testFunction() {
         jsonResponse("Hello World");
@@ -43,27 +50,27 @@ class UserController extends Controller {
         jsonResponse({ message: "UserController destroy" })
     }
 
-    async login(){
+    async login() {
         let validate = await Validator.make(POST, {
             email: "required|email",
             password: "required"
         });
-        if (validate.fails()){
+        if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
         const logged = await Auth.attempt(POST);
-        if (!logged){
+        if (!logged) {
             return back();
         }
         redirect('/');
     }
 
-    async getUser(){
+    async getUser() {
         const user = await Auth.user();
         jsonResponse({ user });
     }
 
-    async sessionUser(){
+    async sessionUser() {
         jsonResponse(REQUEST);
     }
 }
