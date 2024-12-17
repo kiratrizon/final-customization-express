@@ -218,7 +218,22 @@ class QueryBuilder {
             id: id,
             ...filteredData,
         };
-        return Object.assign(this.#instanceModel, newData);
+        let created = newData;
+        if (!!created) {
+            const data = created;
+            created = Object.assign(this.#instanceModel, created);
+            const hiddens = {};
+            this.#hidden.forEach((key) => {
+                hiddens[key] = created[key];
+                delete created[key];
+            });
+            let identifier = await this.#database.searchPrimaryName(created.constructor.name);
+            if (identifier.length) {
+                created.setIdentifier(identifier[0].name);
+            }
+            created.setPrivates(data, hiddens);
+        }
+        return created;
     }
 
     async update(data = {}) {

@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-
-
 require('./main/express/server/GlobalFunctions');
 const MigrationRunner = require('./main/database/MigrationRunner');
 const fs = require('fs');
@@ -10,7 +8,7 @@ const program = new Command();
 const { spawn } = require('child_process');
 const defaultStubPath = stub_path();
 const crypto = require('crypto');
-const Seeder = require('./main/base/Seeder');
+const DatabaseSeeder = require('./main/database/seeders/DatabaseSeeder');
 
 class Generator {
     constructor() {
@@ -163,7 +161,7 @@ program
         }
         if (options.seed) {
             try {
-                const seeder = new Seeder();
+                const seeder = new DatabaseSeeder();
                 await seeder.run();
             } catch (e) {
     

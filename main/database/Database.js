@@ -7,7 +7,7 @@ require('dotenv').config();
 
 class Database {
     constructor() {
-        this.debugger = (env('DEBUGGER') || 'false') === 'true';
+        this.debugger = false;
         this.connection = null;
         this.mysqlProperty = config('app.database.mysql');
     }
