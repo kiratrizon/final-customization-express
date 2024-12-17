@@ -55,30 +55,38 @@ class Route {
 
         let newOpts;
         let finalConvertion;
-
+        let instanced;
+        let isControllerInstance = false;
+        let actionMethod;
+        let [controller, action] = [];
         if (Array.isArray(args)) {
-            const [controller, action] = args;
+            [controller, action] = args;
             if (!Route.#storedController[controller.name]) {
                 Route.#storedController[controller.name] = new controller();
             }
-            const controllerInstance = Route.#storedController[controller.name];
-            const actionMethod = controllerInstance[action];
+            instanced = Route.#storedController[controller.name];
+            actionMethod = instanced[action];
             if (typeof actionMethod === 'function') {
+                isControllerInstance = true;
                 finalConvertion = actionMethod;
             } else {
-                throw new Error(`${action} is not a valid method for ${controller.name}`);
+                throw new Error(`The method "${action}" does not exist in the controller "${controller.name}"`);
             }
         } else if (args !== undefined && typeof args === 'function') {
             finalConvertion = args;
+        } else {
+            finalConvertion = null;
         }
 
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
-                const params = REQUEST.params;
-                finalConvertion(...Object.values(params));
+                if (isControllerInstance){
+                    return instanced[action](...Object.values(REQUEST.params));
+                }
+                return finalConvertion(...Object.values(REQUEST.params));
             };
         } else {
-            throw new Error("Invalid route handler.");
+            newOpts = undefined;
         }
 
         if (newOpts !== undefined) {

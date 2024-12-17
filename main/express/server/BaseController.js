@@ -5,8 +5,8 @@ class BaseController extends ConstructorController {
         if (Array.isArray(models)) {
             models.forEach((modelName) => {
                 const ModelClass = LoadModel.init(modelName);
-                if (!BaseController[modelName]) {
-                    BaseController[modelName] = ModelClass;
+                if (!this[modelName]) {
+                    this[modelName] = ModelClass;
                 } else {
                     console.warn(`Model ${modelName} is already loaded`);
                 }

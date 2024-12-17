@@ -1,14 +1,10 @@
 const Validator = require("../../libraries/Services/Validator");
 const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
+const Admin = require("../../models/Admin");
 
 class AdminController extends Controller {
-    constructor() {
-        super();
-        super.loadModel([
-            'Admin'
-        ]);
-    }
+
     // get
     async index() {
         jsonResponse(route('user.index'));
@@ -28,7 +24,7 @@ class AdminController extends Controller {
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const admin = await AdminController.Admin.create(POST);
+        const admin = await Admin.create(POST);
         return jsonResponse({ admin });
     }
     // get

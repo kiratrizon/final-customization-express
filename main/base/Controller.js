@@ -1,7 +1,7 @@
 const BaseController = require("../express/server/BaseController");
 class Controller extends BaseController {
-    test() {
-        return "Hello World";
+    test3() {
+        return 'test3';
     }
 }
 
