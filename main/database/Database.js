@@ -194,6 +194,8 @@ class Database {
                     if (migrationResult) {
                         await this.runQueryNoLogs(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
                         console.log(`Migration "${filename}" applied successfully.`);
+                        return true;
+
                     } else {
                         console.log(`Migration "${filename}" failed to execute.`);
                     }
@@ -201,6 +203,7 @@ class Database {
             } catch (err) {
                 console.error(`Error applying migration "${filename}":`, err);
             }
+            return false;
         }
     }
 

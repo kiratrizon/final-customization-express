@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+
+
 require('./main/express/server/GlobalFunctions');
 const MigrationRunner = require('./main/database/MigrationRunner');
 const fs = require('fs');
@@ -8,6 +10,8 @@ const program = new Command();
 const { spawn } = require('child_process');
 const defaultStubPath = stub_path();
 const crypto = require('crypto');
+const Seeder = require('./main/base/Seeder');
+
 class Generator {
     constructor() {
         this.controllersPath = path.join(__dirname, 'app', 'Controllers');
@@ -148,13 +152,22 @@ program
 // Command to run migrations
 program
     .command('migrate')
+    .option('--seed', 'Generate migration file as well')
     .description('Run all migrations')
-    .action(async () => {
+    .action(async (options) => {
         try {
             const runner = new MigrationRunner();
             await runner.run();
         } catch (e) {
 
+        }
+        if (options.seed) {
+            try {
+                const seeder = new Seeder();
+                await seeder.run();
+            } catch (e) {
+    
+            }
         }
     });
 

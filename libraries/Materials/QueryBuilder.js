@@ -202,15 +202,23 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['created_at'] = 'now()';
-            filteredData['updated_at'] = 'now()';
+            filteredData['created_at'] = Carbon.getDateTime();
+            filteredData['updated_at'] = Carbon.getDateTime();
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);
         let columns = keys.join(', ');
         let placeholders = keys.map(() => '?').join(', ');
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES (${placeholders})`;
-        return await RawSqlExecutor.run(sql, values);
+        let id = await RawSqlExecutor.run(sql, values);
+        if (!id) {
+            return null;
+        }
+        const newData = {
+            id: id,
+            ...filteredData,
+        };
+        return Object.assign(this.#instanceModel, newData);
     }
 
     async update(data = {}) {
@@ -224,7 +232,7 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['updated_at'] = 'now()';
+            filteredData['updated_at'] = Carbon.getDateTime();
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);

@@ -5,14 +5,8 @@ const Auth = require("../../main/express/server/Auth");
 
 class UserController extends Controller {
     async index() {
-        // await User.create({
-        //     name: "John Doe",
-        //     email: "johndoe@example.com",
-        //     password: "password123",
-        // });
-        const user = await User.find(1);
-        if (user) user.description = "First User";
-        jsonResponse({ user });
+        const users = await User.all();
+        jsonResponse({ users });
     }
     static testFunction() {
         jsonResponse("Hello World");

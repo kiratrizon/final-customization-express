@@ -10,7 +10,7 @@ class MigrationRunner {
 
     async run() {
         const migrationFiles = this.getMigrationFiles();
-
+        let count = 0;
         // Use a for loop to ensure order
         await Promise.all(migrationFiles.map(async (file) => {
             const migrationName = file.replace('.js', '');
@@ -18,8 +18,16 @@ class MigrationRunner {
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.up();
 
-            await this.db.makeMigration(query, migrationName);
+            const success = await this.db.makeMigration(query, migrationName);
+            if (success) {
+                count++;
+            }
         }));
+        if (count === 0) {
+            console.log('Nothing to migrate.');
+            return;
+        }
+        console.log('Migrated successfully.');
     }
 
     async rollback() {
