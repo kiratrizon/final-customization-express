@@ -36,7 +36,7 @@ class Database {
         const isSQLite = env('DATABASE') === 'sqlite';
         query = sqlFormatter.format(query);
         const queryType = query.trim().toLowerCase().split(' ')[0].trim();
-        let result;
+        let result = null;
         try {
             // Open the connection at the start of the method
             this.openConnection();
@@ -50,7 +50,7 @@ class Database {
                 throw new Error('Database connection is not established.');
             }
 
-            params = this.#replaceNowWithDateTime(params);
+            // params = this.#replaceNowWithDateTime(params);
             // For SQLite
             if (isSQLite) {
                 const stmt = this.connection.prepare(query);
@@ -111,7 +111,7 @@ class Database {
                 });
             }
             if (this.connection) {
-                await this.close();
+                const closed = await this.close();
             }
             if (queryType === 'select') {
                 result.forEach((queried) => {
@@ -122,9 +122,7 @@ class Database {
             return result;
         } catch (err) {
             console.error('Query Error:', err);
-            return false;  // Return false if there is an error
-        } finally {
-            // Ensure the connection is closed after the query has completed (successful or not)
+            return null;
         }
     }
 
@@ -132,7 +130,8 @@ class Database {
         return await this.runQuery(query, params, false);
     }
     async close() {
-        if (!this.connection) return;
+        let closed = true;
+        if (!this.connection) return closed;
 
         if (env('DATABASE') === 'sqlite') {
             this.connection.close();
@@ -140,12 +139,13 @@ class Database {
             this.connection.end((err) => {
                 if (err) {
                     console.error('Error closing the MySQL connection:', err.message);
+                    closed = false;
                 }
             });
         }
 
         this.connection = null;
-        return;
+        return closed;
     }
 
     #replaceNowWithDateTime(arr) {
@@ -218,21 +218,18 @@ class Database {
                         WHERE pk = 1;
                     `;
         } else {
-            string = `SELECT COLUMN_NAME
+            string = `SELECT COLUMN_NAME AS name
                         FROM INFORMATION_SCHEMA.COLUMNS
                         WHERE TABLE_SCHEMA = '${databaseProp.mysql.database}'
                         AND TABLE_NAME = '${tableName}'
                         AND COLUMN_KEY = 'PRI';
                     `;
         }
-        try {
-            this.debugger = false;
-            return await this.runQuery(string);
-        } catch (e) {
-
-        } finally {
-            this.debugger = env('DEBUGGER');
+        const data = await this.runQueryNoLogs(string);
+        if (data.length) {
+            return data[0].name;
         }
+        return null;
     }
 }
 

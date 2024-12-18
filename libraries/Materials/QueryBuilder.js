@@ -228,8 +228,8 @@ class QueryBuilder {
                 delete created[key];
             });
             let identifier = await this.#database.searchPrimaryName(created.constructor.name);
-            if (identifier.length) {
-                created.setIdentifier(identifier[0].name);
+            if (identifier) {
+                created.setIdentifier(identifier);
             }
             created.setPrivates(data, hiddens);
         }
@@ -272,8 +272,8 @@ class QueryBuilder {
                 delete found[key];
             });
             let identifier = await this.#database.searchPrimaryName(found.constructor.name);
-            if (identifier.length) {
-                found.setIdentifier(identifier[0].name);
+            if (identifier) {
+                found.setIdentifier(identifier);
             }
             found.setPrivates(data, hiddens);
         }
@@ -293,8 +293,8 @@ class QueryBuilder {
                 delete found[key];
             });
             let identifier = await this.#database.searchPrimaryName(found.constructor.name);
-            if (identifier.length) {
-                found.setIdentifier(identifier[0].name);
+            if (identifier) {
+                found.setIdentifier(identifier);
             }
             found.setPrivates(data, hiddens);
         }
