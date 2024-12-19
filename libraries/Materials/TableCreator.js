@@ -190,6 +190,20 @@ class TableCreator {
 				console.log(portionValue);
 				return await this.DB.insert(sql, portionValue);
 			}
+
+			async first() {
+				let sql = this.toSql();
+				sql += ' LIMIT 1;';
+				let data;
+				data = await DB.select(sql, this.#valueQuery);
+				this.#valueQuery = [];
+				if (!!data && data.length) {
+					let returndata = data[0];
+					returndata = Object.assign({}, returndata);
+					return returndata;
+				}
+				return false;
+			}
 		};
 
 		return new dynamicClass(tableName);

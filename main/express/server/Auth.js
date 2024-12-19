@@ -61,36 +61,52 @@ class Guarder {
         const { data, type, selectedKey } = this.#validateData(...args);
         let user_type;
         let fetchedData;
+        let fetcher;
         if (type === 'eloquent') {
             user_type = this.#guardProvider.model.name;
-            const eloquentFields = [`${user_type}.*`, `CASE WHEN OAT.token IS NOT NULL THEN OAT.token ELSE 0 END AS token`, `OAT.expires_at`, `OAT.is_revoked`, `OAT.id as token_id`]
-            fetchedData = await this.#guardProvider.model.select(...eloquentFields).leftJoin(`${this.#jwtTable} as OAT`, `${user_type}.id`, '=', 'OAT.user_id').where(`${user_type}.${selectedKey}`, data[selectedKey]).first(false);
+            fetcher = this.#guardProvider.model;
         } else if (type === 'database') {
             user_type = this.#guardProvider.table;
-            [fetchedData] = await DB.select(`SELECT ${user_type}.*, CASE WHEN OAT.token IS NOT NULL THEN OAT.token ELSE 0 END AS token, OAT.expires_at, OAT.is_revoked FROM ${user_type} LEFT JOIN oauth_access_tokens AS OAT ON ${user_type}.id = OAT.user_id WHERE ${user_type}.${selectedKey} =? LIMIT 1`, [data[selectedKey]]);
+            fetcher = DB.table(user_type);
         }
+
+        const eloquentFields = [`${user_type}.*`, `CASE WHEN OAT.token IS NOT NULL THEN OAT.token ELSE 0 END AS token`, `OAT.expires_at`, `OAT.is_revoked`, `OAT.id as token_id`];
+
+        fetchedData = await fetcher.select(...eloquentFields).leftJoin(`${this.#jwtTable} as OAT`, `${user_type}.id`, '=', 'OAT.user_id').where(`${user_type}.${selectedKey}`, data[selectedKey]).first();
+
         if (!fetchedData) return null;
+
         const passed = await Hash.check(data.password, fetchedData.password);
+
         if (!passed) return null;
+
         const checkToken = fetchedData.token != 0 ? fetchedData.token : false;
+
         if (checkToken && fetchedData.expires_at > Carbon.getDateTime() && fetchedData.is_revoked == 0) return checkToken;
+
         const now = Carbon.getDateTime();
+
         const token = this.#jwtSigner(fetchedData, now, user_type);
+
         const inserted = await DB.insert(`INSERT INTO ${this.#jwtTable} (token, user_id, user_type, expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
+
         if (inserted) return token;
+
         return false;
     }
     async #sessionGenerator(...args) {
         const { data, type, selectedKey } = this.#validateData(...args);
         let user_type;
         let fetchedData;
+        let fetcher;
         if (type === 'eloquent') {
             user_type = this.#guardProvider.model.name;
-            fetchedData = await this.#guardProvider.model.where(selectedKey, data[selectedKey]).first(false);
+            fetcher = this.#guardProvider.model;
         } else if (type === 'database') {
             user_type = this.#guardProvider.table;
-            [fetchedData] = await DB.select(`SELECT * FROM ${user_type} WHERE ${selectedKey} =? LIMIT 1`, [data[selectedKey]]);
+            fetcher = DB.table(user_type);
         }
+        fetchedData = await fetcher.where(selectedKey, data[selectedKey]).first();
         if (!fetchedData) return null;
         const passed = await Hash.check(data.password, fetchedData.password);
         if (passed) {
