@@ -98,6 +98,11 @@ class BaseModel extends ConstructorModel {
         const builder = new QueryBuilder(this);
         return await builder.insert(data);
     }
+
+    static async first(){
+        const builder = new QueryBuilder(this);
+        return await builder.first();
+    }
 }
 
 module.exports = BaseModel;

@@ -195,7 +195,7 @@ class TableCreator {
 				let sql = this.toSql();
 				sql += ' LIMIT 1;';
 				let data;
-				data = await DB.select(sql, this.#valueQuery);
+				data = await this.DB.select(sql, this.#valueQuery);
 				this.#valueQuery = [];
 				if (!!data && data.length) {
 					let returndata = data[0];

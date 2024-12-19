@@ -30,6 +30,29 @@ class MigrationRunner {
         console.log('Migrated successfully.');
     }
 
+    async migrateInit(){
+        let migrationsTableQuery = '';
+        if (env('DATABASE') === 'mysql') {
+            migrationsTableQuery = `
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    migration_name VARCHAR(255) NOT NULL UNIQUE,
+                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `;
+        } else if (env('DATABASE') === 'sqlite') {
+            migrationsTableQuery = `
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    migration_name VARCHAR(255) NOT NULL UNIQUE,
+                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `;
+        }
+
+        await this.db.runQuery(migrationsTableQuery);
+    }
+
     async rollback() {
         const migrationFiles = this.getMigrationFiles();
 

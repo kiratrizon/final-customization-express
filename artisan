@@ -168,6 +168,17 @@ program
             }
         }
     });
+program
+    .command('init:migrate')
+    .description('Run initial migrations')
+    .action(async (options) => {
+        try {
+            const runner = new MigrationRunner();
+            await runner.migrateInit();
+        } catch (e) {
+
+        }
+    });
 
 // Command to rollback migrations
 program
