@@ -205,7 +205,9 @@ class TableCreator {
 				return false;
 			}
 		};
-
+		Object.defineProperty(dynamicClass, 'name', {
+			value: tableName
+		});
 		return new dynamicClass(tableName);
 	}
 }
