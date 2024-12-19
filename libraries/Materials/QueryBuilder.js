@@ -353,7 +353,7 @@ class QueryBuilder {
         array.forEach((e) => {
             let values = [];
             Object.keys(e).forEach((key) => {
-                portionValue.push(e[key] || 'DEFAULT');
+                portionValue.push(e[key] || '');
                 values.push('?');
             });
             placeholders.push(`(${values.join(', ')})`);

@@ -160,31 +160,11 @@ class Database {
     }
 
     async makeMigration(query, filename, rollback = false) {
-        let migrationsTableQuery = '';
         if (rollback) {
             await this.runQueryNoLogs(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
             await this.runQueryNoLogs(query);
         } else {
-            if (env('DATABASE') === 'mysql') {
-                migrationsTableQuery = `
-                    CREATE TABLE IF NOT EXISTS migrations (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        migration_name VARCHAR(255) NOT NULL UNIQUE,
-                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                `;
-            } else if (env('DATABASE') === 'sqlite') {
-                migrationsTableQuery = `
-                    CREATE TABLE IF NOT EXISTS migrations (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        migration_name VARCHAR(255) NOT NULL UNIQUE,
-                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                `;
-            }
-
             try {
-                await this.runQueryNoLogs(migrationsTableQuery);
 
                 let fileNameChecker = await this.runQueryNoLogs(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
                 if (fileNameChecker.length === 0) {

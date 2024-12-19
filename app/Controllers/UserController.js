@@ -4,26 +4,20 @@ const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
 const Hash = require("../../libraries/Services/Hash");
 const DB = require("../../libraries/Materials/DB");
+const Post = require("../../models/Post");
 
 class UserController extends Controller {
     async index() {
-        const data = [
-            {
-                name: "Troy",
-                email: "tgenesistroy@gmail.com",
-                password: await Hash.make("asterda23")
-            },
-            {
-                name: "Troy",
-                email: "tgenesistroy1@gmail.com",
-                password: await Hash.make("asterda23")
-            }
+        const selectFields = [
+            'Post.title',
+            '(CASE WHEN Post.type = 1 THEN Admin.name ELSE User.name END) AS author',
+            'Post.created_at',
         ];
-        const userTable = DB.table('users');
-        // await userTable.insert(data);
-        const users = await userTable.select('password').get();
-
-        jsonResponse({ users });
+        const data = await Post.select(...selectFields)
+        .leftJoin('admins as Admin', 'Post.user_id', '=', 'Admin.id')
+        .leftJoin('users as User', 'Post.user_id', '=', 'User.id')
+        .get();
+        jsonResponse({ data });
     }
     static testFunction() {
         jsonResponse("Hello World");

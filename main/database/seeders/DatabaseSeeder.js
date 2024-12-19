@@ -1,14 +1,14 @@
 const Seeder = require("../../base/Seeder");
+const AdminFactory = require("../factories/AdminFactory");
 const UserFactory = require("../factories/UserFactory");
+const PostFactory = require("../factories/PostFactory");
 
 class DatabaseSeeder extends Seeder {
     
     async run(){
-        let userData = await UserFactory.create();
-        userData.forEach((user)=>{
-            const id = user.id;
-            console.log(`${user.getProtected('password')}`);
-        });
+        let userData = await UserFactory.createBulk(20);
+        let adminData = await AdminFactory.createBulk(20);
+        let postsData = await PostFactory.createBulk(100);
     }
 }
 
