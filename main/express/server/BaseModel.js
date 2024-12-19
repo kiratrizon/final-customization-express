@@ -13,11 +13,6 @@ class BaseModel extends ConstructorModel {
         return await builder.create(data);
     }
 
-    // static async update(data) {
-    //     const builder = new QueryBuilder(this);
-    //     return await builder.update(data);
-    // }
-
     static async find(id) {
         const builder = new QueryBuilder(this);
         return await builder.find(id);

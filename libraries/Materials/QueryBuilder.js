@@ -1,6 +1,6 @@
 const Database = require("../../main/database/Database");
 const Carbon = require("./Carbon");
-const RawSqlExecutor = require("./RawSqlExecutor");
+const DB = require("./DB");
 
 class QueryBuilder {
     #whereQuery = [];
@@ -31,7 +31,7 @@ class QueryBuilder {
         delete this.#instanceModel.timestamp;
         delete this.#instanceModel.guarded;
         delete this.#instanceModel.hidden;
-        this.#modelName = model.name;
+        this.#modelName = this.#model.name;
         this.#table = generateTableNames(this.#modelName);
         this.#database = new Database();
     }
@@ -107,7 +107,6 @@ class QueryBuilder {
         return this;
     }
 
-
     // Join clause
     join(table, firstKey, operator, secondKey) {
         this.#joinQuery.push(`INNER JOIN ${table} ON ${firstKey} ${operator} ${secondKey}`);
@@ -157,11 +156,7 @@ class QueryBuilder {
     async get(defaultLogs = true) {
         let sql = this.toSql();
         let returnData;
-        if (defaultLogs) {
-            returnData = await RawSqlExecutor.run(sql, this.#valueQuery);
-        } else {
-            returnData = await RawSqlExecutor.runNoLogs(sql, this.#valueQuery);
-        }
+        returnData = await DB.select(sql, this.#valueQuery);
         this.#valueQuery = [];
         return returnData;
     }
@@ -191,11 +186,11 @@ class QueryBuilder {
         this.#selectQuery = [];
     }
 
-    async create(data) {
+    async create(objData) {
         let filteredData = {};
-        for (let key of Object.keys(data)) {
+        for (let key of Object.keys(objData)) {
             if (this.#fillable.includes(key)) {
-                filteredData[key] = data[key];
+                filteredData[key] = objData[key];
             }
         }
         this.#guarded.forEach((key) => {
@@ -210,7 +205,7 @@ class QueryBuilder {
         let columns = keys.join(', ');
         let placeholders = keys.map(() => '?').join(', ');
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES (${placeholders})`;
-        let id = await RawSqlExecutor.run(sql, values);
+        let id = await DB.insert(sql, values);
         if (!id) {
             return null;
         }
@@ -236,11 +231,11 @@ class QueryBuilder {
         return created;
     }
 
-    async update(data = {}) {
+    async update(objData = {}) {
         let filteredData = {};
-        for (let key of Object.keys(data)) {
+        for (let key of Object.keys(objData)) {
             if (this.#fillable.includes(key)) {
-                filteredData[key] = data[key];
+                filteredData[key] = objData[key];
             }
         }
         this.#guarded.forEach((key) => {
@@ -255,13 +250,12 @@ class QueryBuilder {
         let sql = `UPDATE ${this.#table} SET ${setQuery}`;
         if (this.#whereQuery.length) sql += ` WHERE ${this.#whereQuery.join(', ')}`;
         values.push(...this.#valueQuery);
-        return await RawSqlExecutor.run(sql, values);
-
+        return await DB.update(sql, values);
     }
 
     async find(id) {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.id = ?`;
-        let found = await RawSqlExecutor.run(sql, [id]);
+        let found = await DB.select(sql, [id]);
         found = found[0] || null;
         if (!!found) {
             const data = found;
@@ -282,7 +276,7 @@ class QueryBuilder {
 
     async findByEmail(email) {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.email = ? LIMIT 1;`;
-        let found = await RawSqlExecutor.run(sql, [email]);
+        let found = await DB.select(sql, [email]);
         found = found[0] || null;
         if (!!found) {
             const data = found;
@@ -303,7 +297,7 @@ class QueryBuilder {
 
     async all() {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName}`;
-        const data = await RawSqlExecutor.run(sql);
+        const data = await DB.select(sql);
         data.forEach((ele) => {
             this.#hidden.forEach((key) => {
                 delete ele[key];
@@ -320,25 +314,21 @@ class QueryBuilder {
         if (!allowed.includes(queryType)) {
             throw new Error(`Invalid SQL query type: ${queryType}`);
         }
-        return await RawSqlExecutor.run(sql, params);
+        return await DB.query(sql, params);
     }
     async findByKey(key, value) {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.${key} = ?;`;
-        const data = await RawSqlExecutor.run(sql, [value]);
+        const data = await DB.select(sql, [value]);
         if (!!data && data.length) {
             return data[0];
         }
         return false;
     }
-    async first(defaultLogs = true) {
+    async first() {
         let sql = this.toSql();
         sql += ' LIMIT 1;';
         let data;
-        if (defaultLogs) {
-            data = await RawSqlExecutor.run(sql, this.#valueQuery);
-        } else {
-            data = await RawSqlExecutor.runNoLogs(sql, this.#valueQuery);
-        }
+        data = await DB.select(sql, this.#valueQuery);
         this.#valueQuery = [];
         if (!!data && data.length) {
             let returndata = data[0];
@@ -349,6 +339,31 @@ class QueryBuilder {
             return returndata;
         }
         return false;
+    }
+
+    async insert(array = []) {
+        let keys = [];
+        let portionValue = [];
+        array.forEach((e) => {
+            Object.keys(e).forEach((key) => {
+                if (!keys.includes(key)) keys.push(key);
+            })
+        });
+        const placeholders = [];
+        array.forEach((e) => {
+            let values = [];
+            Object.keys(e).forEach((key) => {
+                portionValue.push(e[key] || 'DEFAULT');
+                values.push('?');
+            });
+            placeholders.push(`(${values.join(', ')})`);
+        });
+
+        let columns = keys.join(', ');
+
+        let sql = `INSERT INTO ${this.#table} (${columns}) VALUES ${placeholders.join(', ')}`;
+
+        return await DB.insert(sql, portionValue);
     }
 }
 

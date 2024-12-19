@@ -16,9 +16,6 @@ class Factory {
             const created = await model.create(data);
             createdData.push(created);
         }
-        if (count == 1){
-            return createdData[0];
-        }
         return createdData;
     }
 }

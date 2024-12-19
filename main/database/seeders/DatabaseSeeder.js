@@ -4,8 +4,11 @@ const UserFactory = require("../factories/UserFactory");
 class DatabaseSeeder extends Seeder {
     
     async run(){
-        let userData = await UserFactory.create(10);
-        console.log(userData);
+        let userData = await UserFactory.create();
+        userData.forEach((user)=>{
+            const id = user.id;
+            console.log(`${user.getProtected('password')}`);
+        });
     }
 }
 

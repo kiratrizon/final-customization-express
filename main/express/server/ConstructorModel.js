@@ -17,8 +17,8 @@ class ConstructorModel {
         return this.#primaryValue;
     }
     setPrivates(data = {}, hiddens = {}) {
-        Object.assign(this.#privates, data);
-        Object.assign(this.#hiddens, hiddens);
+        this.#privates = Object.assign(this.#privates, data);
+        this.#hiddens = Object.assign(this.#hiddens, hiddens);
     }
 
     getPrivates() {

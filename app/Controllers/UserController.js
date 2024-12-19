@@ -2,10 +2,27 @@ const Validator = require("../../libraries/Services/Validator");
 const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
+const Hash = require("../../libraries/Services/Hash");
+const DB = require("../../libraries/Materials/DB");
 
 class UserController extends Controller {
     async index() {
-        const users = await User.all();
+        const data = [
+            {
+                name: "Troy",
+                email: "tgenesistroy@gmail.com",
+                password: await Hash.make("asterda23")
+            },
+            {
+                name: "Troy",
+                email: "tgenesistroy1@gmail.com",
+                password: await Hash.make("asterda23")
+            }
+        ];
+        const userTable = DB.table('users');
+        // await userTable.insert(data);
+        const users = await userTable.select('password').get();
+
         jsonResponse({ users });
     }
     static testFunction() {

@@ -3,37 +3,40 @@ const sqlite = require('better-sqlite3');
 const path = require('path');
 const sqlFormatter = require('sql-formatter');
 const Carbon = require('../../libraries/Materials/Carbon');
+const dbPath = path.join(__dirname, '../database', 'database.sqlite');
+
 require('dotenv').config();
 
 class Database {
-    constructor() {
-        this.debugger = false;
-        this.connection = null;
-        this.mysqlProperty = config('app.database.mysql');
-    }
+    static #sqliteConnection = null;
+    static #mysqlProperty = config('app.database.mysql');
+    static #mysqlConnection = null;
+    static #debugger = false;
 
+    constructor() {
+    }
     openConnection() {
         const isSQLite = env('DATABASE') === 'sqlite';
+        const isMySQL = env('DATABASE') === 'mysql';
+        if (isSQLite) {
+            if (!!Database.#sqliteConnection) return;
+            Database.#sqliteConnection = new sqlite(dbPath);
+        } else if (isMySQL) {
+            if (!!Database.#mysqlConnection) return;
 
-        if (!this.connection) {
-            if (isSQLite) {
-                const dbPath = path.join(__dirname, '../database', 'database.sqlite');
-                this.connection = new sqlite(dbPath);
-            } else {
-                this.connection = mysql.createConnection(this.mysqlProperty);
-
-                this.connection.connect((err) => {
-                    if (err) {
-                        console.error('Error connecting to MySQL database:', err.message);
-                        this.connection = null;
-                    }
-                });
-            }
+            Database.#mysqlConnection = mysql.createConnection(Database.#mysqlProperty);
+            Database.#mysqlConnection.connect((err) => {
+                if (err) {
+                    console.error('Error connecting to MySQL database:', err.message);
+                    Database.#mysqlConnection = null;
+                }
+            });
         }
     }
 
     async runQuery(query, params = [], logger = true) {
         const isSQLite = env('DATABASE') === 'sqlite';
+        const isMySQL = env('DATABASE') === 'mysql';
         query = sqlFormatter.format(query);
         const queryType = query.trim().toLowerCase().split(' ')[0].trim();
         let result = null;
@@ -41,19 +44,19 @@ class Database {
             // Open the connection at the start of the method
             this.openConnection();
 
-            if (logger && this.debugger) {
+            if (logger && Database.#debugger) {
                 console.log('Query:', query);
                 console.log('Params:', params);
             }
 
-            if (!this.connection) {
+            if ((isMySQL && !Database.#mysqlConnection) || (isSQLite && !Database.#sqliteConnection)) {
                 throw new Error('Database connection is not established.');
             }
 
             // params = this.#replaceNowWithDateTime(params);
             // For SQLite
             if (isSQLite) {
-                const stmt = this.connection.prepare(query);
+                const stmt = Database.#sqliteConnection.prepare(query);
                 switch (queryType) {
                     case 'insert': {
                         result = stmt.run(params).lastInsertRowid;
@@ -80,12 +83,10 @@ class Database {
             } else {
                 // For MySQL
                 result = await new Promise((resolve, reject) => {
-                    this.connection.query(query, params, (err, results) => {
+                    Database.#mysqlConnection.query(query, params, (err, results) => {
                         if (err) {
                             reject(err);
                         } else {
-                            const queryType = query.trim().toLowerCase().split(' ')[0];
-
                             switch (queryType) {
                                 case 'insert':
                                     resolve(results.insertId);  // Return last inserted ID
@@ -110,7 +111,7 @@ class Database {
                     });
                 });
             }
-            if (this.connection) {
+            if ((isMySQL && !!Database.#mysqlConnection) || (isSQLite && !!Database.#sqliteConnection)) {
                 const closed = await this.close();
             }
             if (queryType === 'select') {
@@ -130,22 +131,20 @@ class Database {
         return await this.runQuery(query, params, false);
     }
     async close() {
-        let closed = true;
-        if (!this.connection) return closed;
-
-        if (env('DATABASE') === 'sqlite') {
-            this.connection.close();
-        } else {
-            this.connection.end((err) => {
-                if (err) {
-                    console.error('Error closing the MySQL connection:', err.message);
-                    closed = false;
+        if (env('DATABASE') === 'sqlite' && !!Database.#sqliteConnection) {
+            Database.#sqliteConnection.close();
+            Database.#sqliteConnection = null;
+        } else if (env('DATABASE') === 'mysql' && !!Database.#mysqlConnection) {
+            Database.#mysqlConnection.end(
+                (err) => {
+                    if (err) {
+                        console.error('Error closing the MySQL connection:', err.message);
+                    }
                 }
-            });
+            );
+            Database.#mysqlConnection = null;
         }
-
-        this.connection = null;
-        return closed;
+        return true;
     }
 
     #replaceNowWithDateTime(arr) {
@@ -230,6 +229,69 @@ class Database {
             return data[0].name;
         }
         return null;
+    }
+
+    async runQueryNoReturn(query, params = [], logger = true) {
+        const isSQLite = env('DATABASE') === 'sqlite';
+        const isMySQL = env('DATABASE') === 'mysql';
+        query = sqlFormatter.format(query);
+        const queryType = query.trim().toLowerCase().split(' ')[0].trim();
+        try {
+            // Open the connection at the start of the method
+            this.openConnection();
+
+            if (logger && Database.#debugger) {
+                console.log('Query:', query);
+                console.log('Params:', params);
+            }
+
+            if ((isMySQL && !Database.#mysqlConnection) || (isSQLite && !Database.#sqliteConnection)) {
+                throw new Error('Database connection is not established.');
+            }
+
+            // For SQLite
+            if (isSQLite) {
+                const stmt = Database.#sqliteConnection.prepare(query);
+                switch (queryType) {
+                    case 'insert': {
+                        stmt.run(params);
+                        break;
+                    }
+                    case 'update':
+                    case 'delete': {
+                        stmt.run(params);
+                        break;
+                    }
+                    case 'create':
+                    case 'alter':
+                    case 'drop':
+                        stmt.run(params);
+                        break;
+                    case 'select':
+                        stmt.all(params);
+                        break;
+                    default:
+                        stmt.all(params);
+                        break;
+                }
+            } else {
+                // For MySQL
+                await new Promise((resolve, reject) => {
+                    Database.#mysqlConnection.query(query, params, (err, results) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        resolve();
+                    });
+                });
+            }
+            if ((isMySQL && !!Database.#mysqlConnection) || (isSQLite && !!Database.#sqliteConnection)) {
+                const closed = await this.close();
+            }
+        } catch (err) {
+            console.error('Query Error:', err);
+        }
     }
 }
 
