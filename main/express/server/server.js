@@ -1,3 +1,4 @@
+require('./GlobalFunctions');
 const path = require('path');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
@@ -8,7 +9,6 @@ const Boot = require('../../../libraries/Services/Boot');
 const cors = require('cors');
 const { default: helmet } = require('helmet');
 require('dotenv').config();
-require('./GlobalFunctions');
 
 
 const renderData = (data, shouldExit = false, res) => {
