@@ -23,7 +23,6 @@ class DB {
         return await instantiatedDatabase.runQuery(sql, params);
     }
     static async insert(sql, params = []) {
-        console.log('Inserting');
         DB.#validateRule(sql, 'insert');
         return await instantiatedDatabase.runQuery(sql, params);
     }

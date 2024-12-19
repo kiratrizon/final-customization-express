@@ -1,5 +1,5 @@
 const Carbon = require("../../../libraries/Materials/Carbon");
-const RawSqlExecutor = require("../../../libraries/Materials/RawSqlExecutor");
+const DB = require("../../../libraries/Materials/DB");
 const Hash = require("../../../libraries/Services/Hash");
 const crypto = require('crypto');
 const defaultGuard = config('auth.default.guard');
@@ -38,7 +38,7 @@ class Guarder {
             if (!token) return false;
             if (!this.#verifyJwtSignature(token)) return false;
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
-            const data = await RawSqlExecutor.runNoLogs(`SELECT * FROM ${this.#jwtTable} WHERE token = ? and user_type = ? and is_revoked = ? and expires_at > ?`, [token, user_type, 0, Carbon.getDateTime()]);
+            const data = await DB.select(`SELECT * FROM ${this.#jwtTable} WHERE token = ? and user_type = ? and is_revoked = ? and expires_at > ?`, [token, user_type, 0, Carbon.getDateTime()]);
             if (data.length) {
                 return true;
             }
@@ -67,7 +67,7 @@ class Guarder {
             fetchedData = await this.#guardProvider.model.select(...eloquentFields).leftJoin(`${this.#jwtTable} as OAT`, `${user_type}.id`, '=', 'OAT.user_id').where(`${user_type}.${selectedKey}`, data[selectedKey]).first(false);
         } else if (type === 'database') {
             user_type = this.#guardProvider.table;
-            [fetchedData] = await RawSqlExecutor.runNoLogs(`SELECT ${user_type}.*, CASE WHEN OAT.token IS NOT NULL THEN OAT.token ELSE 0 END AS token, OAT.expires_at, OAT.is_revoked FROM ${user_type} LEFT JOIN oauth_access_tokens AS OAT ON ${user_type}.id = OAT.user_id WHERE ${user_type}.${selectedKey} =? LIMIT 1`, [data[selectedKey]]);
+            [fetchedData] = await DB.select(`SELECT ${user_type}.*, CASE WHEN OAT.token IS NOT NULL THEN OAT.token ELSE 0 END AS token, OAT.expires_at, OAT.is_revoked FROM ${user_type} LEFT JOIN oauth_access_tokens AS OAT ON ${user_type}.id = OAT.user_id WHERE ${user_type}.${selectedKey} =? LIMIT 1`, [data[selectedKey]]);
         }
         if (!fetchedData) return null;
         const passed = await Hash.check(data.password, fetchedData.password);
@@ -76,7 +76,7 @@ class Guarder {
         if (checkToken && fetchedData.expires_at > Carbon.getDateTime() && fetchedData.is_revoked == 0) return checkToken;
         const now = Carbon.getDateTime();
         const token = this.#jwtSigner(fetchedData, now, user_type);
-        const inserted = await RawSqlExecutor.runNoLogs(`INSERT INTO ${this.#jwtTable} (token, user_id, user_type, expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
+        const inserted = await DB.insert(`INSERT INTO ${this.#jwtTable} (token, user_id, user_type, expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
         if (inserted) return token;
         return false;
     }
@@ -89,7 +89,7 @@ class Guarder {
             fetchedData = await this.#guardProvider.model.where(selectedKey, data[selectedKey]).first(false);
         } else if (type === 'database') {
             user_type = this.#guardProvider.table;
-            [fetchedData] = await RawSqlExecutor.runNoLogs(`SELECT * FROM ${user_type} WHERE ${selectedKey} =? LIMIT 1`, [data[selectedKey]]);
+            [fetchedData] = await DB.select(`SELECT * FROM ${user_type} WHERE ${selectedKey} =? LIMIT 1`, [data[selectedKey]]);
         }
         if (!fetchedData) return null;
         const passed = await Hash.check(data.password, fetchedData.password);
@@ -123,7 +123,7 @@ class Guarder {
                 dataFetched = await this.#guardProvider.model.find(id);
                 if (!dataFetched) return null;
             } else if (this.#guardProvider.driver === 'database') {
-                [dataFetched] = await RawSqlExecutor.runNoLogs(`SELECT * FROM ${this.#guardProvider.table} WHERE id =? LIMIT 1`, [id]);
+                [dataFetched] = await DB.select(`SELECT * FROM ${this.#guardProvider.table} WHERE id =? LIMIT 1`, [id]);
             }
         }
         if (dataFetched) {
@@ -154,7 +154,7 @@ class Guarder {
             let token = this.getBearerToken();
             if (!token) return false;
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
-            const revoked = await RawSqlExecutor.runNoLogs(`UPDATE ${this.#jwtTable} SET is_revoked =? WHERE token =? AND user_type =?`, [1, token, user_type]);
+            const revoked = await DB.update(`UPDATE ${this.#jwtTable} SET is_revoked =? WHERE token =? AND user_type =?`, [1, token, user_type]);
             if (revoked) {
                 return true;
             }
