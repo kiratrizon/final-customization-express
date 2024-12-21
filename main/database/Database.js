@@ -13,8 +13,6 @@ class Database {
     static #mysqlConnection = null;
     static #debugger = false;
 
-    constructor() {
-    }
     openConnection() {
         const isSQLite = env('DATABASE') === 'sqlite';
         const isMySQL = env('DATABASE') === 'mysql';
@@ -113,12 +111,6 @@ class Database {
             }
             if ((isMySQL && !!Database.#mysqlConnection) || (isSQLite && !!Database.#sqliteConnection)) {
                 const closed = await this.close();
-            }
-            if (queryType === 'select') {
-                result.forEach((queried) => {
-                    if (queried.created_at) queried.created_at = new Date(queried.created_at).toISOString().slice(0, 19).replace("T", " ");
-                    if (queried.updated_at) queried.updated_at = new Date(queried.updated_at).toISOString().slice(0, 19).replace("T", " ");
-                })
             }
             return result;
         } catch (err) {
@@ -272,6 +264,34 @@ class Database {
         } catch (err) {
             console.error('Query Error:', err);
         }
+    }
+
+    escape(value) {
+        const isSQLite = env('DATABASE') === 'sqlite';
+        const isMySQL = env('DATABASE') === 'mysql';
+
+        if (isSQLite) {
+            if (typeof value === 'string') {
+                return value.replace(/\\/g, '\\\\').replace(/'/g, "''");
+            }
+            if (typeof value === 'boolean') {
+                return value ? 1 : 0;
+            }
+            if (value === null) {
+                return 'NULL';
+            }
+            return value;
+        }
+
+        if (isMySQL) {
+            if (!Database.#mysqlConnection) {
+                this.openConnection();
+            }
+
+            return Database.#mysqlConnection.escape(value);
+        }
+
+        return value;
     }
 }
 

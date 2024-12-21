@@ -99,9 +99,14 @@ class BaseModel extends ConstructorModel {
         return await builder.insert(data);
     }
 
-    static async first(){
+    static async first() {
         const builder = new QueryBuilder(this);
         return await builder.first();
+    }
+
+    static orderBy(key, direction = 'ASC') {
+        const builder = new QueryBuilder(this);
+        return builder.orderBy(key, direction);
     }
 }
 

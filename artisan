@@ -164,7 +164,7 @@ program
                 const seeder = new DatabaseSeeder();
                 await seeder.run();
             } catch (e) {
-    
+
             }
         }
     });

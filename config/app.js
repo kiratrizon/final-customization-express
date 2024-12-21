@@ -1,5 +1,5 @@
 const constant = {
-    timezone: env('TIMEZONE', 'Asia/Manila'),
+    timezone: env('TIMEZONE', 'Asia/Manila'), // for Carbon
     datetime_format: "Y-m-d H:i:s",
     date_format: "Y-m-d",
     time_format: "H:i:s",
@@ -11,6 +11,8 @@ const constant = {
             user: env('MYSQL_USER', 'root'),
             password: env('MYSQL_PASSWORD', ''),
             database: env('MYSQL_DB', 'express'),
+            timezone: env('MYSQL_TIMEZONE', '+08:00'),
+            dateStrings: true
         }
     }
 };

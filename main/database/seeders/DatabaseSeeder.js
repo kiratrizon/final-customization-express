@@ -4,11 +4,11 @@ const UserFactory = require("../factories/UserFactory");
 const PostFactory = require("../factories/PostFactory");
 
 class DatabaseSeeder extends Seeder {
-    
-    async run(){
-        let userData = await UserFactory.createBulk(20);
-        let adminData = await AdminFactory.createBulk(20);
-        let postsData = await PostFactory.createBulk(100);
+
+    async run() {
+        let userData = await UserFactory.create(20);
+        let adminData = await AdminFactory.create(20);
+        let postsData = await PostFactory.create(1000);
     }
 }
 

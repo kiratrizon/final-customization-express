@@ -333,9 +333,6 @@ class QueryBuilder {
         if (!!data && data.length) {
             let returndata = data[0];
             returndata = Object.assign(this.#instanceModel, returndata);
-            // this.#hidden.forEach((key)=>{
-            //     delete returndata[key];
-            // });
             return returndata;
         }
         return false;
@@ -364,6 +361,24 @@ class QueryBuilder {
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES ${placeholders.join(', ')}`;
 
         return await DB.insert(sql, portionValue);
+    }
+
+    factoryFind(found) {
+        if (!!found) {
+            const data = found;
+            found = Object.assign(this.#instanceModel, found);
+            const hiddens = {};
+            this.#hidden.forEach((key) => {
+                hiddens[key] = found[key];
+                delete found[key];
+            });
+            let identifier = 'id';
+            if (identifier) {
+                found.setIdentifier(identifier);
+            }
+            found.setPrivates(data, hiddens);
+        }
+        return found;
     }
 }
 

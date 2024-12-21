@@ -5,19 +5,28 @@ const Auth = require("../../main/express/server/Auth");
 const Hash = require("../../libraries/Services/Hash");
 const DB = require("../../libraries/Materials/DB");
 const Post = require("../../models/Post");
+const Escaper = require("../../libraries/Materials/Escaper");
 
 class UserController extends Controller {
     async index() {
-        const selectFields = [
-            'Post.title',
-            '(CASE WHEN Post.type = 1 THEN Admin.name ELSE User.name END) AS author',
-            'Post.created_at',
-        ];
-        const data = await Post.select(...selectFields)
-        .leftJoin('admins as Admin', 'Post.user_id', '=', 'Admin.id')
-        .leftJoin('users as User', 'Post.user_id', '=', 'User.id')
-        .get();
-        jsonResponse({ data });
+        // const selectFields = [
+        //     'Post.title',
+        //     '(CASE WHEN Post.type = 1 THEN Admin.name ELSE User.name END) AS author',
+        //     'Post.created_at',
+        // ];
+        // const data = await Post.select(...selectFields)
+        //     .leftJoin('admins as Admin', 'Post.user_id', '=', 'Admin.id')
+        //     .leftJoin('users as User', 'Post.user_id', '=', 'User.id')
+        //     .get();
+        // jsonResponse({ data });
+        // create a user
+        const userData = {
+            name: "Thro'y",
+            email: "throy@example.com",
+            password: await Hash.make("asterda23"),
+        }
+        console.log(Escaper.resolve(userData.name));
+        jsonResponse({ user: await User.find(2) });
     }
     static testFunction() {
         jsonResponse("Hello World");
