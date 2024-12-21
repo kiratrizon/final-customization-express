@@ -13,7 +13,7 @@ class Database {
     static #mysqlConnection = null;
     static #debugger = false;
 
-    openConnection() {
+    #openConnection() {
         const isSQLite = env('DATABASE') === 'sqlite';
         const isMySQL = env('DATABASE') === 'mysql';
         if (isSQLite) {
@@ -38,9 +38,19 @@ class Database {
         query = sqlFormatter.format(query);
         const queryType = query.trim().toLowerCase().split(' ')[0].trim();
         let result = null;
+        const openTimeZone = [
+            'select',
+            'insert',
+            'update',
+            'call'
+        ];
         try {
-            // Open the connection at the start of the method
-            this.openConnection();
+            // run timezone first
+            if (!isSQLite && openTimeZone.includes(queryType)) {
+                await this.#timeZoneRunner();
+            } else {
+                this.#openConnection();
+            }
 
             if (logger && Database.#debugger) {
                 console.log('Query:', query);
@@ -51,7 +61,6 @@ class Database {
                 throw new Error('Database connection is not established.');
             }
 
-            // params = this.#replaceNowWithDateTime(params);
             // For SQLite
             if (isSQLite) {
                 const stmt = Database.#sqliteConnection.prepare(query);
@@ -139,43 +148,26 @@ class Database {
         return true;
     }
 
-    #replaceNowWithDateTime(arr) {
-        const now = Carbon.getDateTime();
-        arr.forEach((value, index) => {
-            if (Array.isArray(arr[index])) {
-                this.#replaceNowWithDateTime(arr[index]);
-            } else if (typeof value === 'string' && value.trim().toLowerCase() == 'now()') {
-                arr[index] = now;
-            }
-        });
-        return arr;
-    }
+    async makeMigration(query, filename) {
+        try {
 
-    async makeMigration(query, filename, rollback = false) {
-        if (rollback) {
-            await this.runQueryNoLogs(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
-            await this.runQueryNoLogs(query);
-        } else {
-            try {
+            let fileNameChecker = await this.runQueryNoLogs(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
+            if (fileNameChecker.length === 0) {
+                const migrationResult = await this.runQueryNoLogs(query);
 
-                let fileNameChecker = await this.runQueryNoLogs(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
-                if (fileNameChecker.length === 0) {
-                    const migrationResult = await this.runQueryNoLogs(query);
+                if (migrationResult) {
+                    await this.runQueryNoLogs(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
+                    console.log(`Migration "${filename}" applied successfully.`);
+                    return true;
 
-                    if (migrationResult) {
-                        await this.runQueryNoLogs(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
-                        console.log(`Migration "${filename}" applied successfully.`);
-                        return true;
-
-                    } else {
-                        console.log(`Migration "${filename}" failed to execute.`);
-                    }
+                } else {
+                    console.log(`Migration "${filename}" failed to execute.`);
                 }
-            } catch (err) {
-                console.error(`Error applying migration "${filename}":`, err);
             }
-            return false;
+        } catch (err) {
+            console.error(`Error applying migration "${filename}":`, err);
         }
+        return false;
     }
 
     async searchPrimaryName(modelName) {
@@ -208,9 +200,19 @@ class Database {
         const isMySQL = env('DATABASE') === 'mysql';
         query = sqlFormatter.format(query);
         const queryType = query.trim().toLowerCase().split(' ')[0].trim();
+        const openTimeZone = [
+            'select',
+            'insert',
+            'update',
+            'call'
+        ];
         try {
-            // Open the connection at the start of the method
-            this.openConnection();
+            // run timezone first
+            if (!isSQLite && openTimeZone.includes(queryType)) {
+                await this.#timeZoneRunner();
+            } else {
+                this.#openConnection();
+            }
 
             if (logger && Database.#debugger) {
                 console.log('Query:', query);
@@ -285,13 +287,46 @@ class Database {
 
         if (isMySQL) {
             if (!Database.#mysqlConnection) {
-                this.openConnection();
+                this.#openConnection();
             }
 
             return Database.#mysqlConnection.escape(value);
         }
 
         return value;
+    }
+
+    async #timeZoneRunner() {
+        const isMySQL = env('DATABASE', 'sqlite') === 'mysql';
+        const isPostgresql = env('DATABASE', 'sqlite') === 'postgresql';
+        const isSQLite = env('DATABASE', 'sqlite') === 'sqlite';
+        let timezone = config('app.database.timezone');
+        if (isSQLite) return;
+        let query;
+        const params = [];
+        query = `SET time_zone = ?;`;
+        params.push(timezone);
+
+        try {
+            this.#openConnection();
+
+            if ((isMySQL && !Database.#mysqlConnection)) {
+                throw new Error('Database connection is not established.');
+            }
+            if (isMySQL) {
+                await new Promise((resolve, reject) => {
+                    Database.#mysqlConnection.query(query, params, (err, results) => {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        resolve();
+                    });
+                });
+            }
+        } catch (err) {
+            console.error('Time Zone Error:', err);
+        }
     }
 }
 

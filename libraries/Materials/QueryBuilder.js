@@ -197,8 +197,8 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['created_at'] = Carbon.getDateTime();
-            filteredData['updated_at'] = Carbon.getDateTime();
+            filteredData['created_at'] = NOW();
+            filteredData['updated_at'] = NOW();
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);
@@ -242,7 +242,7 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['updated_at'] = Carbon.getDateTime();
+            filteredData['updated_at'] = NOW();
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);

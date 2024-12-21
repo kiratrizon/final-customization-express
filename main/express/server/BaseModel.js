@@ -42,12 +42,12 @@ class BaseModel extends ConstructorModel {
             delete this.timestamp;
             delete this.guarded;
             if (timestamp) {
-                data['created_at'] = Carbon.getDateTime();
-                data['updated_at'] = Carbon.getDateTime();
+                data['created_at'] = NOW();
+                data['updated_at'] = NOW();
             }
         } else {
             if (timestamp) {
-                data['updated_at'] = Carbon.getDateTime();
+                data['updated_at'] = NOW();
             }
         }
         const obj = { ...this, ...data };

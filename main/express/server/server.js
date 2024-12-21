@@ -8,11 +8,13 @@ const morgan = require('morgan');
 const Boot = require('../../../libraries/Services/Boot');
 const cors = require('cors');
 const { default: helmet } = require('helmet');
+const { createClient } = require('redis');
+const { RedisStore } = require('connect-redis');
 require('dotenv').config();
 
 
 const renderData = (data, shouldExit = false, res) => {
-    const tailwindStyles = `
+	const tailwindStyles = `
         <style>
             div.debug { font-family: sans-serif; padding: 2rem; background-color: #f7fafc; }
             pre { background-color: #000030; padding: 1rem; border-radius: 0.5rem; }
@@ -40,43 +42,43 @@ const renderData = (data, shouldExit = false, res) => {
         </style>
     `;
 
-    const recursiveRender = (value, level = 0) => {
-        const indentClass = `indentation level-${level}`;
-        if (Array.isArray(value)) {
-            return `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
-        } else if (value === null) {
-            return `<div class="null ${indentClass}">null</div>`;
-        } else if (typeof value === 'object') {
-            return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) =>
-                `<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(val, level + 1)}</span></div>`
-            ).join('')}</div>`;
-        } else if (typeof value === 'string') {
-            return `<div class="string ${indentClass}">"${value}"</div>`;
-        } else if (typeof value === 'number') {
-            return `<div class="number ${indentClass}">${value}</div>`;
-        } else if (typeof value === 'boolean') {
-            return `<div class="boolean ${indentClass}">${value}</div>`;
-        } else if (typeof value === 'undefined') {
-            return `<div class="undefined ${indentClass}">undefined</div>`;
-        }
-        return `<div>${value}</div>`;
-    };
+	const recursiveRender = (value, level = 0) => {
+		const indentClass = `indentation level-${level}`;
+		if (Array.isArray(value)) {
+			return `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
+		} else if (value === null) {
+			return `<div class="null ${indentClass}">null</div>`;
+		} else if (typeof value === 'object') {
+			return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) =>
+				`<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(val, level + 1)}</span></div>`
+			).join('')}</div>`;
+		} else if (typeof value === 'string') {
+			return `<div class="string ${indentClass}">"${value}"</div>`;
+		} else if (typeof value === 'number') {
+			return `<div class="number ${indentClass}">${value}</div>`;
+		} else if (typeof value === 'boolean') {
+			return `<div class="boolean ${indentClass}">${value}</div>`;
+		} else if (typeof value === 'undefined') {
+			return `<div class="undefined ${indentClass}">undefined</div>`;
+		}
+		return `<div>${value}</div>`;
+	};
 
-    const htmlContent = `
+	const htmlContent = `
         ${tailwindStyles}
         <div class="debug">
             <pre class="data-type-wrapper">${recursiveRender(data)}</pre>
         </div>
     `;
 
-    // Send HTML if shouldExit is false
-    if (res) {
-        res.set('Content-Type', 'text/html');
-        res.send(htmlContent);
-    }
+	// Send HTML if shouldExit is false
+	if (res) {
+		res.set('Content-Type', 'text/html');
+		res.send(htmlContent);
+	}
 
-    // End response if shouldExit is true
-    if (shouldExit) res.end();
+	// End response if shouldExit is true
+	if (shouldExit) res.end();
 };
 
 class Server {
@@ -192,8 +194,12 @@ class Server {
 			if (!req.session.session_auth) {
 				req.session.session_auth = {};
 			}
+			if (!req.session.session_hidden) {
+				req.session.session_hidden = {};
+			}
 			global.SESSION = req.session;
 			global.SESSION_AUTH = SESSION.session_auth;
+			global.SESSION_HIDDEN = SESSION.session_hidden;
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 
 			global.jsonResponse = (data, status = 200) => res.status(status).json(data);
@@ -262,7 +268,16 @@ class Server {
 	}
 
 	static #handle() {
+		let redisClient = createClient(config('app.redis'));
+		redisClient.connect().catch(console.error)
+
+		// Initialize store.
+		let redisStore = new RedisStore({
+			client: redisClient,
+			prefix: "myreact:",
+		})
 		const sessionObj = {
+			store: redisStore,
 			secret: process.env.MAIN_KEY || 'secret',
 			resave: false,
 			saveUninitialized: false,

@@ -35,11 +35,10 @@ class Factory {
         const arrCount = [];
         const factoryLimit = config('factory.limit') || 500;
 
-        do {
+        while (count > factoryLimit) {
             arrCount.push(factoryLimit);
             count -= factoryLimit;
         }
-        while (count > factoryLimit);
         if (count > 0) {
             arrCount.push(count)
         }

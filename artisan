@@ -157,14 +157,58 @@ program
             const runner = new MigrationRunner();
             await runner.run();
         } catch (e) {
-
+            console.error('Migration failed:', e);
         }
         if (options.seed) {
             try {
                 const seeder = new DatabaseSeeder();
                 await seeder.run();
             } catch (e) {
+                console.error('Seeding failed:', e);
+            }
+        }
+    });
 
+program
+    .command('migrate:fresh')
+    .option('--seed', 'Generate migration file as well')
+    .description('Drop all tables and run all migrations from scratch')
+    .action(async (options) => {
+        try {
+            const runner = new MigrationRunner();
+            await runner.dropAllTables();
+            await runner.run();
+        } catch (e) {
+            console.error('Migration failed:', e);
+        }
+        if (options.seed) {
+            try {
+                const seeder = new DatabaseSeeder();
+                await seeder.run();
+            } catch (e) {
+                console.error('Seeding failed:', e);
+            }
+        }
+    });
+
+program
+    .command('migrate:refresh')
+    .option('--seed', 'Generate migration file as well')
+    .description('Rollback all migrations and re-run them')
+    .action(async (options) => {
+        try {
+            const runner = new MigrationRunner();
+            await runner.rollback();  // Custom method to rollback migrations
+            await runner.run();       // Run migrations again
+        } catch (e) {
+            console.error('Migration refresh failed:', e);
+        }
+        if (options.seed) {
+            try {
+                const seeder = new DatabaseSeeder();
+                await seeder.run();
+            } catch (e) {
+                console.error('Seeding failed:', e);
             }
         }
     });
@@ -180,19 +224,6 @@ program
         }
     });
 
-// Command to rollback migrations
-program
-    .command('rollback')
-    .description('Rollback all migrations')
-    .action(async () => {
-        try {
-            const runner = new MigrationRunner();
-            await runner.rollback(); // Rollback migrations
-            console.log('All migrations rolled back successfully.');
-        } catch (e) {
-            // console.error('An error occurred while rolling back migrations.');
-        }
-    });
 // Command to start the development server
 program
     .command('serve')

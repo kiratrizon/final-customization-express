@@ -1,5 +1,5 @@
 const constant = {
-    'limit': 500, // for inserting limit
+    'limit': 2000, // for inserting limit
 };
 
 module.exports = constant;
