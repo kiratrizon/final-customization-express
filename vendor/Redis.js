@@ -22,7 +22,7 @@ class Redis {
         await this.#init();
         await this.#client.set(key, value);
         if (this.#expiration) {
-            await this.#client.exp(key, this.#expiration);
+            await this.#client.expire(key, this.#expiration);
         }
     }
 
