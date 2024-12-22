@@ -20,18 +20,15 @@ class Redis {
     }
     async set(key, value) {
         await this.#init();
+        await this.#client.set(key, value);
         if (this.#expiration) {
-            await this.#client.set(key, value, 'EX', this.#expiration);
-        } else {
-            await this.#client.set(key, value);
+            await this.#client.exp(key, this.#expiration);
         }
-        await this.#close();
     }
 
     async get(key) {
         await this.#init();
         const data = await this.#client.get(key);
-        await this.#close();
         return data;
     }
 
