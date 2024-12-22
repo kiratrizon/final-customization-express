@@ -11,24 +11,29 @@ class MigrationRunner {
     async run() {
         const migrationFiles = this.getMigrationFiles();
         let count = 0;
-        // Use a for loop to ensure order
-        await Promise.all(migrationFiles.map(async (file) => {
-            const migrationName = file.replace('.js', '');
-            const migrationModule = require(path.join(this.migrationsPath, file));
-            const instantiatedMigrationModule = new migrationModule();
-            const query = instantiatedMigrationModule.up();
+        // Use Promise.all to wait for all migrations to complete
+        await Promise.all(
+            migrationFiles.map(async (file) => {
+                const migrationName = file.replace('.js', '');
+                const migrationModule = require(path.join(this.migrationsPath, file));
+                const instantiatedMigrationModule = new migrationModule();
+                const query = instantiatedMigrationModule.up();
 
-            const success = await this.db.makeMigration(query, migrationName);
-            if (success) {
-                count++;
-            }
-        }));
+                const success = await this.db.makeMigration(query, migrationName);
+                if (success) {
+                    count++;
+                }
+            })
+        );
+
+        // Check the count after all migrations are completed
         if (count === 0) {
             console.log('Nothing to migrate.');
             return;
         }
-        console.log('Migrated successfully.');
+        console.log(`Migrated ${count} files successfully.`);
     }
+
 
     async migrateInit() {
         let migrationsTableQuery = '';
@@ -54,16 +59,21 @@ class MigrationRunner {
     }
 
     async rollback() {
-        const migrations = await this.db.runQueryNoLogs("SELECT migration_name FROM migrations");
-        if (!migrations.length) {
-            console.log('No migrations to rollback.');
-            return;
-        }
-        const rollbackQuery = "DELETE FROM migrations WHERE migration_name =?";
-        await Promise.all(migrations.map(async (migration) => {
-            await this.db.runQueryNoLogs(rollbackQuery, [migration.migration_name]);
+        const migrationFiles = this.getMigrationFiles();
+
+        // Use a for loop to ensure order
+        await Promise.all(migrationFiles.map(async (file) => {
+            const migrationName = file.replace('.js', '');
+            const migrationModule = require(path.join(this.migrationsPath, file));
+            const instantiatedMigrationModule = new migrationModule();
+            const query = instantiatedMigrationModule.down();
+
+            await this.db.makeMigration(query, migrationName, true);
         }));
+
         console.log('Rolled back successfully.');
+
+        await this.run();
     }
 
     async dropAllTables() {
@@ -71,11 +81,10 @@ class MigrationRunner {
         const params = [];
 
         if (env('DATABASE') === 'mysql') {
-            sql = `
-        SELECT TABLE_NAME AS \`table\`
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = ?
-        AND TABLE_NAME != 'migrations'`;
+            sql = `SELECT TABLE_NAME AS \`table\`
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = ?
+                AND TABLE_NAME != 'migrations'`;
             params.push(config('app.database.mysql.database'));
         } else if (env('DATABASE') === 'sqlite') {
             sql = 'SELECT name AS table FROM sqlite_master WHERE type = "table" AND table NOT LIKE "sqlite_%"';
@@ -107,6 +116,8 @@ class MigrationRunner {
         await this.db.runQueryNoLogs("DELETE FROM migrations");
 
         console.log('All tables dropped successfully.');
+
+        await this.run();
     }
 
     getMigrationFiles() {
