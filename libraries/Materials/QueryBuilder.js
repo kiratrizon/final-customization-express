@@ -197,8 +197,8 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['created_at'] = Carbon.getDateTime();
-            filteredData['updated_at'] = Carbon.getDateTime();
+            filteredData['created_at'] = NOW();
+            filteredData['updated_at'] = NOW();
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);
@@ -242,7 +242,7 @@ class QueryBuilder {
             delete filteredData[key];
         });
         if (this.#timestamp) {
-            filteredData['updated_at'] = Carbon.getDateTime();
+            filteredData['updated_at'] = NOW();
         }
         let keys = Object.keys(filteredData);
         let values = Object.values(filteredData);
@@ -333,9 +333,6 @@ class QueryBuilder {
         if (!!data && data.length) {
             let returndata = data[0];
             returndata = Object.assign(this.#instanceModel, returndata);
-            // this.#hidden.forEach((key)=>{
-            //     delete returndata[key];
-            // });
             return returndata;
         }
         return false;
@@ -353,7 +350,7 @@ class QueryBuilder {
         array.forEach((e) => {
             let values = [];
             Object.keys(e).forEach((key) => {
-                portionValue.push(e[key] || 'DEFAULT');
+                portionValue.push(e[key] || '');
                 values.push('?');
             });
             placeholders.push(`(${values.join(', ')})`);
@@ -364,6 +361,24 @@ class QueryBuilder {
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES ${placeholders.join(', ')}`;
 
         return await DB.insert(sql, portionValue);
+    }
+
+    factoryFind(found) {
+        if (!!found) {
+            const data = found;
+            found = Object.assign(this.#instanceModel, found);
+            const hiddens = {};
+            this.#hidden.forEach((key) => {
+                hiddens[key] = found[key];
+                delete found[key];
+            });
+            let identifier = 'id';
+            if (identifier) {
+                found.setIdentifier(identifier);
+            }
+            found.setPrivates(data, hiddens);
+        }
+        return found;
     }
 }
 

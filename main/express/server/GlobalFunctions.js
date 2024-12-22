@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const Configure = require('../../../libraries/Materials/Configure');
-const NodeMailer = require('../../../vendor/node-mailer');
+const Carbon = require('../../../libraries/Materials/Carbon');
 require('dotenv').config();
 
 global.env = (ENV_NAME, defaultValue = null) => {
@@ -76,8 +76,6 @@ global.config = (finder) => {
     return Configure.read(finder);
 };
 
-global.Mailer = NodeMailer;
-
 global.base_path = () => {
     return path.join(__dirname, '..', '..', '..');
 }
@@ -140,4 +138,15 @@ global.base64_decode = function (str) {
     const padding = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
     const base64 = str.replace(/-/g, '+').replace(/_/g, '/') + padding;
     return Buffer.from(base64, 'base64').toString('utf8');
+}
+
+global.NOW = () => {
+    return Carbon.getDateTime();
+}
+
+global.DATETIME = (format, params = false) => {
+    // if (typeof params === 'string') {
+    //     Carbon.adjustTime(params);
+    // }
+    return Carbon.getByFormat(format);
 }

@@ -42,12 +42,12 @@ class BaseModel extends ConstructorModel {
             delete this.timestamp;
             delete this.guarded;
             if (timestamp) {
-                data['created_at'] = Carbon.getDateTime();
-                data['updated_at'] = Carbon.getDateTime();
+                data['created_at'] = NOW();
+                data['updated_at'] = NOW();
             }
         } else {
             if (timestamp) {
-                data['updated_at'] = Carbon.getDateTime();
+                data['updated_at'] = NOW();
             }
         }
         const obj = { ...this, ...data };
@@ -97,6 +97,16 @@ class BaseModel extends ConstructorModel {
     static async insert(data = []) {
         const builder = new QueryBuilder(this);
         return await builder.insert(data);
+    }
+
+    static async first() {
+        const builder = new QueryBuilder(this);
+        return await builder.first();
+    }
+
+    static orderBy(key, direction = 'ASC') {
+        const builder = new QueryBuilder(this);
+        return builder.orderBy(key, direction);
     }
 }
 

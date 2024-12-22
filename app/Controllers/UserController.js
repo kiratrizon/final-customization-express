@@ -4,26 +4,14 @@ const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
 const Hash = require("../../libraries/Services/Hash");
 const DB = require("../../libraries/Materials/DB");
+const Post = require("../../models/Post");
+const Escaper = require("../../libraries/Materials/Escaper");
+const Carbon = require("../../libraries/Materials/Carbon");
 
 class UserController extends Controller {
     async index() {
-        const data = [
-            {
-                name: "Troy",
-                email: "tgenesistroy@gmail.com",
-                password: await Hash.make("asterda23")
-            },
-            {
-                name: "Troy",
-                email: "tgenesistroy1@gmail.com",
-                password: await Hash.make("asterda23")
-            }
-        ];
-        const userTable = DB.table('users');
-        // await userTable.insert(data);
-        const users = await userTable.select('password').get();
-
-        jsonResponse({ users });
+        const data = await this.getPosts();
+        jsonResponse({ data })
     }
     static testFunction() {
         jsonResponse("Hello World");

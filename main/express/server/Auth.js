@@ -7,10 +7,21 @@ const guards = config('auth.guards');
 const providers = config('auth.providers');
 
 class Guard {
-    constructor(data) {
+    #hidden = {};
+    constructor(data, hidden) {
         Object.keys(data).forEach(key => {
             this[key] = data[key];
         });
+        this.#hidden = hidden;
+    }
+
+    makeVisible(key) {
+        if (this.#hidden[key]) {
+            this[key] = this.#hidden[key];
+        }
+    }
+    makeHidden(key) {
+        delete this[key];
     }
 }
 class Guarder {
@@ -32,18 +43,18 @@ class Guarder {
             }
         }
     }
-    async check() {
+    check() {
+        const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
         if (this.#guardDriver === 'jwt') {
             const token = this.getBearerToken();
             if (!token) return false;
             if (!this.#verifyJwtSignature(token)) return false;
-            const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
-            const data = await DB.select(`SELECT * FROM ${this.#jwtTable} WHERE token = ? and user_type = ? and is_revoked = ? and expires_at > ?`, [token, user_type, 0, Carbon.getDateTime()]);
-            if (data.length) {
-                return true;
-            }
+            const [, middleToken,] = token.split('.');
+            const tokenDecoded = JSON.parse(base64_decode(middleToken));
+            if (tokenDecoded.exp < NOW()) return false;
+            if (!tokenDecoded.id || tokenDecoded.user_type != user_type) return false;
+            return true;
         } else if (this.#guardDriver === 'session') {
-            const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             const userEncoded = SESSION_AUTH[user_type];
             if (!!userEncoded) return true;
         }
@@ -62,9 +73,11 @@ class Guarder {
         let user_type;
         let fetchedData;
         let fetcher;
+        let hiddens = ['password'];
         if (type === 'eloquent') {
             user_type = this.#guardProvider.model.name;
             fetcher = this.#guardProvider.model;
+            hiddens = new this.#guardProvider.model().hidden;
         } else if (type === 'database') {
             user_type = this.#guardProvider.table;
             fetcher = DB.table(user_type);
@@ -82,9 +95,9 @@ class Guarder {
 
         const checkToken = fetchedData.token != 0 ? fetchedData.token : false;
 
-        if (checkToken && fetchedData.expires_at > Carbon.getDateTime() && fetchedData.is_revoked == 0) return checkToken;
+        if (checkToken && fetchedData.expires_at > NOW() && fetchedData.is_revoked == 0) return checkToken;
 
-        const now = Carbon.getDateTime();
+        const now = NOW();
 
         const token = this.#jwtSigner(fetchedData, now, user_type);
 
@@ -110,7 +123,7 @@ class Guarder {
         if (!fetchedData) return null;
         const passed = await Hash.check(data.password, fetchedData.password);
         if (passed) {
-            return this.#sessionSigner(fetchedData, user_type);
+            return this.#sessionSigner(fetchedData, user_type, type);
         }
         return false;
     }
@@ -126,24 +139,21 @@ class Guarder {
     }
     async user() {
         let user = null;
-        let dataFetched = {};
         let id = this.id();
+        let user_type;
         if (id) {
             if (this.#guardProvider.driver === 'eloquent') {
-                const useModel = new this.#guardProvider.model();
-                const hidden = useModel.hidden;
-                delete useModel.hidden;
-                delete useModel.timestamp;
-                delete useModel.fillable;
-                delete useModel.guarded;
-                dataFetched = await this.#guardProvider.model.find(id);
-                if (!dataFetched) return null;
+                user_type = this.#guardProvider.model.name;
             } else if (this.#guardProvider.driver === 'database') {
-                [dataFetched] = await DB.select(`SELECT * FROM ${this.#guardProvider.table} WHERE id =? LIMIT 1`, [id]);
+                user_type = this.#guardProvider.table;
             }
-        }
-        if (dataFetched) {
-            user = new Guard(dataFetched);
+            const visibleData = SESSION_AUTH[user_type];
+            const hiddenData = SESSION_HIDDEN[user_type];
+            if (!!visibleData) {
+                let decoded = JSON.parse(base64_decode(visibleData));
+                let hidden = JSON.parse(base64_decode(hiddenData));
+                user = new Guard(decoded, hidden);
+            }
         }
         return user;
     }
@@ -165,18 +175,17 @@ class Guarder {
         }
         return null;
     }
-    async logout() {
+    logout() {
         if (this.#guardDriver === 'jwt') {
             let token = this.getBearerToken();
             if (!token) return false;
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
-            const revoked = await DB.update(`UPDATE ${this.#jwtTable} SET is_revoked =? WHERE token =? AND user_type =?`, [1, token, user_type]);
-            if (revoked) {
-                return true;
-            }
+            DB.statement(`UPDATE ${this.#jwtTable} SET is_revoked =? WHERE token =? AND user_type =?`, [1, token, user_type]);
+            return true;
         } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             delete SESSION_AUTH[user_type];
+            delete SESSION_HIDDEN[user_type];
             return true;
         }
         return false;
@@ -189,21 +198,11 @@ class Guarder {
             typ: 'JWT'
         };
 
-        const { id, email, username, name } = payload;
+        const { id } = payload;
         const filteredPayload = { id };
-
-        if (email) {
-            filteredPayload.email = email;
-        }
-        if (username) {
-            filteredPayload.username = username;
-        }
-        if (name) {
-            filteredPayload.name = name;
-        }
         if (time) {
             filteredPayload.iat = time;
-            filteredPayload.exp = config('jwt.expiration.default');
+            filteredPayload.exp = Carbon.addMinutes(config('jwt.expiration.default') || 60 * 24 * 7).getDateTime();
         }
         filteredPayload.user_type = user_type;
         // Base64url encode header
@@ -222,20 +221,20 @@ class Guarder {
         // Return the JWT token
         return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
     }
-    #sessionSigner(payload, user_type) {
-        const { id, email, username, name } = payload;
-        const filteredPayload = { id };
-
-        if (email) {
-            filteredPayload.email = email;
+    #sessionSigner(...args) {
+        const { payload, user_type, type } = args;
+        let hidden = ['password'];
+        if (type === 'eloquent') {
+            let instantiatedModel = new this.#guardProvider.model();
+            hidden = instantiatedModel.hidden;
         }
-        if (username) {
-            filteredPayload.username = username;
-        }
-        if (name) {
-            filteredPayload.name = name;
-        }
-        SESSION_AUTH[user_type] = base64_encode(filteredPayload);
+        const hiddenData = {};
+        hidden.forEach((key) => {
+            hiddenData[key] = payload[key];
+            delete payload[key];
+        });
+        SESSION_HIDDEN[user_type] = base64_encode(JSON.stringify(hiddenData));
+        SESSION_AUTH[user_type] = base64_encode(JSON.stringify(payload));
         if (SESSION_AUTH[user_type]) {
             return true;
         }
@@ -267,6 +266,9 @@ class Guarder {
 }
 
 class Auth {
+    static #storeData = {
+
+    };
     static guard(guard) {
         return new Guarder(guard);
     }

@@ -12,7 +12,8 @@ class DB {
     static #statementRules = [
         'create',
         'alter',
-        'drop'
+        'drop',
+        'truncate'
     ];
     static async statement(sql, params = []) {
         DB.#firstValidator(sql);

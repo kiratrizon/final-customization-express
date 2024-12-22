@@ -111,6 +111,7 @@ program
     .option('--resource', 'Generate a resource controller')
     .action((name, options) => {
         generator.createController(name, options.resource);
+        process.exit(0);
     });
 
 // Add the make:jwt_secret command
@@ -121,6 +122,7 @@ program
         const secretKey = generator.generateJwtSecret();
         console.log(`Generated JWT_SECRET_KEY: ${secretKey}`);
         generator.writeToEnvFiles(secretKey);
+        process.exit(0);
     });
 // Command to generate a middleware
 program
@@ -128,6 +130,7 @@ program
     .description('Generates a middleware for a given name')
     .action((name) => {
         generator.generateMiddleware(name);
+        process.exit(0);
     });
 // Command to generate a migration
 program
@@ -139,6 +142,7 @@ program
         } else {
             generator.createMigration(name);
         }
+        process.exit(0);
     });
 // Command to generate a model
 program
@@ -146,6 +150,7 @@ program
     .option('--mc', 'Generate migration file as well')
     .action((name, options) => {
         generator.createModel(name, options.mc);
+        process.exit(0);
     });
 // Command to run migrations
 program
@@ -157,6 +162,71 @@ program
             const runner = new MigrationRunner();
             await runner.run();
         } catch (e) {
+            console.error('Migration failed:', e);
+        }
+        if (options.seed) {
+            try {
+                const seeder = new DatabaseSeeder();
+                await seeder.run();
+            } catch (e) {
+                console.error('Seeding failed:', e);
+            }
+        }
+        process.exit(0);
+    });
+
+program
+    .command('migrate:fresh')
+    .option('--seed', 'Generate migration file as well')
+    .description('Drop all tables and run all migrations from scratch')
+    .action(async (options) => {
+        try {
+            const runner = new MigrationRunner();
+            await runner.dropAllTables();
+        } catch (e) {
+            console.error('Migration failed:', e);
+        }
+        if (options.seed) {
+            try {
+                const seeder = new DatabaseSeeder();
+                await seeder.run();
+            } catch (e) {
+                console.error('Seeding failed:', e);
+            }
+        }
+        process.exit(0);
+    });
+
+program
+    .command('migrate:refresh')
+    .option('--seed', 'Generate migration file as well')
+    .description('Rollback all migrations and re-run them')
+    .action(async (options) => {
+        try {
+            const runner = new MigrationRunner();
+            await runner.rollback();
+        } catch (e) {
+            console.error('Migration refresh failed:', e);
+        }
+        if (options.seed) {
+            try {
+                const seeder = new DatabaseSeeder();
+                await seeder.run();
+            } catch (e) {
+                console.error('Seeding failed:', e);
+            }
+        }
+        process.exit(0);
+    });
+program
+    .command('init:migrate')
+    .option('--seed', 'Generate migration file as well')
+    .description('Run initial migrations')
+    .action(async (options) => {
+        try {
+            const runner = new MigrationRunner();
+            await runner.migrateInit();
+        } catch (e) {
 
         }
         if (options.seed) {
@@ -164,24 +234,12 @@ program
                 const seeder = new DatabaseSeeder();
                 await seeder.run();
             } catch (e) {
-    
+                console.error('Seeding failed:', e);
             }
         }
+        process.exit(0);
     });
 
-// Command to rollback migrations
-program
-    .command('rollback')
-    .description('Rollback all migrations')
-    .action(async () => {
-        try {
-            const runner = new MigrationRunner();
-            await runner.rollback(); // Rollback migrations
-            console.log('All migrations rolled back successfully.');
-        } catch (e) {
-            // console.error('An error occurred while rolling back migrations.');
-        }
-    });
 // Command to start the development server
 program
     .command('serve')
