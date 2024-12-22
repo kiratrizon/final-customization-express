@@ -275,13 +275,18 @@ class Server {
 		let redisStore = new RedisStore({
 			client: redisClient,
 			prefix: "myreact:",
+			ttl: 315576000
 		})
 		const sessionObj = {
 			store: redisStore,
 			secret: process.env.MAIN_KEY || 'secret',
 			resave: false,
 			saveUninitialized: false,
-			cookie: { secure: false },
+			cookie: {
+				secure: false,
+				httpOnly: false,
+				maxAge: 1000*60*60*24*365
+			},
 		};
 		const origins = config('origins.origins').length ? config('origins.origins') : '*'
 		const corsOptions = {
