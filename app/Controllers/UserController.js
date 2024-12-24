@@ -12,7 +12,7 @@ const helloWorld = () => {
 }
 class UserController extends Controller {
     async index() {
-        log($_POST, 'debug', 'test');
+        // log($_POST, 'debug', 'test');
         jsonResponse(true);
     }
     static testFunction() {
