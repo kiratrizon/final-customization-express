@@ -17,7 +17,7 @@ class Factory {
         for (let count of counters) {
             const createdData = [];
             for (let i = 0; i < count; i++) {
-                const data = await factory.definition();
+                const data = factory.definition();
                 createdData.push(data);
             }
             await model.insert(createdData);

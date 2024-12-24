@@ -5,12 +5,12 @@ const Admin = require("../../../models/Admin");
 class AdminFactory extends Factory {
 
     model = Admin;
-    
-    async definition() {
+
+    definition() {
         return {
             name: this.faker.person.fullName(),
             email: this.faker.internet.email(),
-            password: await Hash.make('admin123'),
+            password: Hash.make('admin123'),
         };
     }
 }

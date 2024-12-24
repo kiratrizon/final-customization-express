@@ -1,34 +1,40 @@
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const argon2 = require('argon2');
+const bcrypt = require('bcrypt');  // Modern bcrypt
+const bcryptjs = require('bcryptjs');  // bcryptjs for compatibility
 const Boot = require('./Boot');
 
 class Hash {
-  static async make(password) {
-    const hasher = Boot.hasher();
-    const sha1Hash = crypto.createHash('sha1').update(password).digest('hex');
+	static make(password) {
+		const hasher = Boot.hasher();
+		const sha1Hash = crypto.createHash('sha1').update(password).digest('hex');  // Hash the password with SHA-1
 
-    if (hasher === 'bcryptjs') {
-      return await bcrypt.hash(sha1Hash, 10);
-    } else if (hasher === 'argon2') {
-      return await argon2.hash(sha1Hash);
-    } else {
-      throw new Error('Unsupported hasher');
-    }
-  }
+		if (hasher === 'bcrypt') {
+			return bcrypt.hashSync(sha1Hash, 10);
+		} else if (hasher === 'bcryptjs') {
+			return bcryptjs.hashSync(sha1Hash, 10);
+		} else if (hasher === 'crypto') {
+			return sha1Hash;
+		} else {
+			throw new Error('Unsupported hasher');
+		}
+	}
 
-  static async check(password, hash) {
-    const hasher = Boot.hasher();
-    const sha1Hash = crypto.createHash('sha1').update(password).digest('hex');
+	static check(password, hash) {
+		const hasher = Boot.hasher();
+		const sha1Hash = crypto.createHash('sha1').update(password).digest('hex');  // Hash the password with SHA-1
 
-    if (hasher === 'bcryptjs') {
-      return await bcrypt.compare(sha1Hash, hash);
-    } else if (hasher === 'argon2') {
-      return await argon2.verify(hash, sha1Hash);
-    } else {
-      throw new Error('Unsupported hasher');
-    }
-  }
+		if (hasher === 'bcrypt') {
+			// Using bcrypt (synchronously)
+			return bcrypt.compareSync(sha1Hash, hash);  // Compare synchronously with bcrypt
+		} else if (hasher === 'bcryptjs') {
+			// Using bcryptjs (synchronously)
+			return bcryptjs.compareSync(sha1Hash, hash);  // Compare synchronously with bcryptjs
+		} else if (hasher === 'crypto') {
+			return sha1Hash === hash;  // Direct comparison for the 'crypto' hash
+		} else {
+			throw new Error('Unsupported hasher');
+		}
+	}
 }
 
 module.exports = Hash;

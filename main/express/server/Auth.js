@@ -89,7 +89,7 @@ class Guarder {
 
         if (!fetchedData) return null;
 
-        const passed = await Hash.check(data.password, fetchedData.password);
+        const passed = Hash.check(data.password, fetchedData.password);
 
         if (!passed) return null;
 
@@ -121,7 +121,7 @@ class Guarder {
         }
         fetchedData = await fetcher.where(selectedKey, data[selectedKey]).first();
         if (!fetchedData) return null;
-        const passed = await Hash.check(data.password, fetchedData.password);
+        const passed = Hash.check(data.password, fetchedData.password);
         if (passed) {
             return this.#sessionSigner(fetchedData, user_type, type);
         }

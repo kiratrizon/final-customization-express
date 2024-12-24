@@ -28,8 +28,8 @@ class Database {
             if (Database.#mysqlProperty === null) {
                 Database.#mysqlProperty = config('app.database.mysql');
             }
-            Database.#mysqlConnection = mysql.createConnection(Database.#mysqlProperty);
-            Database.#mysqlConnection.connect((err) => {
+            Database.#mysqlConnection = mysql.createPool(Database.#mysqlProperty);
+            Database.#mysqlConnection.getConnection((err) => {
                 if (err) {
                     console.error('Error connecting to MySQL database:', err.message);
                 }
@@ -115,88 +115,6 @@ class Database {
         }
     }
 
-    // runQuery(query, params = [], logger = true) {
-    //     query = sqlFormatter.format(query);
-    //     const queryType = query.trim().toLowerCase().split(' ')[0].trim();
-    //     let result = null;
-    //     let error = null;
-
-    //     this.#timeZoneRunner(queryType);
-
-    //     try {
-    //         if (logger && Database.#debugger) {
-    //             console.log('Query:', query);
-    //             console.log('Params:', params);
-    //         }
-
-    //         if (isSQLite) {
-    //             const stmt = Database.#sqliteConnection.prepare(query);
-    //             switch (queryType) {
-    //                 case 'insert':
-    //                     result = stmt.run(params).lastInsertRowid;
-    //                     break;
-    //                 case 'update':
-    //                 case 'delete':
-    //                     result = stmt.run(params).changes > 0;
-    //                     break;
-    //                 case 'create':
-    //                 case 'alter':
-    //                 case 'drop':
-    //                     stmt.run(params);
-    //                     result = true; // Success
-    //                     break;
-    //                 case 'select':
-    //                     result = stmt.all(params);
-    //                     break;
-    //                 default:
-    //                     result = stmt.all(params);
-    //                     break;
-    //             }
-    //         } else if (isMySQL) {
-    //             let isDone = false;
-
-    //             Database.#mysqlConnection.query(query, params, (err, results) => {
-    //                 if (err) {
-    //                     error = err;
-    //                 } else {
-    //                     switch (queryType) {
-    //                         case 'insert':
-    //                             result = results.insertId; // Return last inserted ID
-    //                             break;
-    //                         case 'update':
-    //                         case 'delete':
-    //                             result = results.affectedRows > 0; // Return true if affected rows > 0
-    //                             break;
-    //                         case 'create':
-    //                         case 'alter':
-    //                         case 'drop':
-    //                             result = true; // Success
-    //                             break;
-    //                         case 'select':
-    //                             result = results.length > 0 ? results : []; // Return empty array if no rows are found
-    //                             break;
-    //                         default:
-    //                             result = results; // Other queries
-    //                             break;
-    //                     }
-    //                 }
-    //                 isDone = true;
-    //             });
-
-    //             // Block until the query completes
-    //             while (!isDone) {
-    //                 deasync.runLoopOnce();
-    //             }
-    //         }
-
-    //         if (error) throw error;
-    //         return result;
-    //     } catch (err) {
-    //         console.error('Query Error:', err);
-    //         return null;
-    //     }
-    // }
-
     async runQueryNoLogs(query, params = []) {
         return await this.runQuery(query, params, false);
     }
@@ -210,11 +128,11 @@ class Database {
                     if (err) {
                         console.error('Error closing the MySQL connection:', err.message);
                     } else {
-                        // console.log('MySQL connection closed');
+                        console.log('MySQL connection closed.');
+                        Database.#mysqlConnection = null;
                     }
                 }
             );
-            Database.#mysqlConnection = null;
         }
         return true;
     }
@@ -355,6 +273,8 @@ module.exports = Database;
 process.on('SIGINT', async () => {
     console.log('Closing database connections...');
     const database = new Database();
-    await database.close();
-    process.exit(0);
+    if ((await database.close())) {
+        console.log('Closed...');
+        process.exit(0);
+    }
 });

@@ -256,6 +256,8 @@ class Server {
 			res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
 			next();
 		});
+
+		Server.#loadAndValidateRoutes();
 	}
 
 	static #handle() {
@@ -266,7 +268,7 @@ class Server {
 		let redisStore = new RedisStore({
 			client: redisClient,
 			prefix: "myreact:",
-			ttl: 315576000
+			ttl: 315576000 * 60
 		})
 		const sessionObj = {
 			store: redisStore,
@@ -276,7 +278,7 @@ class Server {
 			cookie: {
 				secure: false,
 				httpOnly: false,
-				maxAge: 1000 * 60 * 60 * 24 * 365
+				maxAge: 1000 * 60 * 60 * 24 * 365 * 60
 			},
 		};
 		const origins = config('origins.origins').length ? config('origins.origins') : '*'
@@ -304,12 +306,10 @@ class Server {
 		Server.#routes = { ...obj1, ...obj2 };
 	}
 
-	static finishBoot() {
+	static #finishBoot() {
 		if (typeof Boot['404'] === 'function') {
 			Server.app.use(Boot['404']);
 		}
-
-		// console.log(Server.#routes);
 	}
 
 	static async #getCorsOptions() {
@@ -342,7 +342,7 @@ class Server {
 		}
 	}
 
-	static loadAndValidateRoutes() {
+	static #loadAndValidateRoutes() {
 		const routesDir = path.join(__dirname, '../../../Routes');
 		const routeFiles = fs.readdirSync(routesDir);
 		const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
@@ -359,11 +359,10 @@ class Server {
 			const route = require(routePath);
 			Server.#validateRoute(route);
 		});
+		Server.#finishBoot();
 	}
 }
 
 Server.boot();
-Server.loadAndValidateRoutes();
-Server.finishBoot();
 
 module.exports = Server.app;

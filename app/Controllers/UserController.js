@@ -59,8 +59,7 @@ class UserController extends Controller {
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const logged = await Auth.attempt($_POST);
-        if (!logged) {
+        if ((await Auth.attempt($_POST))) {
             return back();
         }
         redirect('/');

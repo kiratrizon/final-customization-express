@@ -5,12 +5,12 @@ const User = require("../../../models/User");
 class UserFactory extends Factory {
 
     model = User;
-    
-    async definition() {
+
+    definition() {
         return {
             name: this.faker.person.fullName(),
             email: this.faker.internet.email(),
-            password: await Hash.make('admin123'),
+            password: Hash.make('admin123'),
         };
     }
 }
