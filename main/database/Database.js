@@ -3,6 +3,7 @@ const sqlite = require('better-sqlite3');
 const path = require('path');
 const sqlFormatter = require('sql-formatter');
 const dbPath = path.join(__dirname, '../database', 'database.sqlite');
+const deasync = require('deasync');
 const dbtype = env('DATABASE', 'sqlite');
 const isSQLite = dbtype === 'sqlite';
 const isMySQL = dbtype === 'mysql';
@@ -113,6 +114,88 @@ class Database {
             return null;
         }
     }
+
+    // runQuery(query, params = [], logger = true) {
+    //     query = sqlFormatter.format(query);
+    //     const queryType = query.trim().toLowerCase().split(' ')[0].trim();
+    //     let result = null;
+    //     let error = null;
+
+    //     this.#timeZoneRunner(queryType);
+
+    //     try {
+    //         if (logger && Database.#debugger) {
+    //             console.log('Query:', query);
+    //             console.log('Params:', params);
+    //         }
+
+    //         if (isSQLite) {
+    //             const stmt = Database.#sqliteConnection.prepare(query);
+    //             switch (queryType) {
+    //                 case 'insert':
+    //                     result = stmt.run(params).lastInsertRowid;
+    //                     break;
+    //                 case 'update':
+    //                 case 'delete':
+    //                     result = stmt.run(params).changes > 0;
+    //                     break;
+    //                 case 'create':
+    //                 case 'alter':
+    //                 case 'drop':
+    //                     stmt.run(params);
+    //                     result = true; // Success
+    //                     break;
+    //                 case 'select':
+    //                     result = stmt.all(params);
+    //                     break;
+    //                 default:
+    //                     result = stmt.all(params);
+    //                     break;
+    //             }
+    //         } else if (isMySQL) {
+    //             let isDone = false;
+
+    //             Database.#mysqlConnection.query(query, params, (err, results) => {
+    //                 if (err) {
+    //                     error = err;
+    //                 } else {
+    //                     switch (queryType) {
+    //                         case 'insert':
+    //                             result = results.insertId; // Return last inserted ID
+    //                             break;
+    //                         case 'update':
+    //                         case 'delete':
+    //                             result = results.affectedRows > 0; // Return true if affected rows > 0
+    //                             break;
+    //                         case 'create':
+    //                         case 'alter':
+    //                         case 'drop':
+    //                             result = true; // Success
+    //                             break;
+    //                         case 'select':
+    //                             result = results.length > 0 ? results : []; // Return empty array if no rows are found
+    //                             break;
+    //                         default:
+    //                             result = results; // Other queries
+    //                             break;
+    //                     }
+    //                 }
+    //                 isDone = true;
+    //             });
+
+    //             // Block until the query completes
+    //             while (!isDone) {
+    //                 deasync.runLoopOnce();
+    //             }
+    //         }
+
+    //         if (error) throw error;
+    //         return result;
+    //     } catch (err) {
+    //         console.error('Query Error:', err);
+    //         return null;
+    //     }
+    // }
 
     async runQueryNoLogs(query, params = []) {
         return await this.runQuery(query, params, false);
