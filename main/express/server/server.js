@@ -144,16 +144,10 @@ class Server {
 
 		// Global request/response handlers
 		Server.app.use((req, res, next) => {
-			const type = {};
 			const methodType = req.method.toUpperCase();
 
-			if (methodType === 'POST') {
-				type.POST = req.body;
-			} else if (methodType === 'GET') {
-				type.GET = req.query;
-			} else if (methodType === 'PUT') {
-				type.PUT = req.body;
-			}
+			global.$_POST = req.body || {};
+			global.$_GET = req.query || {};
 
 			const data = {
 				request: {
@@ -163,7 +157,6 @@ class Server {
 					headers: req.headers,
 					body: req.body,
 					query: req.query,
-					[methodType]: type[methodType],
 					cookies: req.cookies,
 					path: req.path,
 					originalUrl: req.originalUrl,
@@ -172,13 +165,10 @@ class Server {
 					user: req.user || null,
 					acceptLanguage: req.headers['accept-language'],
 					referer: req.headers['referer'] || null,
-					// session: req.session || null,
 					files: req.files || null,
-					received: type[methodType],
 				},
 			};
 			global.REQUEST = data.request;
-			global[methodType] = type[methodType];
 			global.dump = (data) => renderData(data, false, res);
 			global.dd = (data) => {
 				renderData(data, true, res);
@@ -188,20 +178,21 @@ class Server {
 				renderData(data);
 				process.exit(0);
 			};
-			if (!req.session) {
-				req.session = {};
-			}
 			if (!req.session.session_auth) {
 				req.session.session_auth = {};
 			}
 			if (!req.session.session_hidden) {
 				req.session.session_hidden = {};
 			}
-			global.SESSION = req.session;
-			global.SESSION_AUTH = SESSION.session_auth;
-			global.SESSION_HIDDEN = SESSION.session_hidden;
+			if (!req.session.global_variables) {
+				req.session.global_variables = {};
+			}
+			global.$_SESSION = req.session.global_variables;
+			const session = req.session;
+			global.$_SESSION_AUTH = session.session_auth;
+			global.$_SESSION_HIDDEN = session.session_hidden;
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
-
+			// req.flash('hello', 'world');
 			global.jsonResponse = (data, status = 200) => res.status(status).json(data);
 			global.view = (view, data = {}) => {
 				const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
@@ -285,7 +276,7 @@ class Server {
 			cookie: {
 				secure: false,
 				httpOnly: false,
-				maxAge: 1000*60*60*24*365
+				maxAge: 1000 * 60 * 60 * 24 * 365
 			},
 		};
 		const origins = config('origins.origins').length ? config('origins.origins') : '*'
@@ -300,7 +291,6 @@ class Server {
 			cookieParser: cookieParser(),
 			session: session(sessionObj),
 			flash: flash(),
-			// cors: Server.#corsAsync,
 			cors: cors(corsOptions),
 			helmet: helmet(),
 		};

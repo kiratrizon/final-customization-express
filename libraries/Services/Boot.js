@@ -1,9 +1,9 @@
 class Boot {
     static use() {
         return [
+            'session',
             'cors',
             'cookieParser',
-            'session',
             'flash',
             'helmet'
         ]

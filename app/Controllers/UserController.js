@@ -7,11 +7,13 @@ const DB = require("../../libraries/Materials/DB");
 const Post = require("../../models/Post");
 const Escaper = require("../../libraries/Materials/Escaper");
 const Carbon = require("../../libraries/Materials/Carbon");
-
+const helloWorld = () => {
+    return "Hello World";
+}
 class UserController extends Controller {
     async index() {
-        const data = await this.getPosts();
-        jsonResponse({ data })
+        log($_POST, 'debug', 'test');
+        jsonResponse(true);
     }
     static testFunction() {
         jsonResponse("Hello World");
@@ -21,7 +23,7 @@ class UserController extends Controller {
     }
 
     async store() {
-        let validate = await Validator.make(POST, {
+        let validate = await Validator.make($_POST, {
             name: "required",
             email: "required|email|unique:users",
             password: "required|min:6|confirmed"
@@ -29,7 +31,7 @@ class UserController extends Controller {
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const user = await User.create(POST);
+        const user = await User.create($_POST);
         return jsonResponse({ user }, user ? 201 : 403);
     }
 
@@ -50,14 +52,14 @@ class UserController extends Controller {
     }
 
     async login() {
-        let validate = await Validator.make(POST, {
+        let validate = await Validator.make($_POST, {
             email: "required|email",
             password: "required"
         });
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const logged = await Auth.attempt(POST);
+        const logged = await Auth.attempt($_POST);
         if (!logged) {
             return back();
         }

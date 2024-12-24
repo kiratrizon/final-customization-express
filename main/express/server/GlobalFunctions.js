@@ -55,7 +55,7 @@ global.log = (value, destination, text = "") => {
     if (process.env.NODE_ENV === 'production') {
         return;
     }
-    const dirPath = path.join(__dirname, '..', '..', 'tmp');
+    const dirPath = path.join(__dirname, '..', '..', '..', 'tmp');
     const logPath = path.join(dirPath, `${destination}.log`);
     const timestamp = global.formatTimestamp();
 
@@ -149,4 +149,9 @@ global.DATETIME = (format, params = false) => {
     //     Carbon.adjustTime(params);
     // }
     return Carbon.getByFormat(format);
+}
+
+global.function_exists = (variable) => {
+    if (typeof variable === 'undefined') return false;
+    return typeof variable === 'function';
 }

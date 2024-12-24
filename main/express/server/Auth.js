@@ -55,7 +55,7 @@ class Guarder {
             if (!tokenDecoded.id || tokenDecoded.user_type != user_type) return false;
             return true;
         } else if (this.#guardDriver === 'session') {
-            const userEncoded = SESSION_AUTH[user_type];
+            const userEncoded = $_SESSION_AUTH[user_type];
             if (!!userEncoded) return true;
         }
         return false;
@@ -147,8 +147,8 @@ class Guarder {
             } else if (this.#guardProvider.driver === 'database') {
                 user_type = this.#guardProvider.table;
             }
-            const visibleData = SESSION_AUTH[user_type];
-            const hiddenData = SESSION_HIDDEN[user_type];
+            const visibleData = $_SESSION_AUTH[user_type];
+            const hiddenData = $_SESSION_HIDDEN[user_type];
             if (!!visibleData) {
                 let decoded = JSON.parse(base64_decode(visibleData));
                 let hidden = JSON.parse(base64_decode(hiddenData));
@@ -166,7 +166,7 @@ class Guarder {
             user = JSON.parse(base64_decode(middleToken));
         } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
-            const userEncoded = SESSION_AUTH[user_type];
+            const userEncoded = $_SESSION_AUTH[user_type];
             if (!userEncoded) return null;
             user = JSON.parse(base64_decode(userEncoded));
         }
@@ -184,8 +184,8 @@ class Guarder {
             return true;
         } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
-            delete SESSION_AUTH[user_type];
-            delete SESSION_HIDDEN[user_type];
+            delete $_SESSION_AUTH[user_type];
+            delete $_SESSION_HIDDEN[user_type];
             return true;
         }
         return false;
@@ -233,9 +233,9 @@ class Guarder {
             hiddenData[key] = payload[key];
             delete payload[key];
         });
-        SESSION_HIDDEN[user_type] = base64_encode(JSON.stringify(hiddenData));
-        SESSION_AUTH[user_type] = base64_encode(JSON.stringify(payload));
-        if (SESSION_AUTH[user_type]) {
+        $_SESSION_HIDDEN[user_type] = base64_encode(JSON.stringify(hiddenData));
+        $_SESSION_AUTH[user_type] = base64_encode(JSON.stringify(payload));
+        if ($_SESSION_AUTH[user_type]) {
             return true;
         }
         return false;

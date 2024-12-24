@@ -59,9 +59,11 @@ class Route {
         let isControllerInstance = false;
         let actionMethod;
         let [controller, action] = [];
+        let doneInstantiated = true;
         if (Array.isArray(args)) {
             [controller, action] = args;
             if (!Route.#storedController[controller.name]) {
+                doneInstantiated = false;
                 Route.#storedController[controller.name] = new controller();
             }
             instanced = Route.#storedController[controller.name];
@@ -80,7 +82,10 @@ class Route {
 
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
-                if (isControllerInstance){
+                if (isControllerInstance) {
+                    if (!doneInstantiated) {
+                        instanced.initialize(req);
+                    }
                     return instanced[action](...Object.values(REQUEST.params));
                 }
                 return finalConvertion(...Object.values(REQUEST.params));
