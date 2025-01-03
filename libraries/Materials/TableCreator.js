@@ -133,10 +133,10 @@ class TableCreator {
 				return this;
 			}
 
-			async get() {
+			get() {
 				let sql = this.toSql();
 				let returnData;
-				returnData = await this.DB.select(sql, this.#valueQuery);
+				returnData = this.DB.select(sql, this.#valueQuery);
 				this.#valueQuery = [];
 				return returnData;
 			}
@@ -164,7 +164,7 @@ class TableCreator {
 				this.#selectQuery = [];
 			}
 
-			async insert(array = []) {
+			insert(array = []) {
 				let keys = [];
 				let portionValue = [];
 				array.forEach((e) => {
@@ -188,14 +188,14 @@ class TableCreator {
 
 				console.log(sql);
 				console.log(portionValue);
-				return await this.DB.insert(sql, portionValue);
+				return this.DB.insert(sql, portionValue);
 			}
 
-			async first() {
+			first() {
 				let sql = this.toSql();
 				sql += ' LIMIT 1;';
 				let data;
-				data = await this.DB.select(sql, this.#valueQuery);
+				data = this.DB.select(sql, this.#valueQuery);
 				this.#valueQuery = [];
 				if (!!data && data.length) {
 					let returndata = data[0];

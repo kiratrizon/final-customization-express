@@ -1,3 +1,4 @@
+const Admin = require("../models/Admin");
 const User = require("../models/User");
 
 const constant = {
@@ -13,6 +14,10 @@ const constant = {
             driver: 'jwt',
             provider: 'admins',
         },
+        'user': {
+            driver: 'session',
+            provider: 'users',
+        }
     },
     providers: {
         users: {
@@ -21,7 +26,7 @@ const constant = {
         },
         admins: {
             driver: 'eloquent',
-            model: require("../models/Admin"),
+            model: Admin,
         },
     },
 }

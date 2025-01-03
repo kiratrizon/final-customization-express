@@ -6,16 +6,16 @@ const Admin = require("../../models/Admin");
 class AdminController extends Controller {
 
     // get
-    async index() {
+    index() {
         jsonResponse(route('user.index'));
     }
     // get
-    async create() {
+    create() {
         jsonResponse({ message: "AdminController create" })
     }
     // post
-    async store() {
-        const validate = await Validator.make(POST, {
+    store() {
+        const validate = Validator.make(POST, {
             name: "required",
             email: "required|email|unique:admins",
             password: "required|min:6|confirmed"
@@ -24,27 +24,27 @@ class AdminController extends Controller {
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const admin = await Admin.create(POST);
+        const admin = Admin.create(POST);
         return jsonResponse({ admin });
     }
     // get
-    async show(id) {
+    show(id) {
         jsonResponse({ message: "AdminController show" })
     }
     // get
-    async edit(id) {
+    edit(id) {
         jsonResponse({ get })
     }
     // put
-    async update(id) {
+    update(id) {
         jsonResponse({ message: "AdminController update" })
     }
     // delete
-    async destroy(id) {
+    destroy(id) {
         jsonResponse({ message: "AdminController destroy" })
     }
-    async login() {
-        const validate = await Validator.make(POST, {
+    login() {
+        const validate = Validator.make(POST, {
             email: "required|email",
             password: "required"
         });
@@ -55,7 +55,7 @@ class AdminController extends Controller {
             email: POST.email,
             password: POST.password
         }
-        const token = await Auth.guard('jwt_admin').attempt(data);
+        const token = Auth.guard('jwt_admin').attempt(data);
         return jsonResponse({ token });
     }
 }

@@ -8,24 +8,24 @@ class BaseModel extends ConstructorModel {
     timestamp = true;
     guarded = [];
     hidden = [];
-    static async create(data) {
+    static create(data) {
         const builder = new QueryBuilder(this);
-        return await builder.create(data);
+        return builder.create(data);
     }
 
-    static async find(id) {
+    static find(id) {
         const builder = new QueryBuilder(this);
-        return await builder.find(id);
+        return builder.find(id);
     }
 
-    static async findByEmail(email) {
+    static findByEmail(email) {
         const builder = new QueryBuilder(this);
-        return await builder.findByEmail(email);
+        return builder.findByEmail(email);
     }
 
-    static async all() {
+    static all() {
         const builder = new QueryBuilder(this);
-        return await builder.all();
+        return builder.all();
     }
 
     static where(...args) {
@@ -33,7 +33,7 @@ class BaseModel extends ConstructorModel {
         return builder.where(...args);
     }
 
-    async save(data = {}) {
+    save(data = {}) {
         const identifier = this.getIdentifier();
         const primary = this.getPrimaryValue();
         const timestamp = this.timestamp;
@@ -74,19 +74,19 @@ class BaseModel extends ConstructorModel {
                 rawSql = `UPDATE ${generateTableNames(this.constructor.name)} SET ${updateFields} WHERE ${identifier} = ?`;
                 objValues.push(primary);
             }
-            return await RawSqlExecutor.run(rawSql, objValues);
+            return RawSqlExecutor.run(rawSql, objValues);
         }
         return null;
     }
 
-    static async query(...args) {
+    static query(...args) {
         const builder = new QueryBuilder(this);
-        return await builder.query(...args);
+        return builder.query(...args);
     }
 
-    static async findByKey(key, value) {
+    static findByKey(key, value) {
         const builder = new QueryBuilder(this);
-        return await builder.findByKey(key, value);
+        return builder.findByKey(key, value);
     }
 
     static select(...args) {
@@ -94,14 +94,14 @@ class BaseModel extends ConstructorModel {
         return builder.select(...args);
     }
 
-    static async insert(data = []) {
+    static insert(data = []) {
         const builder = new QueryBuilder(this);
-        return await builder.insert(data);
+        return builder.insert(data);
     }
 
-    static async first() {
+    static first() {
         const builder = new QueryBuilder(this);
-        return await builder.first();
+        return builder.first();
     }
 
     static orderBy(key, direction = 'ASC') {

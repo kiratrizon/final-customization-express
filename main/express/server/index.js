@@ -146,9 +146,8 @@ class Server {
 		Server.app.use((req, res, next) => {
 			const methodType = req.method.toUpperCase();
 
-			global.$_POST = req.body || {};
-			global.$_GET = req.query || {};
-
+			$_POST = req.body || {};
+			$_GET = req.query || {};
 			const data = {
 				request: {
 					method: methodType,
@@ -168,13 +167,13 @@ class Server {
 					files: req.files || null,
 				},
 			};
-			global.REQUEST = data.request;
-			global.dump = (data) => renderData(data, false, res);
-			global.dd = (data) => {
+			REQUEST = data.request;
+			dump = (data) => renderData(data, false, res);
+			dd = (data) => {
 				renderData(data, true, res);
 			};
-			res.locals.dump = (data) => renderData(data);
-			res.locals.dd = (data) => {
+			res.locals['dump'] = (data) => renderData(data);
+			res.locals['dd'] = (data) => {
 				renderData(data);
 				process.exit(0);
 			};
@@ -187,14 +186,34 @@ class Server {
 			if (!req.session.global_variables) {
 				req.session.global_variables = {};
 			}
-			global.$_SESSION = req.session.global_variables;
+			if (!req.session.oldPost) {
+				req.session.oldPost = {};
+			}
+			$_SESSION = req.session.global_variables;
 			const session = req.session;
-			global.$_SESSION_AUTH = session.session_auth;
-			global.$_SESSION_HIDDEN = session.session_hidden;
+			globalThis.$_SESSION_AUTH = session.session_auth;
+			globalThis.$_SESSION_HIDDEN = session.session_hidden;
+			res.locals['old'] = (key) => {
+				const value = session.oldPost[key] || null;
+				delete req.session.oldPost[key];
+				return value;
+			};
+			setcookie = (name, value = '', expires_at = 0, path = '/', domain = '', secure = false, httpOnly = false) => {
+				const expires = parseInt(expires_at) ? new Date(Date.now() + expires_at * 1000) : expires_at;
+				const options = {
+					expires,
+					path,
+					domain,
+					secure,
+					httpOnly,
+				};
+
+				res.cookie(name, value, options);
+			};
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			// req.flash('hello', 'world');
-			global.jsonResponse = (data, status = 200) => res.status(status).json(data);
-			global.view = (view, data = {}) => {
+			jsonResponse = (data, status = 200) => res.status(status).json(data);
+			view = (view, data = {}) => {
 				const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
 
 				if (fs.existsSync(viewPath)) {
@@ -203,11 +222,21 @@ class Server {
 					dump({ "error": `${path.relative(base_path(), view_path())}/${view}.ejs not found` }, true);
 				}
 			};
-			global.redirect = (url) => res.redirect(url);
-			global.back = () => res.redirect(req.get('Referrer') || '/');
-			global.isApiUrl = () => req.path.startsWith('api');
+			redirect = (url, data = []) => {
+				if (data.includes('input')) {
+					if (methodType === 'POST' || methodType === 'PUT') {
+						delete req.session.oldPost;
+						req.session.oldPost = $_POST;
+					}
+				}
+				res.redirect(url);
+			};
+			back = () => {
+				return req.get('Referrer') || '/';
+			};
+			isApiUrl = () => req.path.startsWith('api');
 			// Set up global functions
-			global.route = (name, args = {}) => {
+			route = (name, args = {}) => {
 				if (Server.#routes.hasOwnProperty(name)) {
 					let route = Server.#routes[name];
 
@@ -246,14 +275,15 @@ class Server {
 				throw `route("${name}") not found.\n${caller}`;
 			};
 
-			global.BASE_URL = Server.#baseUrl;
+			BASE_URL = Server.#baseUrl;
 			res.locals.BASE_URL = Server.#baseUrl;
-			global.PATH_URL = REQUEST.path;
+			PATH_URL = REQUEST.path;
 			res.locals.PATH_URL = REQUEST.path;
-			global.PATH_QUERY = REQUEST.originalUrl;
+			PATH_QUERY = REQUEST.originalUrl;
 			res.locals.PATH_QUERY = REQUEST.originalUrl;
-			global.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
+			ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
 			res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
+			DEFAULT_BACK = [back(), ['input']];
 			next();
 		});
 
