@@ -8,23 +8,27 @@ class MigrationRunner {
         this.db = new DatabaseConnection();
     }
 
-    async run() {
+    run() {
         const migrationFiles = this.getMigrationFiles();
         let count = 0;
         // Use Promise.all to wait for all migrations to complete
-        await Promise.all(
-            migrationFiles.map(async (file) => {
-                const migrationName = file.replace('.js', '');
-                const migrationModule = require(path.join(this.migrationsPath, file));
-                const instantiatedMigrationModule = new migrationModule();
-                const query = instantiatedMigrationModule.up();
+        for (let i = 0; i < migrationFiles.length; i++) {
+            const file = migrationFiles[i];
+            const migrationName = file.replace('.js', '');
+            const migrationModule = require(path.join(this.migrationsPath, file));
+            const instantiatedMigrationModule = new migrationModule();
+            const query = instantiatedMigrationModule.up();
 
-                const success = await this.db.makeMigration(query, migrationName);
+            try {
+                // Assuming makeMigration is a method that returns a promise
+                const success = this.db.makeMigration(query, migrationName);
                 if (success) {
                     count++;
                 }
-            })
-        );
+            } catch (error) {
+                console.error(`Error processing migration ${migrationName}:`, error);
+            }
+        }
 
         // Check the count after all migrations are completed
         if (count === 0) {
@@ -35,7 +39,7 @@ class MigrationRunner {
     }
 
 
-    async migrateInit() {
+    migrateInit() {
         let migrationsTableQuery = '';
         if (env('DATABASE') === 'mysql') {
             migrationsTableQuery = `
@@ -55,28 +59,26 @@ class MigrationRunner {
             `;
         }
 
-        await this.db.runQuery(migrationsTableQuery);
+        this.db.runQuery(migrationsTableQuery);
     }
 
-    async rollback() {
+    rollback() {
         const migrationFiles = this.getMigrationFiles();
 
-        // Use a for loop to ensure order
-        await Promise.all(migrationFiles.map(async (file) => {
+        migrationFiles.map((file) => {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
 
-            await this.db.makeMigration(query, migrationName, true);
-        }));
-
+            this.db.makeMigration(query, migrationName, true);
+        });
         console.log('Rolled back successfully.');
 
-        await this.run();
+        this.run();
     }
 
-    async dropAllTables() {
+    dropAllTables() {
         let sql;
         const params = [];
 
@@ -91,7 +93,7 @@ class MigrationRunner {
         }
 
 
-        const tables = await this.db.runQueryNoLogs(sql, params);
+        const tables = this.db.runQueryNoLogs(sql, params);
 
         if (!tables.length) {
             console.log('No tables to drop.');
@@ -100,24 +102,24 @@ class MigrationRunner {
 
         // Disable foreign key constraints for SQLite
         if (env('DATABASE') === 'sqlite') {
-            await this.db.runQueryNoLogs('PRAGMA foreign_keys = OFF');
+            this.db.runQueryNoLogs('PRAGMA foreign_keys = OFF');
         }
 
-        await Promise.all(tables.map(async (table) => {
+        tables.map((table) => {
             const dropTableQuery = `DROP TABLE IF EXISTS ${table.table};`;
-            await this.db.runQueryNoLogs(dropTableQuery);
-        }));
+            this.db.runQueryNoLogs(dropTableQuery);
+        })
 
         // Re-enable foreign key constraints for SQLite
         if (env('DATABASE') === 'sqlite') {
-            await this.db.runQueryNoLogs('PRAGMA foreign_keys = ON');
+            this.db.runQueryNoLogs('PRAGMA foreign_keys = ON');
         }
 
-        await this.db.runQueryNoLogs("DELETE FROM migrations");
+        this.db.runQueryNoLogs("DELETE FROM migrations");
 
         console.log('All tables dropped successfully.');
 
-        await this.run();
+        this.run();
     }
 
     getMigrationFiles() {

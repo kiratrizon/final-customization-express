@@ -2,28 +2,17 @@ const Validator = require("../../libraries/Services/Validator");
 const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
-const Hash = require("../../libraries/Services/Hash");
-const DB = require("../../libraries/Materials/DB");
-const Post = require("../../models/Post");
-const Escaper = require("../../libraries/Materials/Escaper");
-const Carbon = require("../../libraries/Materials/Carbon");
-const helloWorld = () => {
-    return "Hello World";
-}
 class UserController extends Controller {
-    async index() {
-        // log($_POST, 'debug', 'test');
-        jsonResponse(true);
+    index() {
+        return view('index');
     }
-    static testFunction() {
-        jsonResponse("Hello World");
-    }
-    async create() {
+
+    create() {
         jsonResponse({ message: "UserController create" })
     }
 
-    async store() {
-        let validate = await Validator.make($_POST, {
+    store() {
+        let validate = Validator.make($_POST, {
             name: "required",
             email: "required|email|unique:users",
             password: "required|min:6|confirmed"
@@ -31,46 +20,62 @@ class UserController extends Controller {
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const user = await User.create($_POST);
+        const user = User.create($_POST);
         return jsonResponse({ user }, user ? 201 : 403);
     }
 
-    async show(id) {
+    store2() {
+        const validate = Validator.make($_POST, {
+            name: "required",
+            email: "required|email|unique:users",
+            password: "required|min:6|confirmed"
+        });
+        if (validate.fails()) {
+            return redirect(...DEFAULT_BACK);
+        }
+        const user = User.create($_POST);
+        if (!user) {
+            return redirect(...DEFAULT_BACK);
+        }
+        return redirect(route('signin'));
+    }
+
+    show(id) {
         jsonResponse(ORIGINAL_URL);
     }
 
-    async edit(id) {
-        jsonResponse(GET)
+    edit(id) {
+        jsonResponse($_GET)
     }
 
-    async update(id) {
+    update(id) {
         jsonResponse({ message: "UserController update" })
     }
 
-    async destroy(id) {
+    destroy(id) {
         jsonResponse({ message: "UserController destroy" })
     }
 
-    async login() {
-        let validate = await Validator.make($_POST, {
+    login() {
+        let validate = Validator.make($_POST, {
             email: "required|email",
             password: "required"
         });
         if (validate.fails()) {
-            return jsonResponse({ errors: validate.errors }, 400);
+            return redirect(...DEFAULT_BACK);
         }
-        if ((await Auth.attempt($_POST))) {
-            return back();
+        if (!Auth.guard('user').attempt($_POST)) {
+            return redirect(...DEFAULT_BACK);
         }
-        redirect('/');
+        redirect(route('user.dashboard'));
     }
 
-    async getUser() {
-        const user = await Auth.user();
+    getUser() {
+        const user = Auth.user();
         jsonResponse({ user });
     }
 
-    async sessionUser() {
+    sessionUser() {
         jsonResponse(REQUEST);
     }
 }

@@ -6,11 +6,11 @@ const DB = require("../../../libraries/Materials/DB");
 
 class DatabaseSeeder extends Seeder {
 
-    async run() {
-        let userData = await UserFactory.create(20);
-        let adminData = await AdminFactory.create(20);
+    run() {
+        let userData = UserFactory.create(20);
+        let adminData = AdminFactory.create(20);
         // DB.statement("TRUNCATE TABLE posts");
-        let postsData = await PostFactory.create(200);
+        let postsData = PostFactory.create(200);
     }
 }
 

@@ -33,39 +33,40 @@ class Carbon {
         "hours": 0,
         "minutes": 0,
         "seconds": 0,
+        "years": 0,
     };
     static addDays(days = 0) {
-        Carbon.#timeAlters = days;
+        Carbon.#timeAlters['days'] += days;
         return Carbon;
     }
 
     static addHours(hours = 0) {
-        Carbon.#timeAlters = hours;
+        Carbon.#timeAlters['hours'] += hours;
         return Carbon;
     }
 
     static addMinutes(minutes = 0) {
-        Carbon.#timeAlters = minutes;
+        Carbon.#timeAlters['minutes'] += minutes;
         return Carbon;
     }
 
     static addSeconds(seconds = 0) {
-        Carbon.#timeAlters = seconds;
+        Carbon.#timeAlters['seconds'] += seconds;
         return Carbon;
     }
 
     static addYears(years = 0) {
-        Carbon.#timeAlters = years;
+        Carbon.#timeAlters['years'] += years;
         return Carbon;
     }
 
     static addMonths(months = 0) {
-        Carbon.#timeAlters = months;
+        Carbon.#timeAlters['months'] += months;
         return Carbon;
     }
 
     static addWeeks(weeks = 0) {
-        Carbon.#timeAlters = weeks;
+        Carbon.#timeAlters['weeks'] += weeks;
         return Carbon;
     }
 
@@ -97,6 +98,9 @@ class Carbon {
         return Carbon.#getByFormat(Configure.read('app.time_format') || 'H:i:s');
     }
     static #getByFormat(format) {
+        if (typeof format != 'string') {
+            throw new Error(`Invalid format`);
+        }
         const time = Carbon.#generateDateTime();
         const formattings = Object.keys(Carbon.#formatMapping);
         let newFormat = '';
@@ -114,62 +118,6 @@ class Carbon {
         return Carbon.#getByFormat(format);
     }
 
-    // static adjustTime(alterTime) {
-    //     let altered = alterTime.replace(/\s+/g, ''); // replace all spaces
-    //     altered.toLowerCase();
-    //     let currentAlter = '';
-    //     let currentNumber = '';
-    //     let currentOperator = '';
-    //     const chars = 'secondmiuthrywka'.split('');
-    //     const numbers = '1234567890'.split('');
-    //     const acceptedOperator = [
-    //         '+',
-    //         '-'
-    //     ];
-    //     const completeAlters = [
-    //         'days',
-    //         'hours',
-    //         'minutes',
-    //         'weeks',
-    //         'years',
-    //         'months',
-    //         'seconds'
-    //     ];
-    //     // loop the altered string
-    //     for (let i = 0; i < altered.length; i++) {
-    //         const char = altered[i];
-    //         if (numbers.includes(char)) {
-    //             currentNumber += char;
-    //         } else if (acceptedOperator.includes(char)) {
-    //             if (currentOperator === '') {
-    //                 currentOperator = char;
-    //             } else {
-    //                 throw new Error(`Invalid time adjustment`);
-    //             }
-    //         } else if (chars.includes(char)) {
-    //             if (currentOperator === '') {
-    //                 currentOperator = '+';
-    //             }
-    //             if (currentNumber === '') {
-    //                 throw new Error(`Invalid time adjustment`);
-    //             }
-    //             currentAlter += char;
-    //         } else {
-    //             throw new Error(`Invalid time adjustment`);
-    //         }
-    //         if (completeAlters.includes(currentAlter)) {
-    //             if (currentOperator === '' || currentNumber === '') {
-    //                 throw new Error(`Invalid time adjustment`);
-    //             }
-    //             const completAlt = ucFirst(currentAlter);
-    //             eval(`Carbon.add${completAlt}(${currentOperator == '+' ? '' : currentOperator}${currentNumber})`);
-    //             currentAlter = '';
-    //             currentNumber = '';
-    //             currentOperator = '';
-    //         }
-    //     }
-    // }
-
     static #reset() {
         Carbon.#timeAlters = {
             "weeks": 0,
@@ -178,7 +126,29 @@ class Carbon {
             "hours": 0,
             "minutes": 0,
             "seconds": 0,
+            "years": 0,
         };
+    }
+
+    static getByUnixTimestamp(unixTimestamp, format) {
+        if (typeof unixTimestamp !== 'number') {
+            throw new Error(`Invalid Unix timestamp: ${unixTimestamp}`);
+        }
+        if (typeof format !== 'string') {
+            throw new Error(`Invalid format: ${format}`);
+        }
+
+        const time = DateTime.fromSeconds(unixTimestamp).setZone(Configure.read('app.timezone'));
+        const formattings = Object.keys(Carbon.#formatMapping);
+        let newFormat = '';
+        for (let i = 0; i < format.length; i++) {
+            if (formattings.includes(format[i])) {
+                newFormat += Carbon.#formatMapping[format[i]];
+            } else {
+                newFormat += format[i];
+            }
+        }
+        return time.toFormat(newFormat);
     }
 }
 

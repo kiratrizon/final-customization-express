@@ -3,10 +3,10 @@ const Hash = require("../../libraries/Services/Hash");
 
 class Authenticatable extends Model {
     static authenticatableClass = true;
-    static async create(data) {
+    static create(data) {
         data['password'] = Hash.make(data['password']);
         delete data['password_confirmation'];
-        return await super.create(data);
+        return super.create(data);
     }
     getAuthIdentifier() {
         return this.getAuthIdentifierName() ? this[this.getAuthIdentifierName()] : null;

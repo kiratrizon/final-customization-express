@@ -60,15 +60,15 @@ class Guarder {
         }
         return false;
     }
-    async attempt(data) {
+    attempt(data) {
         if (this.#guardDriver === 'jwt') {
-            return await this.#tokenGenerator(data, this.#guardProvider.driver.toLowerCase());
+            return this.#tokenGenerator(data, this.#guardProvider.driver.toLowerCase());
         } else if (this.#guardDriver === 'session') {
-            return await this.#sessionGenerator(data, this.#guardProvider.driver.toLowerCase());
+            return this.#sessionGenerator(data, this.#guardProvider.driver.toLowerCase());
         }
         return false;
     }
-    async #tokenGenerator(...args) {
+    #tokenGenerator(...args) {
         const { data, type, selectedKey } = this.#validateData(...args);
         let user_type;
         let fetchedData;
@@ -85,7 +85,7 @@ class Guarder {
 
         const eloquentFields = [`${user_type}.*`, `CASE WHEN OAT.token IS NOT NULL THEN OAT.token ELSE 0 END AS token`, `OAT.expires_at`, `OAT.is_revoked`, `OAT.id as token_id`];
 
-        fetchedData = await fetcher.select(...eloquentFields).leftJoin(`${this.#jwtTable} as OAT`, `${user_type}.id`, '=', 'OAT.user_id').where(`${user_type}.${selectedKey}`, data[selectedKey]).first();
+        fetchedData = fetcher.select(...eloquentFields).leftJoin(`${this.#jwtTable} as OAT`, `${user_type}.id`, '=', 'OAT.user_id').where(`${user_type}.${selectedKey}`, data[selectedKey]).first();
 
         if (!fetchedData) return null;
 
@@ -101,13 +101,13 @@ class Guarder {
 
         const token = this.#jwtSigner(fetchedData, now, user_type);
 
-        const inserted = await DB.insert(`INSERT INTO ${this.#jwtTable} (token, user_id, user_type, expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
+        const inserted = DB.insert(`INSERT INTO ${this.#jwtTable} (token, user_id, user_type, expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?)`, [token, fetchedData.id, user_type, config('jwt.expiration.default'), now, now]);
 
         if (inserted) return token;
 
         return false;
     }
-    async #sessionGenerator(...args) {
+    #sessionGenerator(...args) {
         const { data, type, selectedKey } = this.#validateData(...args);
         let user_type;
         let fetchedData;
@@ -119,7 +119,7 @@ class Guarder {
             user_type = this.#guardProvider.table;
             fetcher = DB.table(user_type);
         }
-        fetchedData = await fetcher.where(selectedKey, data[selectedKey]).first();
+        fetchedData = fetcher.where(selectedKey, data[selectedKey]).first();
         if (!fetchedData) return null;
         const passed = Hash.check(data.password, fetchedData.password);
         if (passed) {
@@ -137,22 +137,35 @@ class Guarder {
         const selectedKey = selectKey[0] === 'password' ? selectKey[1] : selectKey[0];
         return { data, type, selectedKey };
     }
-    async user() {
+    user() {
         let user = null;
         let id = this.id();
         let user_type;
+        let decoded;
+        let hidden;
         if (id) {
-            if (this.#guardProvider.driver === 'eloquent') {
-                user_type = this.#guardProvider.model.name;
-            } else if (this.#guardProvider.driver === 'database') {
-                user_type = this.#guardProvider.table;
-            }
-            const visibleData = $_SESSION_AUTH[user_type];
-            const hiddenData = $_SESSION_HIDDEN[user_type];
-            if (!!visibleData) {
-                let decoded = JSON.parse(base64_decode(visibleData));
-                let hidden = JSON.parse(base64_decode(hiddenData));
-                user = new Guard(decoded, hidden);
+            user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
+
+            if (this.#guardDriver === 'session') {
+                const visibleData = $_SESSION_AUTH[user_type];
+                const hiddenData = $_SESSION_HIDDEN[user_type];
+                if (!!visibleData) {
+                    decoded = JSON.parse(base64_decode(visibleData));
+                    hidden = JSON.parse(base64_decode(hiddenData));
+                    user = new Guard(decoded, hidden);
+                }
+            } else if (this.#guardDriver === 'jwt') {
+                const isEloquent = this.#guardProvider.driver === 'eloquent';
+                let fetchedUser = this.#userFromJwt(id, isEloquent);
+                hidden = {};
+                if (isEloquent) {
+                    let getHidden = new this.#guardProvider.model().hidden;
+                    getHidden.forEach((key) => {
+                        hidden[key] = fetchedUser[key];
+                        delete fetchedUser[key];
+                    });
+                }
+                user = new Guard(fetchedUser, hidden);
             }
         }
         return user;
@@ -263,6 +276,15 @@ class Guarder {
         }
         return token;
     }
+
+    #userFromJwt(id, isEloquent) {
+        if (!id) return null;
+        if (isEloquent) {
+            return this.#guardProvider.model.find(id);
+        } else {
+            return DB.table(this.#guardProvider.table).where('id', id).first();
+        }
+    }
 }
 
 class Auth {
@@ -275,8 +297,8 @@ class Auth {
     static check() {
         return new Guarder(defaultGuard).check();
     }
-    static async attempt(data) {
-        return await new Guarder(defaultGuard).attempt(data);
+    static attempt(data) {
+        return new Guarder(defaultGuard).attempt(data);
     }
     static user() {
         return new Guarder(defaultGuard).user();

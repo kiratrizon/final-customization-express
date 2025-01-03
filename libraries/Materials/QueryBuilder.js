@@ -153,10 +153,10 @@ class QueryBuilder {
     }
 
     // Final query generation and execution
-    async get(defaultLogs = true) {
+    get(defaultLogs = true) {
         let sql = this.toSql();
         let returnData;
-        returnData = await DB.select(sql, this.#valueQuery);
+        returnData = DB.select(sql, this.#valueQuery);
         this.#valueQuery = [];
         return returnData;
     }
@@ -186,7 +186,7 @@ class QueryBuilder {
         this.#selectQuery = [];
     }
 
-    async create(objData) {
+    create(objData) {
         let filteredData = {};
         for (let key of Object.keys(objData)) {
             if (this.#fillable.includes(key)) {
@@ -205,7 +205,7 @@ class QueryBuilder {
         let columns = keys.join(', ');
         let placeholders = keys.map(() => '?').join(', ');
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES (${placeholders})`;
-        let id = await DB.insert(sql, values);
+        let id = DB.insert(sql, values);
         if (!id) {
             return null;
         }
@@ -222,7 +222,7 @@ class QueryBuilder {
                 hiddens[key] = created[key];
                 delete created[key];
             });
-            let identifier = await this.#database.searchPrimaryName(created.constructor.name);
+            let identifier = this.#database.searchPrimaryName(created.constructor.name);
             if (identifier) {
                 created.setIdentifier(identifier);
             }
@@ -231,7 +231,7 @@ class QueryBuilder {
         return created;
     }
 
-    async update(objData = {}) {
+    update(objData = {}) {
         let filteredData = {};
         for (let key of Object.keys(objData)) {
             if (this.#fillable.includes(key)) {
@@ -250,12 +250,12 @@ class QueryBuilder {
         let sql = `UPDATE ${this.#table} SET ${setQuery}`;
         if (this.#whereQuery.length) sql += ` WHERE ${this.#whereQuery.join(', ')}`;
         values.push(...this.#valueQuery);
-        return await DB.update(sql, values);
+        return DB.update(sql, values);
     }
 
-    async find(id) {
+    find(id) {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.id = ?`;
-        let found = await DB.select(sql, [id]);
+        let found = DB.select(sql, [id]);
         found = found[0] || null;
         if (!!found) {
             const data = found;
@@ -265,7 +265,7 @@ class QueryBuilder {
                 hiddens[key] = found[key];
                 delete found[key];
             });
-            let identifier = await this.#database.searchPrimaryName(found.constructor.name);
+            let identifier = this.#database.searchPrimaryName(found.constructor.name);
             if (identifier) {
                 found.setIdentifier(identifier);
             }
@@ -274,9 +274,9 @@ class QueryBuilder {
         return found;
     }
 
-    async findByEmail(email) {
+    findByEmail(email) {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.email = ? LIMIT 1;`;
-        let found = await DB.select(sql, [email]);
+        let found = DB.select(sql, [email]);
         found = found[0] || null;
         if (!!found) {
             const data = found;
@@ -286,7 +286,7 @@ class QueryBuilder {
                 hiddens[key] = found[key];
                 delete found[key];
             });
-            let identifier = await this.#database.searchPrimaryName(found.constructor.name);
+            let identifier = this.#database.searchPrimaryName(found.constructor.name);
             if (identifier) {
                 found.setIdentifier(identifier);
             }
@@ -295,9 +295,9 @@ class QueryBuilder {
         return found;
     }
 
-    async all() {
+    all() {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName}`;
-        const data = await DB.select(sql);
+        const data = DB.select(sql);
         data.forEach((ele) => {
             this.#hidden.forEach((key) => {
                 delete ele[key];
@@ -306,7 +306,7 @@ class QueryBuilder {
         return data;
     }
 
-    async query(...args) {
+    query(...args) {
         // allowed select, insert, update and delete only
         const [sql, params] = args;
         const allowed = ['select', 'insert', 'update', 'delete'];
@@ -314,21 +314,21 @@ class QueryBuilder {
         if (!allowed.includes(queryType)) {
             throw new Error(`Invalid SQL query type: ${queryType}`);
         }
-        return await DB.query(sql, params);
+        return DB.query(sql, params);
     }
-    async findByKey(key, value) {
+    findByKey(key, value) {
         let sql = `SELECT * FROM ${this.#table} as ${this.#modelName} WHERE ${this.#modelName}.${key} = ?;`;
-        const data = await DB.select(sql, [value]);
+        const data = DB.select(sql, [value]);
         if (!!data && data.length) {
             return data[0];
         }
         return false;
     }
-    async first() {
+    first() {
         let sql = this.toSql();
         sql += ' LIMIT 1;';
         let data;
-        data = await DB.select(sql, this.#valueQuery);
+        data = DB.select(sql, this.#valueQuery);
         this.#valueQuery = [];
         if (!!data && data.length) {
             let returndata = data[0];
@@ -338,7 +338,7 @@ class QueryBuilder {
         return false;
     }
 
-    async insert(array = []) {
+    insert(array = []) {
         let keys = [];
         let portionValue = [];
         array.forEach((e) => {
@@ -360,7 +360,7 @@ class QueryBuilder {
 
         let sql = `INSERT INTO ${this.#table} (${columns}) VALUES ${placeholders.join(', ')}`;
 
-        return await DB.insert(sql, portionValue);
+        return DB.insert(sql, portionValue);
     }
 
     factoryFind(found) {

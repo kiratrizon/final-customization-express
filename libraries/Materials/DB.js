@@ -15,25 +15,25 @@ class DB {
         'drop',
         'truncate'
     ];
-    static async statement(sql, params = []) {
+    static statement(sql, params = []) {
         DB.#firstValidator(sql);
-        await instantiatedDatabase.runQueryNoReturn(sql, params);
+        instantiatedDatabase.runQueryNoReturn(sql, params);
     }
-    static async select(sql, params = []) {
+    static select(sql, params = []) {
         DB.#validateRule(sql, 'select');
-        return await instantiatedDatabase.runQuery(sql, params);
+        return instantiatedDatabase.runQuery(sql, params);
     }
-    static async insert(sql, params = []) {
+    static insert(sql, params = []) {
         DB.#validateRule(sql, 'insert');
-        return await instantiatedDatabase.runQuery(sql, params);
+        return instantiatedDatabase.runQuery(sql, params);
     }
-    static async update(sql, params = []) {
+    static update(sql, params = []) {
         DB.#validateRule(sql, 'update');
-        return await instantiatedDatabase.runQuery(sql, params);
+        return instantiatedDatabase.runQuery(sql, params);
     }
-    static async delete(sql, params = []) {
+    static delete(sql, params = []) {
         DB.#validateRule(sql, 'delete');
-        return await instantiatedDatabase.runQuery(sql, params);
+        return instantiatedDatabase.runQuery(sql, params);
     }
     static #validateRule(sql, type) {
         DB.#firstValidator(sql);
@@ -60,9 +60,9 @@ class DB {
         throw new Error(`Query must be a ${allRules.join(', ')} query`);
     }
 
-    static async query(sql, params) {
+    static query(sql, params) {
         DB.#firstValidator(sql, false);
-        return await instantiatedDatabase.runQuery(sql, params);
+        return instantiatedDatabase.runQuery(sql, params);
     }
 
     static table(tableName) {

@@ -4,7 +4,7 @@ const QueryBuilder = require('../../libraries/Materials/QueryBuilder');
 class Factory {
     faker = faker;
 
-    static async create(c = 1) {
+    static create(c = 1) {
         const factory = new this();
         const model = factory.model;
         if (!model.factory) {
@@ -18,10 +18,11 @@ class Factory {
             const createdData = [];
             for (let i = 0; i < count; i++) {
                 const data = factory.definition();
+                console.log(data);
                 createdData.push(data);
             }
-            await model.insert(createdData);
-            const getInsertedAgain = await model.orderBy('id', 'desc').limit(count).get();
+            model.insert(createdData);
+            const getInsertedAgain = model.orderBy('id', 'desc').limit(count).get();
             getInsertedAgain.forEach((e) => {
                 const modelData = new QueryBuilder(model);
                 allData.unshift(modelData.factoryFind(e));

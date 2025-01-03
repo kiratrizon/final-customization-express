@@ -157,17 +157,17 @@ program
     .command('migrate')
     .option('--seed', 'Generate migration file as well')
     .description('Run all migrations')
-    .action(async (options) => {
+    .action((options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.run();
+            runner.run();
         } catch (e) {
             console.error('Migration failed:', e);
         }
         if (options.seed) {
             try {
                 const seeder = new DatabaseSeeder();
-                await seeder.run();
+                seeder.run();
             } catch (e) {
                 console.error('Seeding failed:', e);
             }
@@ -179,17 +179,17 @@ program
     .command('migrate:fresh')
     .option('--seed', 'Generate migration file as well')
     .description('Drop all tables and run all migrations from scratch')
-    .action(async (options) => {
+    .action((options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.dropAllTables();
+            runner.dropAllTables();
         } catch (e) {
             console.error('Migration failed:', e);
         }
         if (options.seed) {
             try {
                 const seeder = new DatabaseSeeder();
-                await seeder.run();
+                seeder.run();
             } catch (e) {
                 console.error('Seeding failed:', e);
             }
@@ -201,17 +201,17 @@ program
     .command('migrate:refresh')
     .option('--seed', 'Generate migration file as well')
     .description('Rollback all migrations and re-run them')
-    .action(async (options) => {
+    .action((options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.rollback();
+            runner.rollback();
         } catch (e) {
             console.error('Migration refresh failed:', e);
         }
         if (options.seed) {
             try {
                 const seeder = new DatabaseSeeder();
-                await seeder.run();
+                seeder.run();
             } catch (e) {
                 console.error('Seeding failed:', e);
             }
@@ -222,17 +222,17 @@ program
     .command('init:migrate')
     .option('--seed', 'Generate migration file as well')
     .description('Run initial migrations')
-    .action(async (options) => {
+    .action((options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.migrateInit();
+            runner.migrateInit();
         } catch (e) {
 
         }
         if (options.seed) {
             try {
                 const seeder = new DatabaseSeeder();
-                await seeder.run();
+                seeder.run();
             } catch (e) {
                 console.error('Seeding failed:', e);
             }
