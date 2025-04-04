@@ -1,5 +1,6 @@
 const MiddlewareHandler = require('../../../app/MiddlewareHandler');
 const expressRouter = require('express').Router();
+const ExpressRequest = require('./ExpressRequest');
 
 class Route {
     static #prefix = '/';
@@ -82,13 +83,31 @@ class Route {
 
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
+                let sendHeader = null;
+                let rq = new ExpressRequest($_REQUEST);
                 if (isControllerInstance) {
                     if (!doneInstantiated) {
                         instanced.initialize(req);
                     }
-                    return instanced[action](...Object.values(REQUEST.params));
+                    // if method exist then execute it
+                    if (typeof instanced.before === 'function') {
+                        instanced.before();
+                    }
+                    if (res.headersSent) {
+                        return;
+                    }
+                    sendHeader = instanced[action](rq, ...Object.values($_REQUEST.params));
+                } else {
+                    if (res.headersSent) {
+                        return;
+                    }
+                    sendHeader = finalConvertion(rq, ...Object.values($_REQUEST.params));
                 }
-                return finalConvertion(...Object.values(REQUEST.params));
+                
+                if (typeof sendHeader == 'string') {
+                    return res.send(sendHeader);
+                }
+                return sendHeader;
             };
         } else {
             newOpts = undefined;

@@ -2,7 +2,9 @@ const Post = require("../../models/Post");
 const Redis = require("../../vendor/Redis");
 const BaseController = require("../express/server/BaseController");
 class Controller extends BaseController {
-
+    before() {
+        // dd('before');
+    }
     async getPosts() {
         const selectFields = [
             'Post.id',

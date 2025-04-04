@@ -1,10 +1,11 @@
+require('./AssignGlobal');
 const fs = require('fs');
 const path = require('path');
 const Configure = require('../../../libraries/Materials/Configure');
 const Carbon = require('../../../libraries/Materials/Carbon');
 require('dotenv').config();
 
-globalThis.env = (ENV_NAME, defaultValue = null) => {
+env = (ENV_NAME, defaultValue = null) => {
     if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
         return process.env[ENV_NAME] !== undefined ? process.env[ENV_NAME] : defaultValue;
     } else {
@@ -12,7 +13,7 @@ globalThis.env = (ENV_NAME, defaultValue = null) => {
     }
 }
 
-globalThis.only = (obj, keys) => {
+only = (obj, keys) => {
     let newObj = {};
     keys.forEach(key => {
         if (obj[key] !== undefined) {
@@ -22,42 +23,26 @@ globalThis.only = (obj, keys) => {
     return newObj;
 };
 
-globalThis.ucFirst = (string) => {
+ucFirst = (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
 };
 
-globalThis.formatTimestamp = () => {
-    const dateNow = new Date();
-    const year = dateNow.getFullYear();
-    const month = String(dateNow.getMonth() + 1).padStart(2, '0');
-    const day = String(dateNow.getDate()).padStart(2, '0');
-    const hours = String(dateNow.getHours()).padStart(2, '0');
-    const minutes = String(dateNow.getMinutes()).padStart(2, '0');
-    const seconds = String(dateNow.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
 
-globalThis.formatDate = (date) => {
-    return date.toISOString().slice(0, 19).replace('T', ' ');
-};
-
-globalThis.getFutureDate = (addTime = 60) => {
+getFutureDate = (addTime = 60) => {
     if (addTime == 'never') {
         return '9999-12-31 23:59:59';
     } else {
-        const now = new Date();
-        const futureDate = new Date(now.getTime() + addTime * 24 * 60 * 60 * 1000);
-        return formatDate(futureDate);
+        return Carbon.addDays(addTime).getDateTime();
     }
 };
 
-globalThis.log = (value, destination, text = "") => {
+log = (value, destination, text = "") => {
     if (process.env.NODE_ENV === 'production') {
         return;
     }
     const dirPath = path.join(__dirname, '..', '..', '..', 'tmp');
     const logPath = path.join(dirPath, `${destination}.log`);
-    const timestamp = formatTimestamp();
+    const timestamp = Carbon.getDateTime();
 
     const logMessage = `${timestamp} ${text}\n${typeof value === 'object' ? JSON.stringify(value, null, 2) : value}\n\n`;
 
@@ -72,39 +57,36 @@ globalThis.log = (value, destination, text = "") => {
     fs.appendFileSync(logPath, logMessage, 'utf8');
 };
 
-globalThis.config = (finder) => {
+config = (finder) => {
     return Configure.read(finder);
 };
 
-globalThis.base_path = () => {
+base_path = () => {
     return path.join(__dirname, '..', '..', '..');
 }
 
-globalThis.resources_path = () => {
+resources_path = () => {
     return `${base_path()}/resources`;
 }
 
-globalThis.view_path = () => {
+view_path = () => {
     return `${base_path()}/resources/views`;
 }
 
-globalThis.public_path = () => {
+public_path = () => {
     return `${base_path()}/public`;
 }
-
-globalThis.database_path = () => {
+database_path = () => {
     return `${base_path()}/main/database`;
 }
-
-globalThis.app_path = () => {
+app_path = () => {
     return `${base_path()}/app`;
 }
-
-globalThis.stub_path = () => {
+stub_path = () => {
     return `${base_path()}/main/express/stubs`;
 }
 
-globalThis.generateTableNames = (entity) => {
+generateTableNames = (entity) => {
     const irregularPlurals = config('irregular_words');
     const splitWords = entity.split(/(?=[A-Z])/);
     const lastWord = splitWords.pop().toLowerCase();
@@ -125,7 +107,11 @@ globalThis.generateTableNames = (entity) => {
     return [...splitWords, pluralizedLastWord].join('').toLowerCase()
 }
 
-globalThis.base64_encode = function (str) {
+base64_decode = (str) => Buffer.from(str, 'base64').toString('utf-8');
+
+base64_encode = (str) => Buffer.from(str, 'utf-8').toString('base64');
+
+base64_encode_safe = function (str) {
     return Buffer.from(str)
         .toString('base64')        // Standard Base64 encode
         .replace(/\+/g, '-')       // Replace `+` with `-`
@@ -133,122 +119,115 @@ globalThis.base64_encode = function (str) {
         .replace(/=+$/, '');       // Remove any trailing `=` padding
 }
 
-globalThis.base64_decode = function (str) {
+base64_decode_safe = function (str) {
     // Add necessary padding if missing
     const padding = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
     const base64 = str.replace(/-/g, '+').replace(/_/g, '/') + padding;
     return Buffer.from(base64, 'base64').toString('utf8');
 }
 
-globalThis.strtotime = function (text, dateNow = null) {
-    if (dateNow === null) {
-        dateNow = new Date(); // Use the current time if no `dateNow` is provided
+strtotime = function (str) {
+    const timeZone = config('app.timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const now = new Date();
+    const adjustedNow = new Date(now.toLocaleString('en-US', { timeZone }));
+
+    // Trim whitespace and convert to lowercase for better matching
+    str = str.trim().toLowerCase();
+
+    // Check if the input is a valid date format
+    if (Date.parse(str)) {
+        return new Date(str).getTime() / 1000;  // Return Unix timestamp in seconds
     }
 
-    const relativeRegex = /([+-]?\d+)\s*(second|minute|hour|day|week|month|year)s?/i;
-    const exactTimeRegexes = [
-        // Handle Date-Time format Y-m-d H:i:s
-        {
-            regex: /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/i,
-            handler: (date, time) => new Date(date + 'T' + time).getTime(),
-        },
-        // Handle Date-Time format Y-m-d H:i
-        {
-            regex: /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})$/i,
-            handler: (date, time) => new Date(date + 'T' + time + ':00').getTime(),
-        },
-        // Handle Date format Y-m-d
-        {
-            regex: /^(\d{4}-\d{2}-\d{2})$/i,
-            handler: (date) => new Date(date).getTime(),
-        },
-        // Handle m-d-Y
-        {
-            regex: /^(\d{2})-(\d{2})-(\d{4})$/i,
-            handler: (month, day, year) => new Date(`${year}-${month}-${day}`).getTime(),
-        },
-    ];
+    // Handle relative date formats like "next Friday", "3 days ago", "last month"
+    const regexPatterns = {
+        next: /^next\s+(.+)/,
+        last: /^last\s+(.+)/,
+        ago: /(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago$/,
+        specificTime: /(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}(:\d{2})?)/, // Matches 'YYYY-MM-DD' or 'HH:mm[:ss]'
+    };
 
-    // Relative time
-    if (relativeRegex.test(text)) {
-        const match = text.match(relativeRegex);
-        const value = parseInt(match[1]);
-        const unit = match[2].toLowerCase();
-        const unitsToMilliseconds = {
+    // Handle relative time (e.g., "3 days ago", "2 weeks ago")
+    const agoMatch = str.match(regexPatterns.ago);
+    if (agoMatch) {
+        const num = parseInt(agoMatch[1]);
+        const unit = agoMatch[2];
+
+        const timeUnits = {
             second: 1000,
-            minute: 1000 * 60,
-            hour: 1000 * 60 * 60,
-            day: 1000 * 60 * 60 * 24,
-            week: 1000 * 60 * 60 * 24 * 7,
-            month: 1000 * 60 * 60 * 24 * 30, // Approximation
-            year: 1000 * 60 * 60 * 24 * 365, // Approximation
+            minute: 60 * 1000,
+            hour: 60 * 60 * 1000,
+            day: 24 * 60 * 60 * 1000,
+            week: 7 * 24 * 60 * 60 * 1000,
+            month: 30 * 24 * 60 * 60 * 1000,
+            year: 365 * 24 * 60 * 60 * 1000,
         };
 
-        return Math.floor(dateNow.getTime() / 1000) + Math.floor(value * (unitsToMilliseconds[unit] / 1000));
+        const timeToSubtract = num * timeUnits[unit];
+        return (adjustedNow.getTime() - timeToSubtract) / 1000;  // Return Unix timestamp in seconds
     }
 
-    // Exact time
-    for (const { regex, handler } of exactTimeRegexes) {
-        const match = text.match(regex);
-        if (match) {
-            return Math.floor(handler(...match.slice(1)) / 1000);
-        }
+    // Handle "next" or "last" keyword (e.g., "next Friday", "last month")
+    const nextMatch = str.match(regexPatterns.next);
+    if (nextMatch) {
+        const dayOfWeek = nextMatch[1].trim();
+        return getRelativeDay(dayOfWeek, 'next', timeZone);
     }
 
-    return null; // Return null if no pattern matches
+    const lastMatch = str.match(regexPatterns.last);
+    if (lastMatch) {
+        const dayOfWeek = lastMatch[1].trim();
+        return getRelativeDay(dayOfWeek, 'last', timeZone);
+    }
+
+    // Handle specific date/time format (e.g., "2025-01-21" or "14:30")
+    const specificTimeMatch = str.match(regexPatterns.specificTime);
+    if (specificTimeMatch) {
+        return new Date(str).getTime() / 1000;  // Return Unix timestamp in seconds
+    }
+
+    // If unable to parse, return null or invalid date
+    return null;
 };
 
-globalThis.NOW = globalThis.currentTime = () => {
+/**
+ * Helper function to get the timestamp for a relative "next" or "last" weekday, considering the time zone.
+*/
+function getRelativeDay(dayOfWeek, direction, timeZone) {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const today = new Date();
+    const adjustedToday = new Date(today.toLocaleString('en-US', { timeZone }));
+
+    const currentDay = adjustedToday.getDay();
+    const targetDay = days.indexOf(dayOfWeek.toLowerCase());
+
+    if (targetDay === -1) return null; // Invalid weekday
+
+    let diff = targetDay - currentDay;
+
+    if (direction === 'next') {
+        if (diff <= 0) diff += 7;
+    } else if (direction === 'last') {
+        if (diff >= 0) diff -= 7;
+    }
+
+    adjustedToday.setDate(adjustedToday.getDate() + diff);
+    return adjustedToday.getTime() / 1000;  // Return Unix timestamp in seconds
+}
+
+NOW = currentTime = () => {
     return Carbon.getDateTime();
 }
 
-globalThis.date = globalThis.DATE = (format, unixTimestamp = null) => {
+date = DATE = (format, unixTimestamp = null) => {
     if (unixTimestamp !== null) {
         return Carbon.getByUnixTimestamp(unixTimestamp, format);
     }
     return Carbon.getByFormat(format);
 };
 
-globalThis.function_exists = (variable) => {
+function_exists = (variable) => {
     if (typeof variable === 'undefined') return false;
     return typeof variable === 'function';
 }
-
-globalThis.$_POST = {};
-globalThis.$_GET = {};
-globalThis.$_FILES = {};
-globalThis.REQUEST = {};
-globalThis.$_SERVER = {};
-globalThis.$_COOKIE = {};
-globalThis.setcookie = null;
-globalThis.$_SESSION = {};
-
-/** Placeholder for a function that will dump variable contents for debugging. */
-globalThis.dump = null;
-
-/** Placeholder for a function that will dump variable contents and terminate execution. */
-globalThis.dd = null;
-
-/** Placeholder for a function that will send JSON responses. */
-globalThis.jsonResponse = null;
-
-/** Placeholder for a function that will render views or templates. */
-globalThis.view = null;
-
-/** Placeholder for a function that will handle redirection to a given URL. */
-globalThis.redirect = null;
-
-/** Placeholder for a function that will navigate back to the previous page. */
-globalThis.back = null;
-
-/** Placeholder for a function that will check if a given URL is an API endpoint. */
-globalThis.isApiUrl = null;
-
-/** Placeholder for a function that will define application routes. */
-globalThis.route = null;
-
-globalThis.BASE_URL = null;
-globalThis.PATH_URL = null;
-globalThis.PATH_QUERY = null;
-globalThis.ORIGINAL_URL = null;
-globalThis.DEFAULT_BACK = null;

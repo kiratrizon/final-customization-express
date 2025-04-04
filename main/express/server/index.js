@@ -10,8 +10,19 @@ const cors = require('cors');
 const { default: helmet } = require('helmet');
 const { createClient } = require('redis');
 const { RedisStore } = require('connect-redis');
+const multer = require('multer');
 require('dotenv').config();
 
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+	  cb(null, path.join(public_path(), 'webfiles')); // Directory where files will be saved
+	},
+	filename: (req, file, cb) => {
+	  cb(null, Date.now() + path.extname(file.originalname)); // File name with timestamp
+	}
+});
+
+const upload = multer({ storage: storage });
 
 const renderData = (data, shouldExit = false, res) => {
 	const tailwindStyles = `
@@ -136,7 +147,15 @@ class Server {
 		Server.app.use(Server.express.urlencoded({ extended: true }));
 		Server.app.use(Server.express.static(path.join(__dirname, '..', 'public')));
 		const handleBoot = Server.#handle();
-		Boot.use().forEach(key => {
+		
+		const appEssentials = [
+            'session',
+            'cors',
+            'cookieParser',
+            'flash',
+            'helmet'
+        ];
+		appEssentials.forEach(key => {
 			Server.app.use(handleBoot[key]);
 		});
 		Server.app.set('view engine', 'ejs');
@@ -146,28 +165,23 @@ class Server {
 		Server.app.use((req, res, next) => {
 			const methodType = req.method.toUpperCase();
 
+			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 			$_POST = req.body || {};
 			$_GET = req.query || {};
-			const data = {
-				request: {
-					method: methodType,
-					url: req.originalUrl,
-					params: req.params,
-					headers: req.headers,
-					body: req.body,
-					query: req.query,
-					cookies: req.cookies,
-					path: req.path,
-					originalUrl: req.originalUrl,
-					ip: req.ip,
-					protocol: req.protocol,
-					user: req.user || null,
-					acceptLanguage: req.headers['accept-language'],
-					referer: req.headers['referer'] || null,
-					files: req.files || null,
-				},
+			$_REQUEST = {
+				method: methodType,
+				params: req.params,
+				headers: req.headers,
+				body: req.body,
+				query: req.query,
+				cookies: req.cookies,
+				path: req.path,
+				originalUrl: req.originalUrl,
+				ip: req.ip,
+				protocol: req.protocol,
+				user: req.user || null,
+				files: req.files || null,
 			};
-			REQUEST = data.request;
 			dump = (data) => renderData(data, false, res);
 			dd = (data) => {
 				renderData(data, true, res);
@@ -215,7 +229,10 @@ class Server {
 			jsonResponse = (data, status = 200) => res.status(status).json(data);
 			view = (view, data = {}) => {
 				const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
-
+				// don't render if res.headersSent is true
+				if (res.headersSent) {
+					return;
+				}
 				if (fs.existsSync(viewPath)) {
 					res.status(200).render(view, data);
 				} else {
@@ -277,10 +294,10 @@ class Server {
 
 			BASE_URL = Server.#baseUrl;
 			res.locals.BASE_URL = Server.#baseUrl;
-			PATH_URL = REQUEST.path;
-			res.locals.PATH_URL = REQUEST.path;
-			PATH_QUERY = REQUEST.originalUrl;
-			res.locals.PATH_QUERY = REQUEST.originalUrl;
+			PATH_URL = $_REQUEST.path;
+			res.locals.PATH_URL = $_REQUEST.path;
+			PATH_QUERY = $_REQUEST.originalUrl;
+			res.locals.PATH_QUERY = $_REQUEST.originalUrl;
 			ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
 			res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
 			DEFAULT_BACK = [back(), ['input']];
@@ -342,52 +359,26 @@ class Server {
 		}
 	}
 
-	static async #getCorsOptions() {
-		return new Promise((resolve) => {
-			const corsOptions = {
-				origin: (origin, callback) => {
-					const allowedOrigins = config('origins.origins') || '*';
-					if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-						callback(null, true);
-					} else {
-						callback(new Error('Not allowed by CORS'));
-					}
-				},
-				methods: ['GET', 'POST', 'PUT', 'DELETE'],
-				// credentials: true,
-				allowedHeaders: ['Content-Type', 'Authorization'],
-				optionsSuccessStatus: 200,
-			};
-			console.log('testCorsOptions', corsOptions);
-			resolve(corsOptions);
-		});
-	}
-
-	static async #corsAsync(req, res, next) {
-		try {
-			const corsOptions = await Server.#getCorsOptions();
-			cors(corsOptions)(req, res, next);
-		} catch (err) {
-			next(err);
-		}
-	}
-
 	static #loadAndValidateRoutes() {
 		const routesDir = path.join(__dirname, '../../../Routes');
 		const routeFiles = fs.readdirSync(routesDir);
 		const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
-
+		let currentRoute = null;
 		if (jsFiles.includes('web.js')) {
 			const webRoutePath = path.join(routesDir, 'web.js');
-			const webRoute = require(webRoutePath);
-			Server.#validateRoute(webRoute);
+			currentRoute = require(webRoutePath);
+			Server.#validateRoute(currentRoute);
 			jsFiles.splice(jsFiles.indexOf('web.js'), 1);
 		}
 
 		jsFiles.forEach(file => {
+			const appFile = file.split('.js')[0];
+			if (currentRoute){
+				currentRoute.setPrefix(`/${appFile}`);
+			}
 			const routePath = path.join(routesDir, file);
-			const route = require(routePath);
-			Server.#validateRoute(route);
+			currentRoute = require(routePath);
+			Server.#validateRoute(currentRoute);
 		});
 		Server.#finishBoot();
 	}
@@ -396,3 +387,4 @@ class Server {
 Server.boot();
 
 module.exports = Server.app;
+ 

@@ -5,7 +5,10 @@ class Configure {
    static basePath = path.join(__dirname, '..', '..', 'config');
 
    static read(pathString) {
-      let keys = pathString.split('.');
+      let keys = pathString.split('.').map((key) => {
+         const parsed = Number(key);
+         return Number.isInteger(parsed) ? parsed : key;
+      });
       let basePath = Configure.basePath;
       let currentPath;
 
@@ -35,6 +38,9 @@ class Configure {
 
       while (keys.length > 0) {
          let key = keys.shift();
+         if (!Array.isArray(configData)) {
+            key = String(key);
+         }
          if (configData[key] === undefined) {
             return undefined;
          }

@@ -7,6 +7,9 @@ class ConstructorController {
             return req.flash(key)[0] || null;
         }
     }
+    before(){
+        // do nothing
+    }
 }
 
 module.exports = ConstructorController;

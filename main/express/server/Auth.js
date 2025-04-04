@@ -50,7 +50,7 @@ class Guarder {
             if (!token) return false;
             if (!this.#verifyJwtSignature(token)) return false;
             const [, middleToken,] = token.split('.');
-            const tokenDecoded = JSON.parse(base64_decode(middleToken));
+            const tokenDecoded = JSON.parse(base64_decode_safe(middleToken));
             if (tokenDecoded.exp < NOW()) return false;
             if (!tokenDecoded.id || tokenDecoded.user_type != user_type) return false;
             return true;
@@ -150,8 +150,8 @@ class Guarder {
                 const visibleData = $_SESSION_AUTH[user_type];
                 const hiddenData = $_SESSION_HIDDEN[user_type];
                 if (!!visibleData) {
-                    decoded = JSON.parse(base64_decode(visibleData));
-                    hidden = JSON.parse(base64_decode(hiddenData));
+                    decoded = JSON.parse(base64_decode_safe(visibleData));
+                    hidden = JSON.parse(base64_decode_safe(hiddenData));
                     user = new Guard(decoded, hidden);
                 }
             } else if (this.#guardDriver === 'jwt') {
@@ -176,12 +176,12 @@ class Guarder {
             let token = this.getBearerToken();
             if (!token) return null;
             const [, middleToken,] = token.split('.');
-            user = JSON.parse(base64_decode(middleToken));
+            user = JSON.parse(base64_decode_safe(middleToken));
         } else if (this.#guardDriver === 'session') {
             const user_type = this.#guardProvider.driver === 'eloquent' ? this.#guardProvider.model.name : this.#guardProvider.table;
             const userEncoded = $_SESSION_AUTH[user_type];
             if (!userEncoded) return null;
-            user = JSON.parse(base64_decode(userEncoded));
+            user = JSON.parse(base64_decode_safe(userEncoded));
         }
         if (user && user.id) {
             return user.id;
@@ -219,10 +219,10 @@ class Guarder {
         }
         filteredPayload.user_type = user_type;
         // Base64url encode header
-        const base64UrlHeader = base64_encode(JSON.stringify(header));
+        const base64UrlHeader = base64_encode_safe(JSON.stringify(header));
 
         // Base64url encode filteredPayload
-        const base64UrlPayload = base64_encode(JSON.stringify(filteredPayload));
+        const base64UrlPayload = base64_encode_safe(JSON.stringify(filteredPayload));
 
         // Create the signature
         const data = `${base64UrlHeader}.${base64UrlPayload}`;
@@ -246,8 +246,8 @@ class Guarder {
             hiddenData[key] = payload[key];
             delete payload[key];
         });
-        $_SESSION_HIDDEN[user_type] = base64_encode(JSON.stringify(hiddenData));
-        $_SESSION_AUTH[user_type] = base64_encode(JSON.stringify(payload));
+        $_SESSION_HIDDEN[user_type] = base64_encode_safe(JSON.stringify(hiddenData));
+        $_SESSION_AUTH[user_type] = base64_encode_safe(JSON.stringify(payload));
         if ($_SESSION_AUTH[user_type]) {
             return true;
         }
@@ -266,7 +266,7 @@ class Guarder {
     }
 
     getBearerToken() {
-        const headerToken = REQUEST.headers['authorization'];
+        const headerToken = $_REQUEST.headers['authorization'];
         if (!headerToken) {
             return false;
         }

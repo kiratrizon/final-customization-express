@@ -3,7 +3,8 @@ const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
 class UserController extends Controller {
-    index() {
+    index(request) {
+        dd(request);
         return view('index');
     }
 
@@ -76,7 +77,7 @@ class UserController extends Controller {
     }
 
     sessionUser() {
-        jsonResponse(REQUEST);
+        jsonResponse($_REQUEST);
     }
 }
 

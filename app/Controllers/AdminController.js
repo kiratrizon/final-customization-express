@@ -15,7 +15,7 @@ class AdminController extends Controller {
     }
     // post
     store() {
-        const validate = Validator.make(POST, {
+        const validate = Validator.make($_POST, {
             name: "required",
             email: "required|email|unique:admins",
             password: "required|min:6|confirmed"
@@ -24,7 +24,7 @@ class AdminController extends Controller {
         if (validate.fails()) {
             return jsonResponse({ errors: validate.errors }, 400);
         }
-        const admin = Admin.create(POST);
+        const admin = Admin.create($_POST);
         return jsonResponse({ admin });
     }
     // get
@@ -44,7 +44,7 @@ class AdminController extends Controller {
         jsonResponse({ message: "AdminController destroy" })
     }
     login() {
-        const validate = Validator.make(POST, {
+        const validate = Validator.make($_POST, {
             email: "required|email",
             password: "required"
         });
@@ -52,8 +52,8 @@ class AdminController extends Controller {
             return jsonResponse({ errors: validate.errors }, 400);
         }
         const data = {
-            email: POST.email,
-            password: POST.password
+            email: $_POST.email,
+            password: $_POST.password
         }
         const token = Auth.guard('jwt_admin').attempt(data);
         return jsonResponse({ token });

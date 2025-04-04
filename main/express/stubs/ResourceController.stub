@@ -14,19 +14,19 @@ class {{ ControllerName }} extends Controller {
         jsonResponse({message: "{{ ControllerName }} store"});
     }
     // get
-    show(id){
+    show(request, id){
         jsonResponse({message: "{{ ControllerName }} show"})
     }
     // get
-    edit(id){
+    edit(request, id){
         jsonResponse({get})
     }
     // put
-    update(id){
+    update(request, id){
         jsonResponse({message: "{{ ControllerName }} update"})
     }
     // delete
-    destroy(id){
+    destroy(request, id){
         jsonResponse({message: "{{ ControllerName }} destroy"})
     }
 }
