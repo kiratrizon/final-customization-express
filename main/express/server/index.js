@@ -203,11 +203,7 @@ class Server {
 			const session = req.session;
 			globalThis.$_SESSION_AUTH = session.session_auth;
 			globalThis.$_SESSION_HIDDEN = session.session_hidden;
-			// res.locals['old'] = (key) => {
-			// 	const value = session.oldPost[key] || null;
-			// 	delete req.session.oldPost[key];
-			// 	return value;
-			// };
+
 			setcookie = (name, value = '', expires_at = 0, path = '/', domain = '', secure = false, httpOnly = false) => {
 				const expires = parseInt(expires_at) ? new Date(Date.now() + expires_at * 1000) : expires_at;
 				const options = {
