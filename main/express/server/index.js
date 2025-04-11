@@ -1,4 +1,4 @@
-require('./GlobalFunctions');
+require('./AssignGlobal');
 const path = require('path');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
