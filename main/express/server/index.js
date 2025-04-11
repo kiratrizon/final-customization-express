@@ -150,7 +150,7 @@ class Server {
 		});
 		Server.app.use(FileHandler.getFileHandler());
 		Server.app.use(FileHandler.handleFiles);
-		Server.app.set('view engine', 'ejs');
+		Server.app.set('view engine', config('view.defaultViewEngine'));
 		Server.app.set('views', view_path());
 
 		// Global request/response handlers

@@ -256,15 +256,17 @@ view = (viewName, data = {}) => {
     data.old = function (key) {
         return 'test';
     }
-    const ejs = require("ejs");
+    const defaultViewEngine = config('view.defaultViewEngine') || 'ejs';
+    const renderer = require(defaultViewEngine);
 
-    const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.ejs`);
+
+    const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.${defaultViewEngine}`);
     // templatePathChecker
     if (!fs.existsSync(templatePath)) {
         throw`View file not found: ${templatePath}`;
     }
     const rawHtml = fs.readFileSync(templatePath, "utf-8");
 
-    const rendered = ejs.render(rawHtml, data);
+    const rendered = renderer.render(rawHtml, data);
     return rendered;
 }
