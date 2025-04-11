@@ -1,3 +1,5 @@
+const ExpressError = require('./ExpressError');
+
 /**
  * Retrieves the value of the specified environment variable.
  * Returns `undefined` if the variable is not set.
@@ -107,6 +109,8 @@ globalThis.app_path = null;
  * The path to the stub directory, where template files or skeleton code files (stubs) are stored.
 */
 globalThis.stub_path = null;
+
+globalThis.tmp_path = null;
 
 /**
  * Generates a table name based on the given model name.
@@ -225,3 +229,11 @@ globalThis.PATH_URL = null;
 globalThis.PATH_QUERY = null;
 globalThis.ORIGINAL_URL = null;
 globalThis.DEFAULT_BACK = null;
+
+globalThis.ExpressError = ExpressError;
+
+globalThis.response = function(html = null){
+    const ExpressResponse = require('./ExpressResponse');
+    const EResponse = new ExpressResponse(html);
+    return EResponse;
+}

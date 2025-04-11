@@ -83,7 +83,7 @@ class Route {
 
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
-                let sendHeader = null;
+                let expressResponse = null;
                 let rq = new ExpressRequest($_REQUEST);
                 if (isControllerInstance) {
                     if (!doneInstantiated) {
@@ -96,18 +96,32 @@ class Route {
                     if (res.headersSent) {
                         return;
                     }
-                    sendHeader = instanced[action](rq, ...Object.values($_REQUEST.params));
+                    expressResponse = instanced[action](rq, ...Object.values($_REQUEST.params));
                 } else {
                     if (res.headersSent) {
                         return;
                     }
-                    sendHeader = finalConvertion(rq, ...Object.values($_REQUEST.params));
+                    expressResponse = finalConvertion(rq, ...Object.values($_REQUEST.params));
                 }
                 
-                if (typeof sendHeader == 'string') {
-                    return res.send(sendHeader);
+                if (typeof expressResponse == 'object') {
+                    const {html,json,headers,statusCode,returnType} = expressResponse.accessData();
+                    if (returnType === 'html') {
+                        res.status(statusCode);
+                        res.set(headers);
+                        res.send(html);
+                        return;
+                    } else if (returnType === 'json') {
+                        res.status(statusCode);
+                        res.set(headers);
+                        res.json(json);
+                        return;
+                    }
+                } else {
+                    res.status(200);
+                    res.send(expressResponse);
+                    return;
                 }
-                return sendHeader;
             };
         } else {
             newOpts = undefined;

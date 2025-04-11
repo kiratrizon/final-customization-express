@@ -57,9 +57,24 @@ log = (value, destination, text = "") => {
     fs.appendFileSync(logPath, logMessage, 'utf8');
 };
 
-config = (finder) => {
-    return Configure.read(finder);
-};
+config = function(){
+    const args = arguments;
+    if (args.length === 0) {
+        throw new Error('No arguments provided');
+    }
+    if (typeof args[0] !== 'string') {
+        throw new Error('First argument must be a string');
+    }
+    if (args.length === 1) {
+        return Configure.read(args[0]);
+    } else if (args.length === 2) {
+        const pathString = args[0];
+        const data = args[1];
+        Configure.write(pathString, data);
+    } else {
+        throw new Error('Invalid number of arguments');
+    }
+}
 
 base_path = () => {
     return path.join(__dirname, '..', '..', '..');
@@ -84,6 +99,10 @@ app_path = () => {
 }
 stub_path = () => {
     return `${base_path()}/main/express/stubs`;
+}
+
+tmp_path = () => {
+    return `${base_path()}/tmp`;
 }
 
 generateTableNames = (entity) => {
@@ -230,4 +249,22 @@ date = DATE = (format, unixTimestamp = null) => {
 function_exists = (variable) => {
     if (typeof variable === 'undefined') return false;
     return typeof variable === 'function';
+}
+
+view = (viewName, data = {}) => {
+
+    data.old = function (key) {
+        return 'test';
+    }
+    const ejs = require("ejs");
+
+    const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.ejs`);
+    // templatePathChecker
+    if (!fs.existsSync(templatePath)) {
+        throw`View file not found: ${templatePath}`;
+    }
+    const rawHtml = fs.readFileSync(templatePath, "utf-8");
+
+    const rendered = ejs.render(rawHtml, data);
+    return rendered;
 }

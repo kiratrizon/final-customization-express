@@ -11,18 +11,8 @@ const { default: helmet } = require('helmet');
 const { createClient } = require('redis');
 const { RedisStore } = require('connect-redis');
 const multer = require('multer');
+const FileHandler = require('./ExpressFileHandler');
 require('dotenv').config();
-
-const storage = multer.diskStorage({
-	destination: (req, file, cb) => {
-	  cb(null, path.join(public_path(), 'webfiles')); // Directory where files will be saved
-	},
-	filename: (req, file, cb) => {
-	  cb(null, Date.now() + path.extname(file.originalname)); // File name with timestamp
-	}
-});
-
-const upload = multer({ storage: storage });
 
 const renderData = (data, shouldExit = false, res) => {
 	const tailwindStyles = `
@@ -158,6 +148,8 @@ class Server {
 		appEssentials.forEach(key => {
 			Server.app.use(handleBoot[key]);
 		});
+		Server.app.use(FileHandler.getFileHandler());
+		Server.app.use(FileHandler.handleFiles);
 		Server.app.set('view engine', 'ejs');
 		Server.app.set('views', view_path());
 
@@ -168,6 +160,7 @@ class Server {
 			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 			$_POST = req.body || {};
 			$_GET = req.query || {};
+			$_FILES = req.files || {};
 			$_REQUEST = {
 				method: methodType,
 				params: req.params,
@@ -191,6 +184,9 @@ class Server {
 				renderData(data);
 				process.exit(0);
 			};
+			res.locals['old'] = (key) => {
+				return 'test';
+			}
 			if (!req.session.session_auth) {
 				req.session.session_auth = {};
 			}
@@ -207,11 +203,11 @@ class Server {
 			const session = req.session;
 			globalThis.$_SESSION_AUTH = session.session_auth;
 			globalThis.$_SESSION_HIDDEN = session.session_hidden;
-			res.locals['old'] = (key) => {
-				const value = session.oldPost[key] || null;
-				delete req.session.oldPost[key];
-				return value;
-			};
+			// res.locals['old'] = (key) => {
+			// 	const value = session.oldPost[key] || null;
+			// 	delete req.session.oldPost[key];
+			// 	return value;
+			// };
 			setcookie = (name, value = '', expires_at = 0, path = '/', domain = '', secure = false, httpOnly = false) => {
 				const expires = parseInt(expires_at) ? new Date(Date.now() + expires_at * 1000) : expires_at;
 				const options = {
@@ -227,18 +223,6 @@ class Server {
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			// req.flash('hello', 'world');
 			jsonResponse = (data, status = 200) => res.status(status).json(data);
-			view = (view, data = {}) => {
-				const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
-				// don't render if res.headersSent is true
-				if (res.headersSent) {
-					return;
-				}
-				if (fs.existsSync(viewPath)) {
-					res.status(200).render(view, data);
-				} else {
-					dump({ "error": `${path.relative(base_path(), view_path())}/${view}.ejs not found` }, true);
-				}
-			};
 			redirect = (url, data = []) => {
 				if (data.includes('input')) {
 					if (methodType === 'POST' || methodType === 'PUT') {

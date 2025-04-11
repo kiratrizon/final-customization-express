@@ -3,8 +3,8 @@ const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
 const Auth = require("../../main/express/server/Auth");
 class UserController extends Controller {
-    index(request) {
-        dd(request);
+    index() {
+        console.log($_FILES);
         return view('index');
     }
 
