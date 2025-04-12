@@ -1,21 +1,15 @@
 class Boot {
-    static use() {
-        return [
-            
-        ];
-    }
-
-    static 404() {
+    static notFound() {
         if (isApiUrl()) {
-            jsonResponse({ message: "Not Found" }, 404);
-        } else {
-            dump({ message: "Not Found" });
+            return response().json({ error: 'Not Found' }, 404);
         }
+        return view('error');
     }
 
     static hasher() {
         return 'bcrypt';
     }
+
 }
 
 module.exports = Boot;

@@ -1,4 +1,4 @@
-const Database = require("../../main/database/Database");
+const Database = require("../../main/database/Manager/DatabaseManager");
 const TableCreator = require("./TableCreator");
 const instantiatedDatabase = new Database();
 class DB {

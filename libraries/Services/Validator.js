@@ -8,7 +8,7 @@ const validRules = [
     'exists'
 ];
 
-const Database = require('../../main/database/Database');
+const Database = require('../../main/database/Manager/DatabaseManager');
 
 class Validator {
     static params;

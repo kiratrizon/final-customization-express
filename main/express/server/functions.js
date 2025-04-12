@@ -13,16 +13,20 @@ require('dotenv').config();
  * @module AssignGlobal
  */
 
-const functionDesigner = (key, value) => {
-    if (key in globalThis) {
-        throw new Error(`The global variable "${key}" is already defined.`);
-    }
-    Object.defineProperty(globalThis, key, {
-        value: value,
-        writable: false,
-        configurable: false,
-    });
-}
+Object.defineProperty(globalThis, 'functionDesigner', {
+    value: (key, value) => {
+        if (key in globalThis) {
+            throw new Error(`The global variable "${key}" is already defined.`);
+        }
+        Object.defineProperty(globalThis, key, {
+            value: value,
+            writable: false,
+            configurable: false,
+        });
+    },
+    writable: false,
+    configurable: false,
+});
 
 /**
  * Retrieves the value of the specified environment variable.
@@ -84,7 +88,7 @@ Object.defineProperty(globalThis, 'only', {
 */
 
 Object.defineProperty(globalThis, 'ucFirst', {
-    value : (string) => {
+    value: (string) => {
         return string.charAt(0).toUpperCase() + string.slice(1);
     },
     writable: false,
@@ -115,7 +119,7 @@ Object.defineProperty(globalThis, 'getFutureDate', {
 
 // tmp_path
 Object.defineProperty(globalThis, 'tmp_path', {
-    value:() => {
+    value: () => {
         return `${base_path()}/tmp`;
     },
     writable: false,
@@ -139,9 +143,8 @@ class Logger {
         const logPath = path.join(dirPath, `${destination}.log`);
         const timestamp = Carbon.getDateTime();
 
-        const logMessage = `${timestamp} ${text}\n${
-            typeof value === "object" ? JSON.stringify(value, null, 2) : value
-        }\n\n`;
+        const logMessage = `${timestamp} ${text}\n${typeof value === "object" ? JSON.stringify(value, null, 2) : value
+            }\n\n`;
 
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
@@ -179,7 +182,7 @@ Object.defineProperty(globalThis, 'log', {
  * @param {string} key - The configuration key, which can use dot notation for nested values.
  * @returns {any} The value of the configuration option, or `undefined` if the key does not exist.
 */
-functionDesigner('config', function(){
+functionDesigner('config', function () {
     const args = arguments;
     if (args.length === 0) {
         throw new Error('No arguments provided');
@@ -351,65 +354,65 @@ functionDesigner('base64_decode_safe', function (str) {
 const { DateTime } = require("luxon");
 
 const getRelativeTime = (expression, direction, now) => {
-  const daysOfWeek = [
-    "sunday", "monday", "tuesday", "wednesday",
-    "thursday", "friday", "saturday"
-  ];
+    const daysOfWeek = [
+        "sunday", "monday", "tuesday", "wednesday",
+        "thursday", "friday", "saturday"
+    ];
 
-  const lowerExpression = expression.toLowerCase();
-  const dayIndex = daysOfWeek.indexOf(lowerExpression);
+    const lowerExpression = expression.toLowerCase();
+    const dayIndex = daysOfWeek.indexOf(lowerExpression);
 
-  if (dayIndex !== -1) {
-    let daysDifference = dayIndex - now.weekday;
+    if (dayIndex !== -1) {
+        let daysDifference = dayIndex - now.weekday;
 
-    if (direction === "next" && daysDifference <= 0) {
-      daysDifference += 7;
-    } else if (direction === "last" && daysDifference >= 0) {
-      daysDifference -= 7;
+        if (direction === "next" && daysDifference <= 0) {
+            daysDifference += 7;
+        } else if (direction === "last" && daysDifference >= 0) {
+            daysDifference -= 7;
+        }
+
+        return now.plus({ days: daysDifference }).toSeconds();
     }
 
-    return now.plus({ days: daysDifference }).toSeconds();
-  }
-
-  return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
+    return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
 };
 
 functionDesigner('strtotime', function (time, now) {
     now = now || Date.now() / 1000;
 
     const timeZone = (typeof config === "function" && config("app.timezone")) ||
-      Intl.DateTimeFormat().resolvedOptions().timeZone;
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     const adjustedNow = DateTime.fromSeconds(now).setZone(timeZone);
 
     time = time.trim().toLowerCase();
 
     if (Date.parse(time)) {
-      return DateTime.fromISO(time, { zone: timeZone }).toSeconds();
+        return DateTime.fromISO(time, { zone: timeZone }).toSeconds();
     }
 
     const regexPatterns = {
-      next: /^next\s+(.+)/,
-      last: /^last\s+(.+)/,
-      ago: /(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago$/,
-      specificTime: /(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}(:\d{2})?)/,
+        next: /^next\s+(.+)/,
+        last: /^last\s+(.+)/,
+        ago: /(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago$/,
+        specificTime: /(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}(:\d{2})?)/,
     };
 
     const agoMatch = time.match(regexPatterns.ago);
     if (agoMatch) {
-      const num = parseInt(agoMatch[1]);
-      const unit = agoMatch[2];
-      return adjustedNow.minus({ [unit]: num }).toSeconds();
+        const num = parseInt(agoMatch[1]);
+        const unit = agoMatch[2];
+        return adjustedNow.minus({ [unit]: num }).toSeconds();
     }
 
     const nextMatch = time.match(regexPatterns.next);
     if (nextMatch) {
-      return getRelativeTime(nextMatch[1], "next", adjustedNow);
+        return getRelativeTime(nextMatch[1], "next", adjustedNow);
     }
 
     const lastMatch = time.match(regexPatterns.last);
     if (lastMatch) {
-      return getRelativeTime(lastMatch[1], "last", adjustedNow);
+        return getRelativeTime(lastMatch[1], "last", adjustedNow);
     }
 
     return null;
@@ -448,39 +451,18 @@ functionDesigner('function_exists', (variable) => {
     if (typeof variable === 'undefined') return false;
     return typeof variable === 'function';
 });
-/**
- * Represents the POST data sent to the server in an HTTP request. This object 
- * can be used to access form data or other data submitted via HTTP POST method.
-*/
-globalThis.$_POST = {};
 
-/**
- * Represents the GET data sent to the server in an HTTP request. This object 
- * can be used to access query string parameters or other data submitted via 
- * the HTTP GET method.
-*/
-globalThis.$_GET = {};
-
-/**
- * Represents the FILES data sent to the server in an HTTP request. This object 
- * can be used to access uploaded files via the HTTP POST method.
-*/
-globalThis.$_FILES = {};
-
-globalThis.$_REQUEST = {};
-globalThis.$_SERVER = {};
-globalThis.$_COOKIE = {};
-globalThis.setcookie = null;
-globalThis.$_SESSION = {};
-
-/** Placeholder for a function that will dump variable contents for debugging. */
-globalThis.dump = null;
-
-/** Placeholder for a function that will dump variable contents and terminate execution. */
-globalThis.dd = null;
-
-/** Placeholder for a function that will send JSON responses. */
-globalThis.jsonResponse = null;
+// This function is use to define GLOBAL variable
+functionDesigner('define', (key, value) => {
+    if (key in globalThis) {
+        throw new Error(`The global variable "${key}" is already defined.`);
+    }
+    Object.defineProperty(globalThis, key, {
+        value: value,
+        writable: true,
+        configurable: false,
+    });
+});
 
 /** Placeholder for a function that will render views or templates. */
 functionDesigner('view', (viewName, data = {}) => {
@@ -495,7 +477,7 @@ functionDesigner('view', (viewName, data = {}) => {
     const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.${defaultViewEngine}`);
     // templatePathChecker
     if (!fs.existsSync(templatePath)) {
-        throw`View file not found: ${templatePath}`;
+        throw `View file not found: ${templatePath}`;
     }
     const rawHtml = fs.readFileSync(templatePath, "utf-8");
 
@@ -503,27 +485,10 @@ functionDesigner('view', (viewName, data = {}) => {
     return rendered;
 });
 
-/** Placeholder for a function that will handle redirection to a given URL. */
-globalThis.redirect = null;
+define('FRAMEWORK_VERSION', require(path.join(base_path(), 'version')));
 
-/** Placeholder for a function that will navigate back to the previous page. */
-globalThis.back = null;
-
-/** Placeholder for a function that will check if a given URL is an API endpoint. */
-globalThis.isApiUrl = null;
-
-/** Placeholder for a function that will define application routes. */
-globalThis.route = null;
-
-globalThis.BASE_URL = null;
-globalThis.PATH_URL = null;
-globalThis.PATH_QUERY = null;
-globalThis.ORIGINAL_URL = null;
-globalThis.DEFAULT_BACK = null;
-
-
-globalThis.response = function(html = null){
+functionDesigner('response', function (html = null) {
     const ExpressResponse = require('./ExpressResponse');
     const EResponse = new ExpressResponse(html);
     return EResponse;
-}
+});

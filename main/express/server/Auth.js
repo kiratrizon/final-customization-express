@@ -266,7 +266,7 @@ class Guarder {
     }
 
     getBearerToken() {
-        const headerToken = $_REQUEST.headers['authorization'];
+        const headerToken = request.header('authorization');
         if (!headerToken) {
             return false;
         }

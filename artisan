@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-require('./main/express/server/AssignGlobal');
+require('./main/express/server/functions');
 const MigrationRunner = require('./main/database/MigrationRunner');
 const fs = require('fs');
 const path = require('path');

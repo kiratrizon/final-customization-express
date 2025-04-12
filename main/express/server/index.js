@@ -1,4 +1,4 @@
-require('./AssignGlobal');
+require('./variables');
 const path = require('path');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
@@ -12,6 +12,8 @@ const { createClient } = require('redis');
 const { RedisStore } = require('connect-redis');
 const multer = require('multer');
 const FileHandler = require('./ExpressFileHandler');
+const ExpressRequest = require('./ExpressRequest');
+const ExpressResponse = require('./ExpressResponse');
 require('dotenv').config();
 
 const renderData = (data, shouldExit = false, res) => {
@@ -117,9 +119,10 @@ class Server {
 					newUrl = url == '' ? '/' : url;
 				}
 				if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
-					routeNames[values['name']] = newUrl;
 					if (values['name'].endsWith('.')) {
-						console.warn(`Route.${method}(${url}, callback)`, `name is incomplete ${values['name']}`);
+						console.warn(`Route.${method}(${url}, callback)`, ` name is incomplete ${values['name']}`);
+					} else {
+						routeNames[values['name']] = newUrl;
 					}
 				}
 				// console.log(`Method: ${method}`);
@@ -137,14 +140,14 @@ class Server {
 		Server.app.use(Server.express.urlencoded({ extended: true }));
 		Server.app.use(Server.express.static(path.join(__dirname, '..', 'public')));
 		const handleBoot = Server.#handle();
-		
+
 		const appEssentials = [
-            'session',
-            'cors',
-            'cookieParser',
-            'flash',
-            'helmet'
-        ];
+			'session',
+			'cors',
+			'cookieParser',
+			'flash',
+			'helmet'
+		];
 		appEssentials.forEach(key => {
 			Server.app.use(handleBoot[key]);
 		});
@@ -161,7 +164,8 @@ class Server {
 			$_POST = req.body || {};
 			$_GET = req.query || {};
 			$_FILES = req.files || {};
-			$_REQUEST = {
+			$_COOKIE = req.cookies || {};
+			const REQUEST = {
 				method: methodType,
 				params: req.params,
 				headers: req.headers,
@@ -175,8 +179,10 @@ class Server {
 				user: req.user || null,
 				files: req.files || null,
 			};
+			request = new ExpressRequest(REQUEST);
 			dump = (data) => renderData(data, false, res);
 			dd = (data) => {
+				console.log(data);
 				renderData(data, true, res);
 			};
 			res.locals['dump'] = (data) => renderData(data);
@@ -204,21 +210,8 @@ class Server {
 			globalThis.$_SESSION_AUTH = session.session_auth;
 			globalThis.$_SESSION_HIDDEN = session.session_hidden;
 
-			setcookie = (name, value = '', expires_at = 0, path = '/', domain = '', secure = false, httpOnly = false) => {
-				const expires = parseInt(expires_at) ? new Date(Date.now() + expires_at * 1000) : expires_at;
-				const options = {
-					expires,
-					path,
-					domain,
-					secure,
-					httpOnly,
-				};
-
-				res.cookie(name, value, options);
-			};
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			// req.flash('hello', 'world');
-			jsonResponse = (data, status = 200) => res.status(status).json(data);
 			redirect = (url, data = []) => {
 				if (data.includes('input')) {
 					if (methodType === 'POST' || methodType === 'PUT') {
@@ -231,7 +224,7 @@ class Server {
 			back = () => {
 				return req.get('Referrer') || '/';
 			};
-			isApiUrl = () => req.path.startsWith('api');
+			isApiUrl = () => req.path.startsWith('/api');
 			// Set up global functions
 			route = (name, args = {}) => {
 				if (Server.#routes.hasOwnProperty(name)) {
@@ -274,10 +267,10 @@ class Server {
 
 			BASE_URL = Server.#baseUrl;
 			res.locals.BASE_URL = Server.#baseUrl;
-			PATH_URL = $_REQUEST.path;
-			res.locals.PATH_URL = $_REQUEST.path;
-			PATH_QUERY = $_REQUEST.originalUrl;
-			res.locals.PATH_QUERY = $_REQUEST.originalUrl;
+			PATH_URL = REQUEST.path;
+			res.locals.PATH_URL = REQUEST.path;
+			PATH_QUERY = REQUEST.originalUrl;
+			res.locals.PATH_QUERY = REQUEST.originalUrl;
 			ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
 			res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
 			DEFAULT_BACK = [back(), ['input']];
@@ -334,8 +327,25 @@ class Server {
 	}
 
 	static #finishBoot() {
-		if (typeof Boot['404'] === 'function') {
-			Server.app.use(Boot['404']);
+		if (typeof Boot['notFound'] === 'function') {
+			Server.app.use((req, res) => {
+				const expressResponse = Boot['notFound']();
+				if (expressResponse instanceof ExpressResponse) {
+					const { html, statusCode, headers, json, returnType } = expressResponse.accessData();
+					res.status(statusCode);
+					res.set(headers);
+					if (returnType == 'html') {
+						res.send(html);
+					} else if (returnType == 'json') {
+						res.json(json);
+					}
+				} else if (expressResponse !== undefined) {
+					res.status(404).set({
+						'Content-Type': 'text/html',
+					}).send(expressResponse);
+				}
+				return;
+			});
 		}
 	}
 
@@ -353,7 +363,7 @@ class Server {
 
 		jsFiles.forEach(file => {
 			const appFile = file.split('.js')[0];
-			if (currentRoute){
+			if (currentRoute) {
 				currentRoute.setPrefix(`/${appFile}`);
 			}
 			const routePath = path.join(routesDir, file);
@@ -367,4 +377,3 @@ class Server {
 Server.boot();
 
 module.exports = Server.app;
- 

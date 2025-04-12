@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const DatabaseConnection = require('./Database');
+const DatabaseConnection = require('./Manager/DatabaseManager');
 
 class MigrationRunner {
     constructor() {
@@ -87,13 +87,14 @@ class MigrationRunner {
                 FROM INFORMATION_SCHEMA.TABLES
                 WHERE TABLE_SCHEMA = ?
                 AND TABLE_NAME != 'migrations'`;
-            params.push(config('app.database.mysql.database'));
+            let schema = config('app.database.mysql.database');
+            params.push(schema);
         } else if (env('DATABASE') === 'sqlite') {
             sql = 'SELECT name AS table FROM sqlite_master WHERE type = "table" AND table NOT LIKE "sqlite_%"';
         }
 
 
-        const tables = this.db.runQueryNoLogs(sql, params);
+        const tables = this.db.runQuery(sql, params);
 
         if (!tables.length) {
             console.log('No tables to drop.');
@@ -102,20 +103,20 @@ class MigrationRunner {
 
         // Disable foreign key constraints for SQLite
         if (env('DATABASE') === 'sqlite') {
-            this.db.runQueryNoLogs('PRAGMA foreign_keys = OFF');
+            this.db.runQuery('PRAGMA foreign_keys = OFF');
         }
 
         tables.map((table) => {
             const dropTableQuery = `DROP TABLE IF EXISTS ${table.table};`;
-            this.db.runQueryNoLogs(dropTableQuery);
+            this.db.runQuery(dropTableQuery);
         })
 
         // Re-enable foreign key constraints for SQLite
         if (env('DATABASE') === 'sqlite') {
-            this.db.runQueryNoLogs('PRAGMA foreign_keys = ON');
+            this.db.runQuery('PRAGMA foreign_keys = ON');
         }
 
-        this.db.runQueryNoLogs("DELETE FROM migrations");
+        this.db.runQuery("DELETE FROM migrations");
 
         console.log('All tables dropped successfully.');
 

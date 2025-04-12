@@ -1,6 +1,7 @@
 const MiddlewareHandler = require('../../../app/MiddlewareHandler');
 const expressRouter = require('express').Router();
 const ExpressRequest = require('./ExpressRequest');
+const ExpressResponse = require('./ExpressResponse');
 
 class Route {
     static #prefix = '/';
@@ -84,7 +85,6 @@ class Route {
         if (finalConvertion !== undefined && typeof finalConvertion === 'function') {
             newOpts = (req, res) => {
                 let expressResponse = null;
-                let rq = new ExpressRequest($_REQUEST);
                 if (isControllerInstance) {
                     if (!doneInstantiated) {
                         instanced.initialize(req);
@@ -96,32 +96,40 @@ class Route {
                     if (res.headersSent) {
                         return;
                     }
-                    expressResponse = instanced[action](rq, ...Object.values($_REQUEST.params));
+                    expressResponse = instanced[action](...Object.values(request.request.params));
                 } else {
                     if (res.headersSent) {
                         return;
                     }
-                    expressResponse = finalConvertion(rq, ...Object.values($_REQUEST.params));
+                    expressResponse = finalConvertion(...Object.values(request.request.params));
                 }
-                
-                if (typeof expressResponse == 'object') {
-                    const {html,json,headers,statusCode,returnType} = expressResponse.accessData();
-                    if (returnType === 'html') {
-                        res.status(statusCode);
-                        res.set(headers);
-                        res.send(html);
-                        return;
-                    } else if (returnType === 'json') {
-                        res.status(statusCode);
-                        res.set(headers);
-                        res.json(json);
-                        return;
+
+                if (typeof expressResponse == 'object' || Array.isArray(expressResponse)) {
+                    if (expressResponse instanceof ExpressResponse) {
+                        const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
+                        if (returnType === 'html') {
+                            res.status(statusCode);
+                            res.set(headers);
+                            res.send(html);
+                        } else if (returnType === 'json') {
+                            res.status(statusCode);
+                            res.set(headers);
+                            res.json(json);
+                        }
+                    } else {
+                        res.status(200);
+                        res.set('Content-Type', isApiUrl() ? 'application/json' : 'text/html');
+                        if (isApiUrl()) {
+                            res.json(expressResponse);
+                        } else {
+                            res.send(JSON.stringify(expressResponse));
+                        }
                     }
                 } else {
                     res.status(200);
                     res.send(expressResponse);
-                    return;
                 }
+                return;
             };
         } else {
             newOpts = undefined;
@@ -173,7 +181,31 @@ class Route {
         }
         if (typeof functionUsed === 'function') {
             middleware = (req, res, next) => {
-                functionUsed(next);
+                const expressResponse = functionUsed(next);
+                if (typeof expressResponse == 'object' || Array.isArray(expressResponse)) {
+                    if (expressResponse instanceof ExpressResponse) {
+                        const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
+                        res.status(statusCode);
+                        res.set(headers);
+                        if (returnType === 'html') {
+                            res.send(html);
+                        } else if (returnType === 'json') {
+                            res.json(json);
+                        }
+                    } else {
+                        res.status(200);
+                        res.set('Content-Type', isApiUrl() ? 'application/json' : 'text/html');
+                        if (isApiUrl()) {
+                            res.json(expressResponse);
+                        } else {
+                            res.send(JSON.stringify(expressResponse));
+                        }
+                    }
+                } else {
+                    res.status(200);
+                    res.send(expressResponse);
+                }
+                return;
             }
         }
         if (typeof middleware === 'function') {

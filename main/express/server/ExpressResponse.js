@@ -4,14 +4,14 @@ class ExpressResponse {
     #returnStatusCode;
     #json;
     #headers = {};
-    constructor(html = null){
+    constructor(html = null) {
         this.#html = html;
     }
-    json(data, statusCode = this.#defaultStatusCode){
+    json(data, statusCode = this.#defaultStatusCode) {
         if (typeof statusCode !== 'number') {
             throw new Error('Status code must be a number');
         }
-        if (this.#html){
+        if (this.#html) {
             throw new Error('Cannot set JSON response after HTML response');
         }
         this.#json = data;
@@ -19,11 +19,11 @@ class ExpressResponse {
         this.#headers['Content-Type'] = 'application/json';
         return this;
     }
-    header(key, value){
+    header(key, value) {
         if (typeof key !== 'string') {
             throw new Error('Header key must be a string');
         }
-        if (this.#html){
+        if (this.#html) {
             throw new Error('Cannot set headers after HTML response');
         }
         this.#headers[key] = value;
@@ -38,7 +38,14 @@ class ExpressResponse {
         this.#headers['Content-Type'] = 'text/html';
         return this;
     }
-    accessData(){
+    withHeaders(headers = {}) {
+        if (typeof headers !== 'object') {
+            throw new Error('Headers must be an object');
+        }
+        this.#headers = { ...this.#headers, ...headers };
+        return this;
+    }
+    accessData() {
         // define return type whether it is html or json
         let returnType = '';
         if (this.#html) {
@@ -48,7 +55,7 @@ class ExpressResponse {
         } else {
             throw new Error('No response set');
         }
-        
+
         return {
             html: this.#html,
             json: this.#json,
