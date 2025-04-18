@@ -5,7 +5,7 @@ class Test {
     static handle(next) {
         // your middleware logic here
         if (!Auth.guard('user').check()) {
-            return redirect(route('login'));
+            return redirect().route('login');
         }
         next();
     }

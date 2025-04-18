@@ -1,6 +1,6 @@
 class Boot {
     static notFound() {
-        if (isApiUrl()) {
+        if (isRequest()) {
             return response().json({ error: 'Not Found' }, 404);
         }
         return view('error');

@@ -1,11 +1,11 @@
-const Validator = require("../../libraries/Services/Validator");
-const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
-const Auth = require("../../main/express/server/Auth");
+const Admin = require("../../models/Admin");
 class UserController extends Controller {
     index() {
-
-        dd(request);
+        
+        let admins = [];
+        admins = Admin.all();
+        return response().json({admins});
     }
 }
 

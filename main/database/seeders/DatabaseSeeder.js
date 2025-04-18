@@ -2,7 +2,6 @@ const Seeder = require("../../base/Seeder");
 const AdminFactory = require("../factories/AdminFactory");
 const UserFactory = require("../factories/UserFactory");
 const PostFactory = require("../factories/PostFactory");
-const DB = require("../../../libraries/Materials/DB");
 
 class DatabaseSeeder extends Seeder {
 

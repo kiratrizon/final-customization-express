@@ -19,21 +19,34 @@ class DatabaseManager {
         this.#selectedDB = databases[databaseType];
     }
 
+    // This is for artisan/CLI usage only — not for HTTP requests
     runQuery(sql, params = []) {
-        // init DB
-        this.init();
+        this.init(); // init DB
         let done = false;
         let data = null;
-        // get query
+        let error = null;
+
+        console.log(sql, params);
         this.#databaseServer.query(sql, params).then((result) => {
             data = result;
             done = true;
-        }).catch((error) => {
-            console.log('Database Error:', error);
+            if (typeof this.#databaseServer.close === 'function') {
+                this.#databaseServer.close();
+            }
+        }).catch((err) => {
+            error = err;
             done = true;
+            if (typeof this.#databaseServer.close === 'function') {
+                this.#databaseServer.close();
+            }
         });
+
         loopWhile(() => !done, 100);
-        // return data
+        
+        if (error) {
+            console.error('Database Error:', error);
+            return null; // or throw, depending on your use case
+        }
         return data;
     }
 

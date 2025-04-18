@@ -1,187 +1,46 @@
 "use strict";
+require('./functionDesigner');
 const fs = require('fs');
 const path = require('path');
 const Configure = require('../../../libraries/Materials/Configure');
 const Carbon = require('../../../libraries/Materials/Carbon');
 require('dotenv').config();
 
-/**
- * This file assigns global variables and functions for the application.
- * It includes utility functions, configuration options, and other helpers
- * that can be used throughout the application.
- *
- * @module AssignGlobal
- */
-
-Object.defineProperty(globalThis, 'functionDesigner', {
-    value: (key, value) => {
-        if (key in globalThis) {
-            throw new Error(`The global variable "${key}" is already defined.`);
-        }
-        Object.defineProperty(globalThis, key, {
-            value: value,
-            writable: false,
-            configurable: false,
-        });
-    },
-    writable: false,
-    configurable: false,
-});
-
-/**
- * Retrieves the value of the specified environment variable.
- * Returns `undefined` if the variable is not set.
- *
- * Usage:
- *   const value = env('MY_ENV_VAR');
- *
- * @param {string} key - The name of the environment variable to retrieve.
- * @returns {string | null} The value of the environment variable, or `undefined` if not set.
-*/
-
-Object.defineProperty(globalThis, 'env', {
-    value: (ENV_NAME, defaultValue = null) => {
-        if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
-            return process.env[ENV_NAME] !== undefined ? process.env[ENV_NAME] : defaultValue;
-        } else {
-            return null;
-        }
-    },
-    writable: false,
-    configurable: false,
-});
-
-/**
- * Restricts an object to only the specified keys.
- * Returns a new object containing only the provided keys and their associated values.
- *
- * Usage:
- *   const filtered = only(obj, ['key1', 'key2']);
- *
- * @param {Object} source - The object to filter.
- * @param {string[]} keys - The list of keys to include in the new object.
- * @returns {Object} A new object containing only the specified keys.
-*/
-
-Object.defineProperty(globalThis, 'only', {
-    value: (obj, keys) => {
-        let newObj = {};
-        keys.forEach(key => {
-            if (obj[key] !== undefined) {
-                newObj[key] = obj[key];
-            }
-        });
-        return newObj;
-    },
-    writable: false,
-    configurable: false,
-});
-
-/**
- * Converts the first character of a string to uppercase while keeping the rest unchanged.
- *
- * Usage:
- *   const result = ucFirst('example'); // 'Example'
- *
- * @param {string} str - The string to transform.
- * @returns {string} The string with the first character capitalized.
-*/
-
-Object.defineProperty(globalThis, 'ucFirst', {
-    value: (string) => {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    },
-    writable: false,
-    configurable: false,
-});
-
-/**
- * Calculates a future date by adding a specified number of days to the current date.
- *
- * Usage:
- *   const futureDate = getFutureDate(5); // Returns the date 5 days from now
- *
- * @param {number} days - The number of days to add to the current date.
- * @returns {string} The future date in the format `Y-m-d H:i:s`.
-*/
-
-Object.defineProperty(globalThis, 'getFutureDate', {
-    value: (addTime = 60) => {
-        if (addTime == 'never') {
-            return '9999-12-31 23:59:59';
-        } else {
-            return Carbon.addDays(addTime).getDateTime();
-        }
-    },
-    writable: false,
-    configurable: false,
-});
-
-// tmp_path
-Object.defineProperty(globalThis, 'tmp_path', {
-    value: () => {
-        return `${base_path()}/tmp`;
-    },
-    writable: false,
-    configurable: false,
-});
-
-/**
- * Writes the serialized content of a variable to a log file.
- * The log file will be created at `rootapplication/tmp/{logName}.log`.
- *
- * Usage:
- *   log({ key: 'value' }, 'debug'); // Writes the object to `tmp/debug.log`
- *
- * @param {any} variable - The variable to write into the log file. Can be any type (string, object, array, etc.).
- * @param {string} logName - The name of the log file (without extension).
- * @returns {void}
-*/
-class Logger {
-    static log(value, destination, text = "") {
-        const dirPath = path.join(tmp_path(), "logs");
-        const logPath = path.join(dirPath, `${destination}.log`);
-        const timestamp = Carbon.getDateTime();
-
-        const logMessage = `${timestamp} ${text}\n${typeof value === "object" ? JSON.stringify(value, null, 2) : value
-            }\n\n`;
-
-        if (!fs.existsSync(dirPath)) {
-            fs.mkdirSync(dirPath, { recursive: true });
-        }
-
-        if (!fs.existsSync(logPath)) {
-            fs.writeFileSync(logPath, "", "utf8");
-        }
-
-        if (env("NODE_ENV") === "production") {
-            console.log(logMessage);
-            return;
-        }
-
-        fs.appendFileSync(logPath, logMessage, "utf8");
+functionDesigner('env', (ENV_NAME, defaultValue = null) => {
+    if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
+        return process.env[ENV_NAME] || defaultValue;
+    } else {
+        return null;
     }
-}
-
-Object.defineProperty(globalThis, 'log', {
-    value: (value, destination, text = "") => {
-        Logger.log(value, destination, text);
-    },
-    writable: false,
-    configurable: false,
 });
 
-/**
- * Retrieves the value of a configuration option, similar to Laravel's `config` helper function.
- * Supports dot notation for nested configuration keys.
- *
- * Usage:
- *   const value = config('app.name'); // Retrieves the value of `app.name`
- *   const value = config('database.connections.mysql.host'); // Retrieves the value of a nested key
- *
- * @param {string} key - The configuration key, which can use dot notation for nested values.
- * @returns {any} The value of the configuration option, or `undefined` if the key does not exist.
-*/
+functionDesigner('only', (obj, keys) => {
+    let newObj = {};
+    keys.forEach(key => {
+        if (obj[key] !== undefined) {
+            newObj[key] = obj[key];
+        }
+    });
+    return newObj;
+});
+
+functionDesigner('ucFirst', (string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+});
+
+functionDesigner('getFutureDate', (addTime = 60) => {
+    if (addTime == 'never') {
+        return '9999-12-31 23:59:59';
+    } else {
+        return Carbon.addDays(addTime).getDateTime();
+    }
+});
+
+functionDesigner('log', (value, destination, text = "") => {
+    const Logger = require('../http/ExpressLogger');
+    Logger.log(value, destination, text);
+});
+
 functionDesigner('config', function () {
     const args = arguments;
     if (args.length === 0) {
@@ -201,96 +60,38 @@ functionDesigner('config', function () {
     }
 });
 
-/**
- * The base path of the application, typically the root directory.
- * This is used as the starting point for resolving all other paths.
-*/
-Object.defineProperty(globalThis, 'base_path', {
-    value: () => {
-        return path.join(__dirname, '..', '..', '..');
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('base_path', (concatenation = '') => {
+    return path.join(__dirname, '..', '..', '..', concatenation);
+});
 
-/**
- * The path to the application's resources directory, which typically contains views, translations, and other assets.
-*/
-Object.defineProperty(globalThis, 'resources_path', {
-    value: () => {
-        return `${base_path()}/resources`;
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('resources_path', (concatenation = '') => {
+    return path.join(base_path(), 'resources', concatenation);
+});
 
-/**
- * The path to the application's view directory, where view files (such as Blade templates) are stored.
-*/
-Object.defineProperty(globalThis, 'view_path', {
-    value: () => {
-        return `${resources_path()}/views`;
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('view_path', (concatenation = '') => {
+    return path.join(resources_path(), 'views', concatenation);
+});
 
-/**
- * The path to the public directory, which is typically the web server's document root.
- * This is where publicly accessible files like images, JavaScript, and CSS are located.
-*/
-Object.defineProperty(globalThis, 'public_path', {
-    value: () => {
-        return `${base_path()}/public`;
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('public_path', (concatenation = '') => {
+    return path.join(base_path(), 'public', concatenation);
+});
 
-/**
- * The path to the database directory, where database-related files or configurations might be stored.
-*/
-Object.defineProperty(globalThis, 'database_path', {
-    value: () => {
-        return `${base_path()}/main/database`;
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('database_path', (concatenation = '') => {
+    return path.join(base_path(), 'main', 'database', concatenation);
+});
 
-/**
- * The path to the application's core directory, where the main application logic is stored.
-*/
-Object.defineProperty(globalThis, 'app_path', {
-    value: () => {
-        return `${base_path()}/app`;
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('app_path', (concatenation = '') => {
+    return path.join(base_path(), 'app', concatenation);
+});
 
-/**
- * The path to the stub directory, where template files or skeleton code files (stubs) are stored.
-*/
-Object.defineProperty(globalThis, 'stub_path', {
-    value: () => {
-        return `${base_path()}/main/express/stubs`;
-    },
-    writable: false,
-    configurable: false,
-})
+functionDesigner('stub_path', () => {
+    return `${base_path()}/main/express/stubs`;
+});
 
-/**
- * Generates a table name based on the given model name.
- * Typically used to follow naming conventions for database tables.
- *
- * Usage:
- *   const tableName = generateTableNames('User'); // Generates 'users' table name
- *   const tableName = generateTableNames('Post'); // Generates 'posts' table name
- *
- * @param {string} modelName - The model name (e.g., 'User', 'Post') for which to generate the table name.
- * @returns {string} The generated table name, typically plural and in snake_case.
-*/
+functionDesigner('tmp_path', () => {
+    return `${base_path()}/tmp`;
+});
+
 functionDesigner('generateTableNames', (entity) => {
     const irregularPlurals = config('irregular_words');
     const splitWords = entity.split(/(?=[A-Z])/);
@@ -312,21 +113,11 @@ functionDesigner('generateTableNames', (entity) => {
     return [...splitWords, pluralizedLastWord].join('').toLowerCase()
 });
 
-/**
- * Encodes a string to standard Base64.
-*/
 functionDesigner('base64_encode', (str) => Buffer.from(str, 'utf-8').toString('base64'));
 
-/**
- * Decodes a standard Base64 string to its original form.
-*/
 functionDesigner('base64_decode', (str) => Buffer.from(str, 'base64').toString('utf-8'));
 
-/**
- * Encodes a string to Base64 in a URL-safe format (Base64url).
- * Replaces `+` with `-`, `/` with `_`, and removes any trailing `=` padding.
-*/
-functionDesigner('base64_encode_safe', function (str) {
+functionDesigner('base64_url_encode', function (str) {
     return Buffer.from(str)
         .toString('base64')        // Standard Base64 encode
         .replace(/\+/g, '-')       // Replace `+` with `-`
@@ -334,50 +125,40 @@ functionDesigner('base64_encode_safe', function (str) {
         .replace(/=+$/, '');       // Remove any trailing `=` padding
 });
 
-/**
- * Decodes a URL-safe Base64 string (Base64url) to its original form.
- * Replaces `-` with `+`, `_` with `/`, and adds padding if necessary.
-*/
-functionDesigner('base64_decode_safe', function (str) {
+functionDesigner('base64_url_decode', function (str) {
     // Add necessary padding if missing
     const padding = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
     const base64 = str.replace(/-/g, '+').replace(/_/g, '/') + padding;
     return Buffer.from(base64, 'base64').toString('utf8');
 });
 
-/**
- * This function mimics PHP's strtotime by parsing a string containing a date or time
- * and returning the corresponding Unix timestamp (in seconds). It supports relative
- * date/time formats such as "next Friday" or "3 days ago" and adjusts based on the 
- * system's time zone.
-*/
-const { DateTime } = require("luxon");
-
-const getRelativeTime = (expression, direction, now) => {
-    const daysOfWeek = [
-        "sunday", "monday", "tuesday", "wednesday",
-        "thursday", "friday", "saturday"
-    ];
-
-    const lowerExpression = expression.toLowerCase();
-    const dayIndex = daysOfWeek.indexOf(lowerExpression);
-
-    if (dayIndex !== -1) {
-        let daysDifference = dayIndex - now.weekday;
-
-        if (direction === "next" && daysDifference <= 0) {
-            daysDifference += 7;
-        } else if (direction === "last" && daysDifference >= 0) {
-            daysDifference -= 7;
-        }
-
-        return now.plus({ days: daysDifference }).toSeconds();
-    }
-
-    return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
-};
-
 functionDesigner('strtotime', function (time, now) {
+    const { DateTime } = require("luxon");
+
+    const getRelativeTime = (expression, direction, now) => {
+        const daysOfWeek = [
+            "sunday", "monday", "tuesday", "wednesday",
+            "thursday", "friday", "saturday"
+        ];
+    
+        const lowerExpression = expression.toLowerCase();
+        const dayIndex = daysOfWeek.indexOf(lowerExpression);
+    
+        if (dayIndex !== -1) {
+            let daysDifference = dayIndex - now.weekday;
+    
+            if (direction === "next" && daysDifference <= 0) {
+                daysDifference += 7;
+            } else if (direction === "last" && daysDifference >= 0) {
+                daysDifference -= 7;
+            }
+    
+            return now.plus({ days: daysDifference }).toSeconds();
+        }
+    
+        return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
+    };
+
     now = now || Date.now() / 1000;
 
     const timeZone = (typeof config === "function" && config("app.timezone")) ||
@@ -419,22 +200,11 @@ functionDesigner('strtotime', function (time, now) {
 });
 
 /**
- * Represents the current date and time, returning it in the format "Y-m-d H:i:s" 
- * (Year-Month-Day Hour:Minute:Second). This is typically used to get the current 
- * timestamp formatted in a human-readable way, adjusted to the system's time zone.
-*/
-
-functionDesigner('NOW', () => {
-    return Carbon.getDateTime();
-});
-functionDesigner('currentTime', NOW);
-
-/**
  * This function returns the current date and time 
  * in the specified format (e.g., "Y-m-d H:i:s"). If no timestamp is provided, 
  * it returns the current system time formatted accordingly.
 */
-functionDesigner('DATE', (format, unixTimestamp = null) => {
+functionDesigner('DATE', (format = 'Y-m-d H:i:s', unixTimestamp = null) => {
     if (unixTimestamp !== null) {
         return Carbon.getByUnixTimestamp(unixTimestamp, format);
     }
@@ -447,7 +217,7 @@ functionDesigner('date', DATE);
  * Checks whether a given function is defined in the current scope. 
  * It returns true if the function exists, otherwise false.
 */
-functionDesigner('function_exists', (variable) => {
+functionDesigner('function_exist', (variable) => {
     if (typeof variable === 'undefined') return false;
     return typeof variable === 'function';
 });
@@ -488,7 +258,98 @@ functionDesigner('view', (viewName, data = {}) => {
 define('FRAMEWORK_VERSION', require(path.join(base_path(), 'version')));
 
 functionDesigner('response', function (html = null) {
-    const ExpressResponse = require('./ExpressResponse');
+    const ExpressResponse = require('../http/ExpressResponse');
     const EResponse = new ExpressResponse(html);
     return EResponse;
 });
+
+functionDesigner('transferFile', (filePath, destination) => {
+    if (typeof filePath !== 'string' || typeof destination !== 'string') {
+        console.warn(new Error('Both filePath and destination must be strings'));
+        return false;
+    }
+
+    const ensureDirectoryExistence = (filePath) => {
+        const dir = path.dirname(filePath);
+        if (fs.existsSync(dir)) {
+          return true;
+        }
+        fs.mkdirSync(dir, { recursive: true });
+        return true;
+    };
+    // Ensure the target directory exists
+    ensureDirectoryExistence(destination);
+
+    let done = false;
+    let forReturn = false;
+
+    // Use fs.rename to move the file
+    fs.rename(filePath, destination, (err) => {
+        if (err) {
+            forReturn = false;
+            done = true;
+        } else {
+            forReturn = true;
+            done = true;
+        }
+    });
+
+    // Loop until the operation is complete
+    loopWhile(() => !done);
+    return forReturn;
+});
+
+functionDesigner('fetchData', (url, data = {
+    timeout: 5000,
+    method: 'GET',
+    headers: {},
+    body: {},
+    params: {},
+    responseType: 'json',
+    onUploadProgress: null,    // Optional: Function to handle upload progress
+    onDownloadProgress: null,  // Optional: Function to handle download progress
+}) => {
+    const { default: axios } = require('axios');
+    let { timeout, method, headers, body, params, responseType, onDownloadProgress, onUploadProgress } = data;
+
+    const methodLower = method.toLowerCase();
+    const allowedMethods = ['get', 'post', 'put', 'delete', 'patch'];
+
+    if (!allowedMethods.includes(methodLower)) {
+        console.error(new Error(`Invalid HTTP method: ${method}. Allowed methods are: ${allowedMethods.join(', ')}`));
+        return [true, null];
+    }
+
+    const config = {
+        timeout,
+        headers,
+        params,
+        responseType
+    };
+    if (typeof onDownloadProgress === 'function') {
+        config.onDownloadProgress = onDownloadProgress;
+    }
+    if (typeof onUploadProgress === 'function') {
+        config.onUploadProgress = onUploadProgress;
+    }
+
+    if (['post', 'put', 'patch'].includes(methodLower)) {
+        config.data = body;
+    }
+
+    let done = false;
+    let returnData = false;
+    axios[methodLower](url, config)
+        .then(res => {
+            done = true;
+            returnData = [false, res.data];
+        })
+        .catch(error => {
+            done = true;
+            console.error('Error fetching data:', error);
+            returnData = [true, error];
+        });
+    loopWhile(() => !done, 100);
+    return returnData;
+});
+

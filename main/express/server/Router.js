@@ -1,7 +1,7 @@
 const MiddlewareHandler = require('../../../app/MiddlewareHandler');
+const ExpressRedirect = require('../http/ExpressRedirect');
 const expressRouter = require('express').Router();
-const ExpressRequest = require('./ExpressRequest');
-const ExpressResponse = require('./ExpressResponse');
+const ExpressResponse = require('../http/ExpressResponse');
 
 class Route {
     static #prefix = '/';
@@ -97,6 +97,7 @@ class Route {
                         return;
                     }
                     expressResponse = instanced[action](...Object.values(request.request.params));
+                    console.log(expressResponse);
                 } else {
                     if (res.headersSent) {
                         return;
@@ -106,30 +107,46 @@ class Route {
 
                 if (typeof expressResponse == 'object' || Array.isArray(expressResponse)) {
                     if (expressResponse instanceof ExpressResponse) {
+                        console.log('hello')
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
                             res.status(statusCode);
                             res.set(headers);
                             res.send(html);
+                            return;
                         } else if (returnType === 'json') {
                             res.status(statusCode);
                             res.set(headers);
                             res.json(json);
+                            return;
                         }
+                    }  else if (expressResponse instanceof ExpressRedirect) {
+                        console.log('hello')
+                        const { url, statusCode } = expressResponse;
+                        res.redirect(statusCode, url);
+                        return;
                     } else {
                         res.status(200);
-                        res.set('Content-Type', isApiUrl() ? 'application/json' : 'text/html');
-                        if (isApiUrl()) {
+                        res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                        if (isRequest()) {
                             res.json(expressResponse);
                         } else {
                             res.send(JSON.stringify(expressResponse));
                         }
+                        return;
                     }
-                } else {
-                    res.status(200);
-                    res.send(expressResponse);
                 }
-                return;
+                else {
+                    res.status(200);
+                    res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                    if (isRequest()) {
+                        res.json(expressResponse);
+                    }
+                    else {
+                        res.send(JSON.stringify(expressResponse));
+                    }
+                    return;
+                }
             };
         } else {
             newOpts = undefined;
@@ -185,24 +202,32 @@ class Route {
                 if (typeof expressResponse == 'object' || Array.isArray(expressResponse)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
-                        res.status(statusCode);
-                        res.set(headers);
                         if (returnType === 'html') {
+                            res.status(statusCode);
+                            res.set(headers);
                             res.send(html);
                         } else if (returnType === 'json') {
+                            res.status(statusCode);
+                            res.set(headers);
                             res.json(json);
                         }
+                    }  else if (expressResponse instanceof ExpressRedirect) {
+                        console.log('hello')
+                        const { url, statusCode } = expressResponse;
+                        res.redirect(statusCode, url);
                     } else {
                         res.status(200);
-                        res.set('Content-Type', isApiUrl() ? 'application/json' : 'text/html');
-                        if (isApiUrl()) {
+                        res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                        if (isRequest()) {
                             res.json(expressResponse);
                         } else {
                             res.send(JSON.stringify(expressResponse));
                         }
                     }
-                } else {
+                }
+                else {
                     res.status(200);
+                    res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
                     res.send(expressResponse);
                 }
                 return;

@@ -2,5 +2,5 @@ const UserController = require('../app/Controllers/UserController');
 const UserDashboard = require('../app/Controllers/UserDashboard');
 const Route = require('../main/express/server/Router');
 
-Route.get('/upload', [UserController, 'index']);
+Route.get('/', [UserController, 'index']);
 module.exports = Route;

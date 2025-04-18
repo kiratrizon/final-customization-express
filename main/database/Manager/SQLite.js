@@ -48,8 +48,6 @@ class SQLite {
             } catch (err) {
                 console.log('SQLite Query Error:', err);
                 reject(false); // Reject if an error occurs
-            } finally {
-                if (db) db.close(); // Close after query execution
             }
         });
     }
@@ -69,6 +67,12 @@ class SQLite {
             return `'${value.toISOString()}'`;
         }
         return value;
+    }
+
+    close() {
+        if (this.db) {
+            this.db.close();
+        }
     }
 }
 

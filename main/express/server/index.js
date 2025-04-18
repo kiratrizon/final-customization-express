@@ -11,9 +11,10 @@ const { default: helmet } = require('helmet');
 const { createClient } = require('redis');
 const { RedisStore } = require('connect-redis');
 const multer = require('multer');
-const FileHandler = require('./ExpressFileHandler');
-const ExpressRequest = require('./ExpressRequest');
-const ExpressResponse = require('./ExpressResponse');
+const FileHandler = require('../http/ExpressFileHandler');
+const ExpressRequest = require('../http/ExpressRequest');
+const ExpressRedirect = require('../http/ExpressRedirect');
+const ExpressResponse = require('../http/ExpressResponse');
 require('dotenv').config();
 
 const renderData = (data, shouldExit = false, res) => {
@@ -64,7 +65,6 @@ const renderData = (data, shouldExit = false, res) => {
 		} else if (typeof value === 'undefined') {
 			return `<div class="undefined ${indentClass}">undefined</div>`;
 		}
-		return `<div>${value}</div>`;
 	};
 
 	const htmlContent = `
@@ -158,6 +158,14 @@ class Server {
 
 		// Global request/response handlers
 		Server.app.use((req, res, next) => {
+			// determine if it's an API request or AJAX request
+			isRequest = () => {
+				if (req.xhr) {
+					return true;
+				}
+				const apiUrl = req.path.startsWith('/api');
+				return apiUrl;
+			}
 			const methodType = req.method.toUpperCase();
 
 			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
@@ -179,6 +187,7 @@ class Server {
 				user: req.user || null,
 				files: req.files || null,
 			};
+			// log(REQUEST, 'test', 'request');
 			request = new ExpressRequest(REQUEST);
 			dump = (data) => renderData(data, false, res);
 			dd = (data) => {
@@ -211,21 +220,6 @@ class Server {
 			globalThis.$_SESSION_HIDDEN = session.session_hidden;
 
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
-			// req.flash('hello', 'world');
-			redirect = (url, data = []) => {
-				if (data.includes('input')) {
-					if (methodType === 'POST' || methodType === 'PUT') {
-						delete req.session.oldPost;
-						req.session.oldPost = $_POST;
-					}
-				}
-				res.redirect(url);
-			};
-			back = () => {
-				return req.get('Referrer') || '/';
-			};
-			isApiUrl = () => req.path.startsWith('/api');
-			// Set up global functions
 			route = (name, args = {}) => {
 				if (Server.#routes.hasOwnProperty(name)) {
 					let route = Server.#routes[name];
@@ -264,16 +258,31 @@ class Server {
 				const caller = stack.split("\n")[2].trim();
 				throw `route("${name}") not found.\n${caller}`;
 			};
+			// req.flash('hello', 'world');
+			functionDesigner('redirect', (url = null) => {
+				const instance = new ExpressRedirect(url);
+			
+				instance.back = () => {
+					instance.url = req.get('Referrer') || '/';
+					return instance;
+				};
+			
+				instance.route = (name, args = {}) => {
+					instance.url = route(name, args);
+					return instance;
+				};
+			
+				return instance;
+			});
+			back = () => {
+				return req.get('Referrer') || '/';
+			};
+
 
 			BASE_URL = Server.#baseUrl;
-			res.locals.BASE_URL = Server.#baseUrl;
 			PATH_URL = REQUEST.path;
-			res.locals.PATH_URL = REQUEST.path;
-			PATH_QUERY = REQUEST.originalUrl;
-			res.locals.PATH_QUERY = REQUEST.originalUrl;
-			ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
-			res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
-			DEFAULT_BACK = [back(), ['input']];
+			QUERY_URL = REQUEST.originalUrl;
+			ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
 			next();
 		});
 
@@ -375,5 +384,9 @@ class Server {
 }
 
 Server.boot();
+
+// Server.app.get('/testtroy/:id?', (req, res) => {
+// 	res.send('Hello World');
+// });
 
 module.exports = Server.app;
