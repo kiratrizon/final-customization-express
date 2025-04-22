@@ -140,22 +140,22 @@ functionDesigner('strtotime', function (time, now) {
             "sunday", "monday", "tuesday", "wednesday",
             "thursday", "friday", "saturday"
         ];
-    
+
         const lowerExpression = expression.toLowerCase();
         const dayIndex = daysOfWeek.indexOf(lowerExpression);
-    
+
         if (dayIndex !== -1) {
             let daysDifference = dayIndex - now.weekday;
-    
+
             if (direction === "next" && daysDifference <= 0) {
                 daysDifference += 7;
             } else if (direction === "last" && daysDifference >= 0) {
                 daysDifference -= 7;
             }
-    
+
             return now.plus({ days: daysDifference }).toSeconds();
         }
-    
+
         return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
     };
 
@@ -217,7 +217,7 @@ functionDesigner('date', DATE);
  * Checks whether a given function is defined in the current scope. 
  * It returns true if the function exists, otherwise false.
 */
-functionDesigner('function_exist', (variable) => {
+functionDesigner('is_function', (variable) => {
     if (typeof variable === 'undefined') return false;
     return typeof variable === 'function';
 });
@@ -272,7 +272,7 @@ functionDesigner('transferFile', (filePath, destination) => {
     const ensureDirectoryExistence = (filePath) => {
         const dir = path.dirname(filePath);
         if (fs.existsSync(dir)) {
-          return true;
+            return true;
         }
         fs.mkdirSync(dir, { recursive: true });
         return true;
@@ -353,3 +353,64 @@ functionDesigner('fetchData', (url, data = {
     return returnData;
 });
 
+// is_string
+functionDesigner('is_string', (value) => {
+    return typeof value === 'string';
+});
+
+// is_array
+functionDesigner('is_array', (value) => {
+    return Array.isArray(value);
+});
+
+// is_object
+functionDesigner('is_object', (value) => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+});
+
+// is_numeric
+functionDesigner('is_numeric', (value) => {
+    return !isNaN(value) && !isNaN(parseFloat(value));
+});
+
+// is_integer
+functionDesigner('is_integer', (value) => {
+    return Number.isInteger(value);
+});
+// is_float
+functionDesigner('is_float', (value) => {
+    return typeof value === 'number' && !Number.isInteger(value);
+});
+// is_boolean
+functionDesigner('is_boolean', (value) => {
+    return typeof value === 'boolean';
+});
+// is_null
+functionDesigner('is_null', (value) => {
+    return value === null;
+});
+// empty
+functionDesigner('empty', (value) => {
+    if (value === null || value === undefined) {
+        return true;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+        return true;
+    }
+    if (Array.isArray(value) && value.length === 0) {
+        return true;
+    }
+    if (typeof value === 'object' && Object.keys(value).length === 0) {
+        return true;
+    }
+    return false;
+});
+// isset
+functionDesigner('isset', (value) => {
+    return typeof value !== 'undefined' && value !== null;
+});
+
+// method_exist
+functionDesigner('method_exist', (object, method) => {
+    return typeof object[method] === 'function';
+});

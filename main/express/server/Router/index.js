@@ -1,7 +1,7 @@
-const MiddlewareHandler = require('../../../app/MiddlewareHandler');
-const ExpressRedirect = require('../http/ExpressRedirect');
+const MiddlewareHandler = require('../../../../app/MiddlewareHandler');
+const ExpressRedirect = require('../../http/ExpressRedirect');
 const expressRouter = require('express').Router();
-const ExpressResponse = require('../http/ExpressResponse');
+const ExpressResponse = require('../../http/ExpressResponse');
 
 class Route {
     static #prefix = '/';
@@ -120,7 +120,7 @@ class Route {
                             res.json(json);
                             return;
                         }
-                    }  else if (expressResponse instanceof ExpressRedirect) {
+                    } else if (expressResponse instanceof ExpressRedirect) {
                         console.log('hello')
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);
@@ -211,7 +211,7 @@ class Route {
                             res.set(headers);
                             res.json(json);
                         }
-                    }  else if (expressResponse instanceof ExpressRedirect) {
+                    } else if (expressResponse instanceof ExpressRedirect) {
                         console.log('hello')
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);

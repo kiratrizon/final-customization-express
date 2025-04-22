@@ -2,12 +2,12 @@ const Auth = require("../../main/express/server/Auth");
 
 class Test {
 
-    static handle(next) {
+    static async handle(next) {
         // your middleware logic here
-        if (!Auth.guard('user').check()) {
+        if (false) {
             return redirect().route('login');
         }
-        next();
+        return next();
     }
 }
 

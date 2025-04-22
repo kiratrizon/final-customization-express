@@ -90,49 +90,6 @@ class Server {
 	static #baseUrl = '';
 	static #routes = {};
 	static router = Server.express.Router();
-	static #validateRoute(args1) {
-		const instantiatedRoutes = new args1();
-		if (
-			!instantiatedRoutes ||
-			typeof instantiatedRoutes.mainRouter !== 'function' ||
-			typeof instantiatedRoutes.mainRouter.stack !== 'object' ||
-			!Array.isArray(instantiatedRoutes.mainRouter.stack)
-		) {
-			return;
-		}
-		const routePrefix = instantiatedRoutes.getPrefix();
-		const storedRoutes = Object.entries(instantiatedRoutes.getStoredRoutes());
-		// console.log(args1.getStoredRoutes());
-		const routeNames = {};
-		storedRoutes.forEach(([method, routes]) => {
-			Object.entries(routes).forEach(([url, values]) => {
-				// console.log(`URL: ${url}`);
-				// console.log(`Values: `, values);
-				if (values['function_use'] === undefined && typeof values['function_use'] !== 'function') {
-					return;
-				}
-				const middlewares = values['middlewares'] || [];
-				let newUrl = '';
-				if (routePrefix !== '/') {
-					newUrl = `${routePrefix}${url == '' ? '/' : url}`;
-				} else {
-					newUrl = url == '' ? '/' : url;
-				}
-				if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
-					if (values['name'].endsWith('.')) {
-						console.warn(`Route.${method}(${url}, callback)`, ` name is incomplete ${values['name']}`);
-					} else {
-						routeNames[values['name']] = newUrl;
-					}
-				}
-				// console.log(`Method: ${method}`);
-				Server.router[method](url == '' ? '/' : url, ...middlewares, values['function_use']);
-			});
-		});
-		Server.#duplicateRoutesDetector(Server.#routes, routeNames);
-		Server.app.use(routePrefix, Server.router);
-		Server.router = Server.express.Router();
-	}
 
 	static boot() {
 		Server.app.use(morgan('dev'));
@@ -261,17 +218,17 @@ class Server {
 			// req.flash('hello', 'world');
 			functionDesigner('redirect', (url = null) => {
 				const instance = new ExpressRedirect(url);
-			
+
 				instance.back = () => {
 					instance.url = req.get('Referrer') || '/';
 					return instance;
 				};
-			
+
 				instance.route = (name, args = {}) => {
 					instance.url = route(name, args);
 					return instance;
 				};
-			
+
 				return instance;
 			});
 			back = () => {
@@ -359,26 +316,45 @@ class Server {
 	}
 
 	static #loadAndValidateRoutes() {
-		const routesDir = path.join(__dirname, '../../../Routes');
+		const routesDir = path.join(base_path(), 'routes');
 		const routeFiles = fs.readdirSync(routesDir);
 		const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
-		let currentRoute = null;
-		if (jsFiles.includes('web.js')) {
-			const webRoutePath = path.join(routesDir, 'web.js');
-			currentRoute = require(webRoutePath);
-			Server.#validateRoute(currentRoute);
-			jsFiles.splice(jsFiles.indexOf('web.js'), 1);
-		}
-
 		jsFiles.forEach(file => {
-			const appFile = file.split('.js')[0];
-			if (currentRoute) {
-				currentRoute.setPrefix(`/${appFile}`);
+			// set prefix
+			const fileName = file.replace('.js', '');
+			const routePrefix = fileName === 'web' ? '/' : `/${fileName}`;
+			const filePath = path.join(routesDir, file);
+			const RouteClass = require(filePath);
+			const instance = new RouteClass();
+			let data = instance.reveal();
+			if (data) {
+				if (!empty(data.routers) && !empty(data.routeValue)) {
+					let routers = data.routers;
+					let routeValue = data.routeValue;
+					console.log(routers, routeValue);
+					if (!empty(routers.application_default)) {
+						const defaultRoutes = routers.application_default;
+						const { middlewares } = defaultRoutes;
+						const loadRouter = Server.express.Router();
+						const appRouter = Server.express.Router();
+						// allowed methods
+						const allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+						allowedMethods.forEach(method => {
+							// loop through default routes
+							defaultRoutes[method].forEach(routeId => {
+								const { path, internal_middlewares, newCallback } = routeValue[routeId];
+								loadRouter[method](path, ...internal_middlewares, newCallback);
+
+							});
+						});
+						appRouter.use('/', ...middlewares, loadRouter);
+						Server.app.use(routePrefix, appRouter);
+					}
+				}
 			}
-			const routePath = path.join(routesDir, file);
-			currentRoute = require(routePath);
-			Server.#validateRoute(currentRoute);
-		});
+		})
+
+
 		Server.#finishBoot();
 	}
 }

@@ -1,11 +1,11 @@
 const Controller = require("../../main/base/Controller");
 const Admin = require("../../models/Admin");
 class UserController extends Controller {
-    index() {
-        
+    async index() {
+
         let admins = [];
-        admins = Admin.all();
-        return response().json({admins});
+        // admins = Admin.all();
+        return response().json({ admins });
     }
 }
 

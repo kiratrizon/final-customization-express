@@ -198,9 +198,9 @@ declare global {
 
   /**
    * Checks whether a given function is defined in the current scope.
-   * It returns true if the function exists, otherwise false.
+   * It returns true if it is a function, otherwise false.
    */
-  var function_exist: (name: string) => boolean;
+  var is_function: (name: string) => boolean;
 
   /**
    * Checks whether a given class is defined in the current scope.
