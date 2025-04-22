@@ -3,9 +3,13 @@ const Admin = require("../../models/Admin");
 class UserController extends Controller {
     async index() {
 
-        let admins = [];
+        let admins = this.dataExtract();
         // admins = Admin.all();
         return response().json({ admins });
+    }
+
+    dataExtract() {
+        return []
     }
 }
 

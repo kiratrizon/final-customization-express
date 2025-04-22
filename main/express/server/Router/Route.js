@@ -89,7 +89,7 @@ class Route {
                 throw new Error(`Method ${method} not found in controller ${controllerName}`);
             }
 
-            callback = instanced[method]; // .bind(instanced)
+            callback = instanced[method].bind(instanced)
         }
 
         Route.#processMethods('get', path, callback);
