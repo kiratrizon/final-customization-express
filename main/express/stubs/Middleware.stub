@@ -2,7 +2,7 @@ const Auth = require("../../main/express/server/Auth");
 
 class {{ MiddlewareName }} {
 
-    static handle(next) {
+    static async handle(request, next) {
         // your middleware logic here
         // const checker = Auth.check();
         // if (!checker){

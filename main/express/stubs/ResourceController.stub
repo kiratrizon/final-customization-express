@@ -2,31 +2,31 @@ const Controller = require("../../main/base/Controller");
 
 class {{ ControllerName }} extends Controller {
     // get
-    index(){
+    async index(request){
         return response().json(route('user.index'));
     }
     // get
-    create(){
+    async create(request){
         return response().json({message: "{{ ControllerName }} create"})
     }
     // post
-    store(){
+    async store(request){
         return response().json({message: "{{ ControllerName }} store"});
     }
     // get
-    show(id){
+    async show(request, id){
         return response().json({message: "{{ ControllerName }} show"})
     }
     // get
-    edit(id){
+    async edit(request, id){
         return response().json({message: "{{ ControllerName }} show"})
     }
     // put
-    update(id){
+    async update(request, id){
         return response().json({message: "{{ ControllerName }} update"})
     }
     // delete
-    destroy(id){
+    async destroy(request, id){
         return response().json({message: "{{ ControllerName }} destroy"})
     }
 }

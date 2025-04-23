@@ -1,10 +1,32 @@
-"use strict";
-require('./functionDesigner');
 const fs = require('fs');
 const path = require('path');
 const Configure = require('../../../libraries/Materials/Configure');
 const Carbon = require('../../../libraries/Materials/Carbon');
+const ExpressView = require('../http/ExpressView');
 require('dotenv').config();
+
+
+/**************
+ * @functions *
+***************/
+
+Object.defineProperty(globalThis, 'functionDesigner', {
+    value: (key, value) => {
+        if (key in globalThis) {
+            return;
+        }
+        if (typeof value !== 'function') {
+            throw new Error(`The value for "${key}" must be a function.`);
+        }
+        Object.defineProperty(globalThis, key, {
+            value: value,
+            writable: false,
+            configurable: false,
+        });
+    },
+    writable: false,
+    configurable: false,
+});
 
 functionDesigner('env', (ENV_NAME, defaultValue = null) => {
     if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
@@ -23,6 +45,16 @@ functionDesigner('only', (obj, keys) => {
     });
     return newObj;
 });
+
+functionDesigner('except', (obj, keys) => {
+    let newObj = {};
+    for (let key in obj) {
+        if (!keys.includes(key)) {
+            newObj[key] = obj[key];
+        }
+    }
+    return newObj;
+})
 
 functionDesigner('ucFirst', (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
@@ -240,19 +272,8 @@ functionDesigner('view', (viewName, data = {}) => {
     data.old = function (key) {
         return 'test';
     }
-    const defaultViewEngine = config('view.defaultViewEngine') || 'ejs';
-    const renderer = require(defaultViewEngine);
-
-
-    const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.${defaultViewEngine}`);
-    // templatePathChecker
-    if (!fs.existsSync(templatePath)) {
-        throw `View file not found: ${templatePath}`;
-    }
-    const rawHtml = fs.readFileSync(templatePath, "utf-8");
-
-    const rendered = renderer.render(rawHtml, data);
-    return rendered;
+    const newView = new ExpressView(data);
+    return newView.element(viewName);
 });
 
 define('FRAMEWORK_VERSION', require(path.join(base_path(), 'version')));
@@ -389,28 +410,59 @@ functionDesigner('is_boolean', (value) => {
 functionDesigner('is_null', (value) => {
     return value === null;
 });
-// empty
-functionDesigner('empty', (value) => {
-    if (value === null || value === undefined) {
-        return true;
-    }
-    if (typeof value === 'string' && value.trim() === '') {
-        return true;
-    }
-    if (Array.isArray(value) && value.length === 0) {
-        return true;
-    }
-    if (typeof value === 'object' && Object.keys(value).length === 0) {
-        return true;
-    }
-    return false;
-});
+
 // isset
 functionDesigner('isset', (value) => {
     return typeof value !== 'undefined' && value !== null;
+});
+
+// empty
+functionDesigner('empty', (value) => {
+    if (
+        is_null(value)
+        || (is_array(value) && value.length === 0)
+        || (is_object(value) && Object.keys(value).length === 0)
+        || is_string(value) && value.trim() === ''
+        || value === undefined
+    ) {
+        return true;
+    }
+    return false;
 });
 
 // method_exist
 functionDesigner('method_exist', (object, method) => {
     return typeof object[method] === 'function';
 });
+
+
+/**************
+ * @variables *
+***************/
+
+/** Placeholder for a function that will navigate back to the previous page. */
+globalThis.back = null;
+
+/** Placeholder for a function that will define application routes. */
+globalThis.route = null;
+
+globalThis.$_SERVER = {};
+globalThis.setcookie = null;
+
+/** Placeholder for a function that will dump variable contents for debugging. */
+globalThis.dump = null;
+
+/** Placeholder for a function that will dump variable contents and terminate execution. */
+globalThis.dd = null;
+
+define('BASE_URL', '');
+define('PATH_URL', '');
+define('QUERY_URL', '');
+define('ORIGINAL_URL', '');
+define('$_POST', {});
+define('$_GET', {});
+define('$_FILES', {});
+define('$_SESSION', {});
+define('$_COOKIE', {});
+
+define('isRequest', null);

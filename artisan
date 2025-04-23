@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-require('./main/express/server/functions');
+require('./main/express/server/functions-and-variables');
 const MigrationRunner = require('./main/database/MigrationRunner');
 const fs = require('fs');
 const path = require('path');

@@ -1,9 +1,9 @@
 class Hello {
 
-    static async handle(next) {
+    static async handle(request, next) {
         // your middleware logic here
         if (true) {
-            return view('login');
+            // return view('login');
         }
         return next();
     }

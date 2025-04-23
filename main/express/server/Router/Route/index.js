@@ -1,8 +1,8 @@
-const express = require("express");
-const MiddlewareHandler = require('../../../../app/MiddlewareHandler');
-const ExpressRedirect = require('../../http/ExpressRedirect');
-const ExpressResponse = require('../../http/ExpressResponse');
-const ExpressClosure = require('../../http/ExpressClosure');
+const MiddlewareHandler = require('../../../../../app/MiddlewareHandler');
+const ExpressRedirect = require('../../../http/ExpressRedirect');
+const ExpressResponse = require('../../../http/ExpressResponse');
+const ExpressClosure = require('../../../http/ExpressClosure');
+const ExpressRequest = require('../../../http/ExpressRequest');
 
 
 const path = require("path");
@@ -11,22 +11,62 @@ class Route {
     static #routeValue = {};
     static #owner = 'method';
     static #storedControllers = {};
-
+    static #groupId = 0;
     static #currentGroup = [];
     static #routers = {};
     static #currentName = [];
 
     // store route
-    static #processMethods(method, path, callback) {
+    static #processMethods(method, cpath, callback) {
         Route.#routeId++;
         const id = Route.#routeId;
         let newCallback = null;
+        const currentGroup = Route.#getCombinedGroupOrName('group');
+        const pathCheckerForRegex = currentGroup + cpath;
         if (is_function(callback)) {
             newCallback = async (req, res) => {
+                $_POST = req.body || {};
+                $_GET = req.query || {};
+                $_FILES = req.files || {};
+                $_COOKIE = req.cookies || {};
+                const methodType = req.method.toUpperCase();
+                const REQUEST = {
+                    method: methodType,
+                    params: { ...req.params },
+                    headers: req.headers,
+                    body: $_POST,
+                    query: $_GET,
+                    cookies: $_COOKIE,
+                    path: req.path,
+                    originalUrl: req.originalUrl,
+                    ip: req.ip,
+                    protocol: req.protocol,
+                    files: $_FILES,
+                };
+                console.log(REQUEST)
+                const request = new ExpressRequest(REQUEST);
+                PATH_URL = REQUEST.path;
+                QUERY_URL = REQUEST.originalUrl;
+                ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
                 if (res.headersSent) {
                     return;
                 }
-                const expressResponse = await callback(...Object.values(request.request.params));
+                const regex = /{\/?:([\w-]+)\??}|:(\w+)/g;
+
+                const keys = [];
+                let match;
+
+                while ((match = regex.exec(pathCheckerForRegex)) !== null) {
+                    const key = match[1] ?? match[2]; // nullish coalescing
+                    if (key) keys.push(key);
+                }
+
+                const params = {};
+                keys.forEach((key) => {
+                    params[key] = request.request.params[key] || null;
+                })
+                console.log(params);
+                const expressResponse = await callback(request, ...Object.values(params));
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
@@ -62,37 +102,15 @@ class Route {
             Route.#routeValue[id] = {
                 id,
                 method,
-                path,
+                path: cpath,
                 newCallback,
                 internal_middlewares: [],
-                group,
             }
             // validate if group is set
             Route.#validateRoute(group);
             Route.#routers[group][method].push(id);
         }
         Route.#setOwner('method');
-        return Route;
-    }
-
-    static get(path, handler) {
-        let callback;
-        if (is_array(handler)) {
-            const controller = handler[0];
-            const method = handler[1];
-            const controllerName = controller.name;
-            if (!this.#storedControllers[controllerName]) {
-                this.#storedControllers[controllerName] = new controller();
-            }
-            const instanced = this.#storedControllers[controllerName];
-            if (!method_exist(instanced, method)) {
-                throw new Error(`Method ${method} not found in controller ${controllerName}`);
-            }
-
-            callback = instanced[method].bind(instanced)
-        }
-
-        Route.#processMethods('get', path, callback);
         return Route;
     }
 
@@ -105,12 +123,12 @@ class Route {
             const currentGroup = Route.#currentGroup;
             if (currentGroup.length) {
                 combined = path.join(...currentGroup);
-            } else {
-                combined = 'application_default';
             }
             if (combined === '.') {
                 combined = '';
             }
+            combined = combined.replace(/\/{2,}/g, '/').replace(/}(\/){/g, '}{');
+
         } else if (defaultCombine === 'name') {
             const currentName = Route.#currentName.map((nama) => {
                 nama = nama.replace(/\./g, '');
@@ -128,8 +146,59 @@ class Route {
         return combined;
     }
 
+    static #validateRoute(currentGroup) {
+        if (!Route.#routers[currentGroup]) {
+            Route.#routers[currentGroup] = {};
+            Route.#routers[currentGroup]['middlewares'] = [];
+            // all methods
+            Route.#routers[currentGroup]['get'] = [];
+            Route.#routers[currentGroup]['post'] = [];
+            Route.#routers[currentGroup]['put'] = [];
+            Route.#routers[currentGroup]['delete'] = [];
+            Route.#routers[currentGroup]['patch'] = [];
+            Route.#routers[currentGroup]['options'] = [];
+            Route.#routers[currentGroup]['head'] = [];
+        }
+    }
+
+    static #handlerProcessor(handler) {
+        let callback;
+        if (is_array(handler)) {
+            const controller = handler[0];
+            const method = handler[1];
+            const controllerName = controller.name;
+            if (!this.#storedControllers[controllerName]) {
+                this.#storedControllers[controllerName] = new controller();
+            }
+            const instanced = this.#storedControllers[controllerName];
+            if (!method_exist(instanced, method)) {
+                throw new Error(`Method ${method} not found in controller ${controllerName}`);
+            }
+
+            callback = instanced[method].bind(instanced)
+        } else if (is_function(handler)) {
+            callback = handler;
+        }
+
+        return callback;
+    }
+
+    static #isValidPrefix(prefix) {
+        const validPattern = /^\/[^\s{}\/]+$|^\/:[^\s{}\/]+$|^{\/:[^\s{}\/]+}$/;
+        return validPattern.test(prefix);
+    }
+
+
     static group(properties = {}, callback) {
-        const { prefix = '', middleware, as = '' } = properties;
+        let { prefix = '', middleware, as = '' } = properties;
+        if (prefix === '') {
+            Route.#groupId++;
+            prefix = `*${Route.#groupId}*`;
+        } else {
+            if (!Route.#isValidPrefix(prefix)) {
+                throw new Error(`Invalid prefix ${prefix}`);
+            }
+        }
         Route.#setOwner('group');
         const currentGroup = Route.#currentGroup;
         Route.#currentGroup = [...currentGroup, prefix];
@@ -171,13 +240,35 @@ class Route {
         }
         if (isset(middleware) && is_function(middleware)) {
             const newCallback = async (req, res, next) => {
+                $_POST = req.body || {};
+                $_GET = req.query || {};
+                $_FILES = req.files || {};
+                $_COOKIE = req.cookies || {};
+                const methodType = req.method.toUpperCase();
+                const REQUEST = {
+                    method: methodType,
+                    params: req.params,
+                    headers: req.headers,
+                    body: $_POST,
+                    query: $_GET,
+                    cookies: $_COOKIE,
+                    path: req.path,
+                    originalUrl: req.originalUrl,
+                    ip: req.ip,
+                    protocol: req.protocol,
+                    files: $_FILES,
+                };
+                const request = new ExpressRequest(REQUEST);
+                PATH_URL = REQUEST.path;
+                QUERY_URL = REQUEST.originalUrl;
+                ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
                 if (res.headersSent) {
                     return;
                 }
                 const middlewareInitiator = () => {
                     return new ExpressClosure();
                 }
-                const expressResponse = await middleware(middlewareInitiator);
+                const expressResponse = await middleware(request, middlewareInitiator);
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
@@ -234,34 +325,57 @@ class Route {
         return Route;
     }
 
-    static #validateRoute(currentGroup) {
-        if (!Route.#routers[currentGroup]) {
-            Route.#routers[currentGroup] = {};
-            Route.#routers[currentGroup]['middlewares'] = [];
-            // all methods
-            Route.#routers[currentGroup]['get'] = [];
-            Route.#routers[currentGroup]['post'] = [];
-            Route.#routers[currentGroup]['put'] = [];
-            Route.#routers[currentGroup]['delete'] = [];
-            Route.#routers[currentGroup]['patch'] = [];
-            Route.#routers[currentGroup]['options'] = [];
-            Route.#routers[currentGroup]['head'] = [];
-        }
+    static get(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('get', path, callback);
+        return Route;
+    }
+    static post(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('post', path, callback);
+        return Route;
+    }
+    static put(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('put', path, callback);
+        return Route;
+    }
+    static delete(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('delete', path, callback);
+        return Route;
+    }
+    static patch(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('patch', path, callback);
+        return Route;
+    }
+    static options(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('options', path, callback);
+        return Route;
+    }
+    static head(path, handler) {
+        let callback = Route.#handlerProcessor(handler);
+        Route.#processMethods('head', path, callback);
+        return Route;
+    }
+    static view(path, viewName, data) {
+        const buildView = (viewName, data) => view(viewName, data);
+        return Route.get(path, buildView.bind(null, viewName, data));
     }
 
-    constructor() {
-    }
-
+    // instantiated
     reveal() {
         let data = {
             routeValue: Route.#routeValue,
             routers: Route.#routers,
         };
-        this.reset();
+        this.#reset();
         return data;
     }
 
-    reset() {
+    #reset() {
         // Route.#routeId = 0;
         Route.#routeValue = {};
         Route.#owner = 'method';

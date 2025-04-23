@@ -1,8 +1,6 @@
+// functions.d.ts
 import ExpressRedirect from "../http/ExpressRedirect";
 import ExpressResponse from "../http/ExpressResponse";
-
-// functions
-export {};
 
 interface IFetchDataOption {
   method?: string;
@@ -288,4 +286,21 @@ declare global {
 
   /** A function that will determine if it's from a request */
   var isRequest: (url: string) => boolean;
+
+  /**
+   * The base URL of the application.
+   */
+  var BASE_URL: string;
+
+  /**
+   * The URL of the application. Without its base URL and the query string.
+   */
+  var PATH_URL: string;
+
+  /**
+   * The query string of the application.
+   */
+  var QUERY_URL: string;
 }
+
+export {};

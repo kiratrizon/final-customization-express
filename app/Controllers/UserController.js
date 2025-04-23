@@ -1,11 +1,17 @@
 const Controller = require("../../main/base/Controller");
 const Admin = require("../../models/Admin");
 class UserController extends Controller {
-    async index() {
-
-        let admins = this.dataExtract();
-        // admins = Admin.all();
-        return response().json({ admins });
+    async index(request, lang, country, id, test, wew) {
+        console.log('lang', lang)
+        return response().json({
+            routeName: route('hello', {
+                lang,
+                id,
+                country,
+                test,
+                wew
+            })
+        });
     }
 
     dataExtract() {

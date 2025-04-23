@@ -1,4 +1,4 @@
-require('./variables');
+require('./functions-and-variables');
 const path = require('path');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
@@ -10,12 +10,11 @@ const cors = require('cors');
 const { default: helmet } = require('helmet');
 const { createClient } = require('redis');
 const { RedisStore } = require('connect-redis');
-const multer = require('multer');
 const FileHandler = require('../http/ExpressFileHandler');
-const ExpressRequest = require('../http/ExpressRequest');
 const ExpressRedirect = require('../http/ExpressRedirect');
 const ExpressResponse = require('../http/ExpressResponse');
 require('dotenv').config();
+const express = require('express');
 
 const renderData = (data, shouldExit = false, res) => {
 	const tailwindStyles = `
@@ -85,7 +84,7 @@ const renderData = (data, shouldExit = false, res) => {
 };
 
 class Server {
-	static express = require('express');
+	static express = express;
 	static app = Server.express();
 	static #baseUrl = '';
 	static #routes = {};
@@ -95,7 +94,8 @@ class Server {
 		Server.app.use(morgan('dev'));
 		Server.app.use(Server.express.json());
 		Server.app.use(Server.express.urlencoded({ extended: true }));
-		Server.app.use(Server.express.static(path.join(__dirname, '..', 'public')));
+		Server.app.use(Server.express.static(public_path()));
+		Server.app.use('/favicon.ico', Server.express.static(public_path('favicon.ico')));
 		const handleBoot = Server.#handle();
 
 		const appEssentials = [
@@ -123,29 +123,8 @@ class Server {
 				const apiUrl = req.path.startsWith('/api');
 				return apiUrl;
 			}
-			const methodType = req.method.toUpperCase();
 
 			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-			$_POST = req.body || {};
-			$_GET = req.query || {};
-			$_FILES = req.files || {};
-			$_COOKIE = req.cookies || {};
-			const REQUEST = {
-				method: methodType,
-				params: req.params,
-				headers: req.headers,
-				body: req.body,
-				query: req.query,
-				cookies: req.cookies,
-				path: req.path,
-				originalUrl: req.originalUrl,
-				ip: req.ip,
-				protocol: req.protocol,
-				user: req.user || null,
-				files: req.files || null,
-			};
-			// log(REQUEST, 'test', 'request');
-			request = new ExpressRequest(REQUEST);
 			dump = (data) => renderData(data, false, res);
 			dd = (data) => {
 				console.log(data);
@@ -178,43 +157,39 @@ class Server {
 
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			route = (name, args = {}) => {
-				if (Server.#routes.hasOwnProperty(name)) {
-					let route = Server.#routes[name];
-
-					// Validate required parameters
-					const requiredParams = (route.match(/:([^\/\?]+)(?=[\/\?]|$)/g) || []).map(param => param.substring(1));
+				if (Server.#routes.hasOwnProperty(name) && isset(Server.#routes[name])) {
+					let { path, allparams, optional } = Server.#routes[name];
+					const requiredParams = allparams.filter(p => !optional.includes(p));
+					const argsKeys = Object.keys(args);
+					let passed = [];
 					requiredParams.forEach(param => {
-						if (!(param in args) || args[param] === undefined || args[param] === null) {
-							const stack = new Error().stack;
-							const callerLine = stack.split("\n")[4].trim();
-							throw `Missing required parameter "${param}" for route "${name}".\n    ${callerLine}`;
+						if (argsKeys.includes(param)) {
+							passed.push(param);
+							path = path.replace(`:${param}`, args[param]);
 						}
-					});
+					})
+					if (requiredParams.length !== passed.length) {
+						throw `route("${name}") not found. Required parameters are missing. ${requiredParams.join(', ')}`;
+					}
 
-					// Replace placeholders with values from args
-					Object.entries(args).forEach(([key, value]) => {
-						const regexOptional = new RegExp(`:${key}\\?`, "g"); // Match optional parameter
-						const regexRequired = new RegExp(`:${key}`, "g"); // Match required parameter
-
-						if (value !== undefined) {
-							// Replace both required and optional parameters with the value
-							route = route.replace(regexOptional, value).replace(regexRequired, value);
+					optional.forEach(param => {
+						let val = args[param];
+						if (!isset(val) || empty(val)) {
+							val = '';
+							path = path.replace(`/:${param}`, val);
 						} else {
-							// Remove optional parameters if no value is provided
-							route = route.replace(regexOptional, "");
+							path = path.replace(`:${param}`, val);
 						}
-					});
+					})
 
-					// Remove leftover optional placeholders (e.g., /user/:id?)
-					route = route.replace(/\/:[^\/]+\?/g, "");
-
-					return `${Server.#baseUrl}${route}`;
+					return `${Server.#baseUrl}${path}`;
 				}
 
 				const stack = new Error().stack;
 				const caller = stack.split("\n")[2].trim();
 				throw `route("${name}") not found.\n${caller}`;
 			};
+
 			// req.flash('hello', 'world');
 			functionDesigner('redirect', (url = null) => {
 				const instance = new ExpressRedirect(url);
@@ -237,9 +212,6 @@ class Server {
 
 
 			BASE_URL = Server.#baseUrl;
-			PATH_URL = REQUEST.path;
-			QUERY_URL = REQUEST.originalUrl;
-			ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
 			next();
 		});
 
@@ -285,9 +257,13 @@ class Server {
 	}
 
 	static #duplicateRoutesDetector(obj1, obj2) {
-		const duplicates = Object.keys(obj2).filter(key => obj1.hasOwnProperty(key));
-		if (duplicates.length > 0) {
-			throw new Error(`Duplicate routes detected: ${duplicates.join(', ')}`);
+		// prioritize the first object
+		const duplicateKeys = Object.keys(obj1).filter(key => obj2.hasOwnProperty(key));
+		if (duplicateKeys.length > 0) {
+			duplicateKeys.forEach(key => {
+				console.warn(`Duplicate route detected: "${key}". The route from the second object will be ignored.`);
+			});
+			obj2 = except(obj2, duplicateKeys);
 		}
 		Server.#routes = { ...obj1, ...obj2 };
 	}
@@ -322,34 +298,64 @@ class Server {
 		jsFiles.forEach(file => {
 			// set prefix
 			const fileName = file.replace('.js', '');
-			const routePrefix = fileName === 'web' ? '/' : `/${fileName}`;
+			const routePrefix = fileName === 'web' ? '' : `/${fileName}`;
 			const filePath = path.join(routesDir, file);
 			const RouteClass = require(filePath);
 			const instance = new RouteClass();
 			let data = instance.reveal();
+			const allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
 			if (data) {
 				if (!empty(data.routers) && !empty(data.routeValue)) {
 					let routers = data.routers;
 					let routeValue = data.routeValue;
-					console.log(routers, routeValue);
-					if (!empty(routers.application_default)) {
-						const defaultRoutes = routers.application_default;
-						const { middlewares } = defaultRoutes;
-						const loadRouter = Server.express.Router();
-						const appRouter = Server.express.Router();
-						// allowed methods
-						const allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
-						allowedMethods.forEach(method => {
-							// loop through default routes
-							defaultRoutes[method].forEach(routeId => {
-								const { path, internal_middlewares, newCallback } = routeValue[routeId];
-								loadRouter[method](path, ...internal_middlewares, newCallback);
+					// console.log('routers', routers);
+					// console.log('routeValue', routeValue);
+					const routeKeys = Object.keys(routers);
+					routeKeys.forEach(rk => {
+						const routerPrefix = rk.replace(/\/\*\d+\*/g, '') || '/';
+						if (!empty(routers[rk])) {
+							const loadRouter = Server.express.Router({ mergeParams: true });
+							const appRouter = Server.express.Router();
+							const loadedRoute = routers[rk];
+							const { middlewares } = loadedRoute;
+							const storedRouteNames = {};
+							allowedMethods.forEach(method => {
+								if (loadedRoute[method]) {
+									loadedRoute[method].forEach(routeId => {
+										const { path, internal_middlewares, newCallback, as } = routeValue[routeId];
+										if (isset(as)) {
+											if (storedRouteNames[as]) {
+												console.warn(`Duplicate route name detected: "${as}". The route will be ignored.`);
+											} else {
+												const localPath = `${routePrefix}${['/', '{'].includes(routerPrefix[0]) ? '' : '/'}${routerPrefix}${path}`.replace(/\/{2,}/g, '/');
+												storedRouteNames[as] = {};
+												storedRouteNames[as]['allparams'] = [];
+												storedRouteNames[as]['optional'] = [];
+												const requiredParamRegex = /:([\w-]+)/g;
+												const optionalParamRegex = /{\s*\/?:([\w-]+)\??\s*}/g;
 
+												let match;
+												while ((match = requiredParamRegex.exec(localPath)) !== null) {
+													storedRouteNames[as]['allparams'].push(match[1]);
+												}
+
+												while ((match = optionalParamRegex.exec(localPath)) !== null) {
+													storedRouteNames[as]['optional'].push(match[1]);
+												}
+
+												storedRouteNames[as]['path'] = `${localPath}`.replace(/{/g, '').replace(/}/g, '').replace(/\/{2,}/g, '/');
+											}
+										}
+										// console.log(path)
+										loadRouter[method](path, ...internal_middlewares, newCallback);
+									});
+								}
 							});
-						});
-						appRouter.use('/', ...middlewares, loadRouter);
-						Server.app.use(routePrefix, appRouter);
-					}
+							appRouter.use(routerPrefix, ...middlewares, loadRouter);
+							Server.app.use(routePrefix, appRouter);
+							Server.#duplicateRoutesDetector(Server.#routes, storedRouteNames);
+						}
+					});
 				}
 			}
 		})
@@ -361,8 +367,11 @@ class Server {
 
 Server.boot();
 
-// Server.app.get('/testtroy/:id?', (req, res) => {
+// const r = Server.express.Router();
+// r.get('/test', (req, res) => {
+// 	console.log(req.params);
 // 	res.send('Hello World');
 // });
+// Server.app.use('{/:id}', r);
 
 module.exports = Server.app;

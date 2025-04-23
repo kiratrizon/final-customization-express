@@ -1,4 +1,4 @@
-const app = require('../../../lara-express');
+const app = require('../../../index');
 
 const PORT = env('PORT', 3000);
 

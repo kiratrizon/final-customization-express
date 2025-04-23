@@ -1,10 +1,8 @@
 const UserController = require('../app/Controllers/UserController');
 const Route = require('../main/express/server/Router/Route');
 
-Route.group({ prefix: "", middleware: "hello", as: "hello" }, () => {
-    Route.group({ prefix: "", middleware: "hello", as: "hello" }, () => {
-        Route.get('/', [UserController, 'index']).name('index').middleware('test');
-    });
+Route.view('/', 'login', {
+    title: 'Home',
+    description: 'Welcome to the home page'
 });
-Route.get('/', [UserController, 'index']).middleware('test');
 module.exports = Route;
