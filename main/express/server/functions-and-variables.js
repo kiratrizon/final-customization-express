@@ -273,7 +273,8 @@ functionDesigner('view', (viewName, data = {}) => {
         return 'test';
     }
     const newView = new ExpressView(data);
-    return newView.element(viewName);
+    const rendered = newView.element(viewName);
+    return newView.view(rendered);
 });
 
 define('FRAMEWORK_VERSION', require(path.join(base_path(), 'version')));

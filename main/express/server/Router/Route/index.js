@@ -3,6 +3,7 @@ const ExpressRedirect = require('../../../http/ExpressRedirect');
 const ExpressResponse = require('../../../http/ExpressResponse');
 const ExpressClosure = require('../../../http/ExpressClosure');
 const ExpressRequest = require('../../../http/ExpressRequest');
+const ExpressView = require('../../../http/ExpressView');
 
 
 const path = require("path");
@@ -67,7 +68,7 @@ class Route {
                 })
                 console.log(params);
                 const expressResponse = await callback(request, ...Object.values(params));
-                if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect)) {
+                if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
@@ -82,6 +83,15 @@ class Route {
                     } else if (expressResponse instanceof ExpressRedirect) {
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);
+                    } else if (expressResponse instanceof ExpressView) {
+                        res.status(200);
+                        res.set('Content-Type', 'text/html');
+                        const rendered = expressResponse.getRendered();
+                        if (rendered) {
+                            res.send(rendered);
+                        } else {
+                            res.send(html);
+                        }
                     }
                 }
                 else {
@@ -269,7 +279,7 @@ class Route {
                     return new ExpressClosure();
                 }
                 const expressResponse = await middleware(request, middlewareInitiator);
-                if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure)) {
+                if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
@@ -287,6 +297,15 @@ class Route {
                     } else if (expressResponse instanceof ExpressClosure) {
                         if (expressResponse.next) {
                             next();
+                        }
+                    } else if (expressResponse instanceof ExpressView) {
+                        res.status(200);
+                        res.set('Content-Type', 'text/html');
+                        const rendered = expressResponse.getRendered();
+                        if (rendered) {
+                            res.send(rendered);
+                        } else {
+                            res.send(html);
                         }
                     }
                 }

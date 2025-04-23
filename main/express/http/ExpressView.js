@@ -5,6 +5,7 @@ class ExpressView {
     #viewEngine;
     #data;
     #engine;
+    #rendered;
     constructor(data = {}) {
         const engine = config('view.defaultViewEngine') || 'ejs';
         this.#engine = engine;
@@ -25,7 +26,18 @@ class ExpressView {
         const rawHtml = fs.readFileSync(templatePath, "utf-8")
         const rendered = this.#viewEngine.render(rawHtml, this.#data);
         return rendered;
+    }
 
+    view(rendered) {
+        this.#rendered = rendered;
+        return this;
+    }
+
+    getRendered() {
+        if (this.#rendered) {
+            return this.#rendered;
+        }
+        return null;
     }
 }
 
