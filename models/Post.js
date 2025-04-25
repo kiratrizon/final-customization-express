@@ -1,7 +1,7 @@
 const Model = require("../main/base/Model");
 
 class Post extends Model {
-    // static factory = true;
+    static factory = true;
     fillable = [
 
     ];

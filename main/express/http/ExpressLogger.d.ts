@@ -18,4 +18,4 @@ declare class Logger {
   static log(value: any, destination: string, text?: string): void;
 }
 
-export default Logger;
+export = Logger;

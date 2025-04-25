@@ -15,72 +15,32 @@ const ExpressRedirect = require('../http/ExpressRedirect');
 const ExpressResponse = require('../http/ExpressResponse');
 require('dotenv').config();
 const express = require('express');
+const ExpressView = require('../http/ExpressView');
+const util = require('util');
 
-const renderData = (data, shouldExit = false, res) => {
-	const tailwindStyles = `
-        <style>
-            div.debug { font-family: sans-serif; padding: 2rem; background-color: #f7fafc; }
-            pre { background-color: #000030; padding: 1rem; border-radius: 0.5rem; }
-            .data-type-wrapper {
-                display: inline-block;
-                max-width: 100%;
-                overflow-wrap: break-word;
-                word-wrap: break-word;
-                word-break: break-word;
-                white-space: pre-wrap;
-            }
-            .scrollable {
-                max-width: 100%;
-                overflow-x: auto;
-            }
-            .string { color: #48bb78; } /* Green for strings */
-            .number { color: #ed8936; } /* Orange for numbers */
-            .boolean { color: #3182ce; } /* Blue for booleans */
-            .object-key { color: #a0aec0; font-weight: bold; } /* Gray for object keys */
-            .object-value { color: #2d3748; }
-            .array { color: #805ad5; } /* Purple for arrays */
-            .null { color: #9b2c2c; } /* Red for null */
-            .undefined { color: #ed8936; } /* Orange for undefined */
-            .indentation { padding-left: 20px; }
-        </style>
-    `;
+const renderData = (data, shouldExit = true, res, dumped = false) => {
+	const html = `
+		<style>
+			body { background: #f8fafc; color: #1a202c; font-family: sans-serif; padding: 2rem; }
+			pre { background: #1a202c; color: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; font-size: 14px; overflow-x: auto; }
+			code { white-space: pre-wrap; word-break: break-word; }
+		</style>
+		<pre><code>${util.inspect(data, { colors: false, depth: null })}</code></pre>
+	`;
 
-	const recursiveRender = (value, level = 0) => {
-		const indentClass = `indentation level-${level}`;
-		if (Array.isArray(value)) {
-			return `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
-		} else if (value === null) {
-			return `<div class="null ${indentClass}">null</div>`;
-		} else if (typeof value === 'object') {
-			return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) =>
-				`<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(val, level + 1)}</span></div>`
-			).join('')}</div>`;
-		} else if (typeof value === 'string') {
-			return `<div class="string ${indentClass}">"${value}"</div>`;
-		} else if (typeof value === 'number') {
-			return `<div class="number ${indentClass}">${value}</div>`;
-		} else if (typeof value === 'boolean') {
-			return `<div class="boolean ${indentClass}">${value}</div>`;
-		} else if (typeof value === 'undefined') {
-			return `<div class="undefined ${indentClass}">undefined</div>`;
-		}
-	};
-
-	const htmlContent = `
-        ${tailwindStyles}
-        <div class="debug">
-            <pre class="data-type-wrapper">${recursiveRender(data)}</pre>
-        </div>
-    `;
-
-	// Send HTML if shouldExit is false
-	if (res) {
-		res.set('Content-Type', 'text/html');
-		res.send(htmlContent);
+	if (dumped) {
+		res.responses.push(html);
+		return;
 	}
 
-	// End response if shouldExit is true
-	if (shouldExit) res.end();
+	if (res) {
+		res.setHeader('Content-Type', 'text/html');
+		res.send(html);
+		if (shouldExit) res.end();
+	} else {
+		console.log(util.inspect(data, { colors: true, depth: null }));
+		if (shouldExit) process.exit(1);
+	}
 };
 
 class Server {
@@ -125,9 +85,9 @@ class Server {
 			}
 
 			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-			dump = (data) => renderData(data, false, res);
+			res.responses = [];
+			dump = (data) => renderData(data, false, res, true);
 			dd = (data) => {
-				console.log(data);
 				renderData(data, true, res);
 			};
 			res.locals['dump'] = (data) => renderData(data);
@@ -270,16 +230,21 @@ class Server {
 
 	static #finishBoot() {
 		if (typeof Boot['notFound'] === 'function') {
-			Server.app.use((req, res) => {
-				const expressResponse = Boot['notFound']();
-				if (expressResponse instanceof ExpressResponse) {
-					const { html, statusCode, headers, json, returnType } = expressResponse.accessData();
-					res.status(statusCode);
-					res.set(headers);
-					if (returnType == 'html') {
-						res.send(html);
-					} else if (returnType == 'json') {
-						res.json(json);
+			Server.app.use(async (req, res) => {
+				const expressResponse = await Boot['notFound']();
+				if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
+					if (expressResponse instanceof ExpressResponse) {
+						const { html, statusCode, json, headers, returnType } = expressResponse.accessData();
+						if (returnType === 'json') {
+							res.status(statusCode).set(headers).json(json);
+						} else if (returnType === 'html') {
+							res.status(statusCode).set(headers).send(html);
+						}
+					} else if (expressResponse instanceof ExpressView) {
+						const htmlResponse = expressResponse.getRendered();
+						res.status(404).set({
+							'Content-Type': 'text/html',
+						}).send(htmlResponse);
 					}
 				} else if (expressResponse !== undefined) {
 					res.status(404).set({

@@ -23,4 +23,4 @@ declare class ExpressHeader {
   all(): Record<string, any>;
 }
 
-export default ExpressHeader;
+export = ExpressHeader;

@@ -5,11 +5,11 @@ const PostFactory = require("../factories/PostFactory");
 
 class DatabaseSeeder extends Seeder {
 
-    run() {
-        let userData = UserFactory.create(20);
-        let adminData = AdminFactory.create(20);
-        // DB.statement("TRUNCATE TABLE posts");
-        let postsData = PostFactory.create(200);
+    async run() {
+        // let userData = await UserFactory.create(20);
+        // let adminData = await AdminFactory.create(20);
+        // // DB.statement("TRUNCATE TABLE posts");
+        // let postsData = await PostFactory.create(200);
     }
 }
 

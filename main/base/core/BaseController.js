@@ -2,7 +2,7 @@ const LoadModel = require("../../../libraries/Materials/LoadModel");
 const ConstructorController = require("./ConstructorController");
 class BaseController extends ConstructorController {
     loadModel(models) {
-        if (Array.isArray(models)) {
+        if (is_array(models)) {
             models.forEach((modelName) => {
                 const ModelClass = LoadModel.init(modelName);
                 if (!this[modelName]) {
@@ -11,6 +11,13 @@ class BaseController extends ConstructorController {
                     console.warn(`Model ${modelName} is already loaded`);
                 }
             });
+        } else if (is_string(models)) {
+            const ModelClass = LoadModel.init(models);
+            if (!this[models]) {
+                this[models] = ModelClass;
+            } else {
+                console.warn(`Model ${models} is already loaded`);
+            }
         }
     }
 }

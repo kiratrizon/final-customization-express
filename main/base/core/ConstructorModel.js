@@ -1,35 +1,13 @@
 class ConstructorModel {
-    // all instantiated methods here
-    #identifier;
-    #primaryValue = null;
     #privates = {};
-    #hiddens = {};
-    setIdentifier(identifier) {
-        this.#identifier = identifier;
-        if (identifier) {
-            this.#primaryValue = this[this.#identifier];
-        }
+    makeVisible(key) {
+        this[key] = this.#privates[key];
     }
-    getIdentifier() {
-        return this.#identifier;
+    makeHidden(key) {
+        delete this[key];
     }
-    getPrimaryValue() {
-        return this.#primaryValue;
-    }
-    setPrivates(data = {}, hiddens = {}) {
-        this.#privates = Object.assign(this.#privates, data);
-        this.#hiddens = Object.assign(this.#hiddens, hiddens);
-    }
-
-    getPrivates() {
-        return this.#privates;
-    }
-    getHiddens() {
-        return this.#hiddens;
-    }
-
-    getProtected(key) {
-        return this.#hiddens[key];
+    setHidden(data) {
+        this.#privates = { ...this.#privates, ...data };
     }
 }
 

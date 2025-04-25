@@ -5,11 +5,14 @@ const DatabaseConnection = require('./Manager/DatabaseManager');
 class MigrationRunner {
     constructor() {
         this.migrationsPath = path.join(__dirname, '..', 'database', 'migrations');
+        console.log(this.migrationsPath);
         this.db = new DatabaseConnection();
     }
 
-    run() {
+    async run() {
         const migrationFiles = this.getMigrationFiles();
+        console.log(migrationFiles);
+
         let count = 0;
         // Use Promise.all to wait for all migrations to complete
         for (let i = 0; i < migrationFiles.length; i++) {
@@ -21,7 +24,7 @@ class MigrationRunner {
 
             try {
                 // Assuming makeMigration is a method that returns a promise
-                const success = this.db.makeMigration(query, migrationName);
+                const success = await this.db.makeMigration(query, migrationName);
                 if (success) {
                     count++;
                 }
@@ -39,9 +42,9 @@ class MigrationRunner {
     }
 
 
-    migrateInit() {
+    async migrateInit() {
         let migrationsTableQuery = '';
-        if (env('DATABASE') === 'mysql') {
+        if (config('app.database.database') === 'mysql') {
             migrationsTableQuery = `
                 CREATE TABLE IF NOT EXISTS migrations (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,7 +52,7 @@ class MigrationRunner {
                     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             `;
-        } else if (env('DATABASE') === 'sqlite') {
+        } else if (config('app.database.database') === 'sqlite') {
             migrationsTableQuery = `
                 CREATE TABLE IF NOT EXISTS migrations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,68 +62,67 @@ class MigrationRunner {
             `;
         }
 
-        this.db.runQuery(migrationsTableQuery);
+        await this.db.runQuery(migrationsTableQuery);
     }
 
-    rollback() {
+    async rollback() {
         const migrationFiles = this.getMigrationFiles();
 
-        migrationFiles.map((file) => {
+        migrationFiles.map(async (file) => {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
 
-            this.db.makeMigration(query, migrationName, true);
+            await this.db.makeMigration(query, migrationName, true);
         });
         console.log('Rolled back successfully.');
 
-        this.run();
+        await this.run();
     }
 
-    dropAllTables() {
+    async dropAllTables() {
         let sql;
         const params = [];
 
-        if (env('DATABASE') === 'mysql') {
-            sql = `SELECT TABLE_NAME AS \`table\`
+        if (config('app.database.database') === 'mysql') {
+            sql = `SELECT TABLE_NAME AS name
                 FROM INFORMATION_SCHEMA.TABLES
                 WHERE TABLE_SCHEMA = ?
                 AND TABLE_NAME != 'migrations'`;
             let schema = config('app.database.mysql.database');
             params.push(schema);
-        } else if (env('DATABASE') === 'sqlite') {
-            sql = 'SELECT name AS table FROM sqlite_master WHERE type = "table" AND table NOT LIKE "sqlite_%"';
+        } else if (config('app.database.database') === 'sqlite') {
+            sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
         }
 
 
-        const tables = this.db.runQuery(sql, params);
+        const tables = await this.db.runQuery(sql, params);
 
         if (!tables.length) {
             console.log('No tables to drop.');
-            return;
         }
 
         // Disable foreign key constraints for SQLite
-        if (env('DATABASE') === 'sqlite') {
-            this.db.runQuery('PRAGMA foreign_keys = OFF');
+        if (config('app.database.database') === 'sqlite') {
+            await this.db.runQuery('PRAGMA foreign_keys = OFF');
         }
 
-        tables.map((table) => {
-            const dropTableQuery = `DROP TABLE IF EXISTS ${table.table};`;
-            this.db.runQuery(dropTableQuery);
+        tables.map(async (table) => {
+            const dropTableQuery = `DROP TABLE IF EXISTS ${table.name};`;
+            await this.db.runQuery(dropTableQuery);
         })
 
         // Re-enable foreign key constraints for SQLite
-        if (env('DATABASE') === 'sqlite') {
-            this.db.runQuery('PRAGMA foreign_keys = ON');
+        if (config('app.database.database') === 'sqlite') {
+            await this.db.runQuery('PRAGMA foreign_keys = ON');
         }
 
-        this.db.runQuery("DELETE FROM migrations");
+        await this.db.runQuery("DELETE FROM migrations");
 
         console.log('All tables dropped successfully.');
 
-        this.run();
+        await this.run();
     }
 
     getMigrationFiles() {

@@ -450,11 +450,13 @@ globalThis.route = null;
 globalThis.$_SERVER = {};
 globalThis.setcookie = null;
 
+define('request', {});
+
 /** Placeholder for a function that will dump variable contents for debugging. */
-globalThis.dump = null;
+define('dump', () => { });
 
 /** Placeholder for a function that will dump variable contents and terminate execution. */
-globalThis.dd = null;
+define('dd', () => { });
 
 define('BASE_URL', '');
 define('PATH_URL', '');

@@ -1,10 +1,10 @@
 const { faker } = require('@faker-js/faker');
-const QueryBuilder = require('../../libraries/Materials/QueryBuilder');
+const QueryBuilder = require('../../main/database/Manager/QueryBuilder');
 
 class Factory {
     faker = faker;
 
-    static create(c = 1) {
+    static async create(c = 1) {
         const factory = new this();
         const model = factory.model;
         if (!model.factory) {
@@ -21,12 +21,12 @@ class Factory {
                 console.log(data);
                 createdData.push(data);
             }
-            model.insert(createdData);
-            const getInsertedAgain = model.orderBy('id', 'desc').limit(count).get();
-            getInsertedAgain.forEach((e) => {
-                const modelData = new QueryBuilder(model);
-                allData.unshift(modelData.factoryFind(e));
-            });
+            await model.insert(createdData);
+            const getInsertedAgain = await model.orderBy('id', 'desc').limit(count).get();
+            // getInsertedAgain.forEach((e) => {
+            //     const modelData = new QueryBuilder(model);
+            //     allData.unshift(modelData.factoryFind(e));
+            // });
         }
         console.log('Inserted', c, 'records');
         return allData;

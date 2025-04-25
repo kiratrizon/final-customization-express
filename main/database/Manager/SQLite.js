@@ -2,7 +2,7 @@ const sqlite3 = require('better-sqlite3');
 const path = require('path');
 
 // Your path to the SQLite database file
-const dbPath = path.join(__dirname, '..', 'database.db');
+const dbPath = path.join(__dirname, '..', 'database.sqlite');
 
 class SQLite {
     constructor() {
@@ -47,7 +47,7 @@ class SQLite {
                 resolve(data); // Return the result via resolve
             } catch (err) {
                 console.log('SQLite Query Error:', err);
-                reject(false); // Reject if an error occurs
+                resolve(null); // Reject if an error occurs
             }
         });
     }
@@ -69,11 +69,6 @@ class SQLite {
         return value;
     }
 
-    close() {
-        if (this.db) {
-            this.db.close();
-        }
-    }
 }
 
 module.exports = SQLite;

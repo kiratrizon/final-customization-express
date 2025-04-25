@@ -97,7 +97,6 @@ class Route {
                         return;
                     }
                     expressResponse = instanced[action](...Object.values(request.request.params));
-                    console.log(expressResponse);
                 } else {
                     if (res.headersSent) {
                         return;
@@ -107,7 +106,6 @@ class Route {
 
                 if (typeof expressResponse == 'object' || Array.isArray(expressResponse)) {
                     if (expressResponse instanceof ExpressResponse) {
-                        console.log('hello')
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
                             res.status(statusCode);
@@ -121,7 +119,6 @@ class Route {
                             return;
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {
-                        console.log('hello')
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);
                         return;
@@ -212,7 +209,6 @@ class Route {
                             res.json(json);
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {
-                        console.log('hello')
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);
                     } else {

@@ -44,14 +44,10 @@ class Route {
                     protocol: req.protocol,
                     files: $_FILES,
                 };
-                console.log(REQUEST)
-                const request = new ExpressRequest(REQUEST);
+                const rq = new ExpressRequest(REQUEST);
                 PATH_URL = REQUEST.path;
                 QUERY_URL = REQUEST.originalUrl;
                 ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
-                if (res.headersSent) {
-                    return;
-                }
                 const regex = /{\/?:([\w-]+)\??}|:(\w+)/g;
 
                 const keys = [];
@@ -64,17 +60,22 @@ class Route {
 
                 const params = {};
                 keys.forEach((key) => {
-                    params[key] = request.request.params[key] || null;
+                    params[key] = rq.request.params[key] || null;
                 })
-                console.log(params);
-                const expressResponse = await callback(request, ...Object.values(params));
+                const expressResponse = await callback(rq, ...Object.values(params));
+                const responsesOfRes = res.responses;
+                // console.log(responsesOfRes);
+                if (res.headersSent) {
+                    return;
+                }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
-                            res.status(statusCode);
+                            responsesOfRes.push(html);
+                            res.status(statusCode || 200);
                             res.set(headers);
-                            res.send(html);
+                            res.send(responsesOfRes.join(''));
                         } else if (returnType === 'json') {
                             res.status(statusCode);
                             res.set(headers);
@@ -87,10 +88,11 @@ class Route {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
                         const rendered = expressResponse.getRendered();
+                        responsesOfRes.push(rendered);
                         if (rendered) {
-                            res.send(rendered);
+                            res.send(responsesOfRes.join(''));
                         } else {
-                            res.send(html);
+                            res.send(null);
                         }
                     }
                 }
@@ -101,7 +103,8 @@ class Route {
                         res.json(expressResponse);
                     }
                     else {
-                        res.send(expressResponse);
+                        responsesOfRes.push(expressResponse);
+                        res.send(responsesOfRes.join(''));
                     }
                 }
                 return;
@@ -268,17 +271,24 @@ class Route {
                     protocol: req.protocol,
                     files: $_FILES,
                 };
-                const request = new ExpressRequest(REQUEST);
+                const rq = new ExpressRequest(REQUEST);
                 PATH_URL = REQUEST.path;
                 QUERY_URL = REQUEST.originalUrl;
                 ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
-                if (res.headersSent) {
-                    return;
-                }
                 const middlewareInitiator = () => {
                     return new ExpressClosure();
                 }
-                const expressResponse = await middleware(request, middlewareInitiator);
+                request = (getInput = '') => {
+                    if (!is_string(getInput)) {
+                        return rq;
+                    } else {
+                        return rq.input(getInput);
+                    }
+                }
+                const expressResponse = await middleware(rq, middlewareInitiator);
+                if (res.headersSent) {
+                    return;
+                }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();

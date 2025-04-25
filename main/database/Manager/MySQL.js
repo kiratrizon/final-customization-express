@@ -2,7 +2,6 @@ const mysql = require('mysql2');
 
 class MySQL {
     config = null;
-
     constructor() {
         this.config = config('app.database.mysql');
     }
@@ -19,7 +18,7 @@ class MySQL {
                 if (err) {
                     console.log('MySQL Query Error:', err);
                     connection.end();
-                    return reject(false);
+                    return resolve(null);
                 }
 
                 switch (queryType) {
@@ -52,7 +51,6 @@ class MySQL {
     escape(value) {
         return mysql.escape(value);
     }
-
 }
 
 module.exports = MySQL;

@@ -135,7 +135,7 @@ declare global {
    * @param {string} logName - The name of the log file (without extension).
    * @returns {void}
    */
-  var log: (value: unknown, destination: string, type: string) => void;
+  var log: (variable: unknown, logName: string, type: string) => void;
 
   /**
    * Generates a table name based on the given model name.
@@ -255,16 +255,19 @@ declare global {
 
   /**
    * Performs an HTTP request to the specified URL with customizable options.
-   * Returns a tuple: [response, error], where either one may be `null`.
+   * Returns a tuple: [error, response], where either one may be `null`.
    *
    * Usage:
-   *   const [data, error] = fetchData('https://api.example.com', { method: 'GET' });
+   *   const [error, data] = fetchData('https://api.example.com', { method: 'GET' });
    *
    * @param url - The endpoint to request.
    * @param options - Optional configuration for the request (method, headers, body, etc.).
-   * @returns A tuple containing the response or an error.
+   * @returns A tuple containing the Promise<[error, data]>.
    */
-  var fetchData: (url: string, options?: IFetchDataOption) => [any, any];
+  var fetchData: (
+    url: string,
+    options?: IFetchDataOption
+  ) => Promise<[any, any]>;
 
   /**
    * Instantiates a new ExpressResponse object.

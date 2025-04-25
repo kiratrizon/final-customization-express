@@ -1,10 +1,11 @@
-const { loopWhile } = require('deasync');
 const ExternalQuery = require('./ExternalQuery');
+const mysql = require('mysql2'); // for query tracing
 
 let allowedDatabases = ['mysql', 'sqlite'];
 const databases = {
     "mysql": require('./MySQL'),
     "sqlite": require('./SQLite'),
+    "postgresql": require('./Postgresql'),
 };
 
 class DatabaseManager {
@@ -12,61 +13,46 @@ class DatabaseManager {
     #selectedDB;
     #databaseServer;
     constructor() {
-        let databaseType = config('app.database.type');
-        if (!allowedDatabases.includes(databaseType)) {
-            databaseType = 'sqlite';
-        }
+        let databaseType = config('app.database.database') || 'sqlite';
         this.#selectedDB = databases[databaseType];
     }
 
     // This is for artisan/CLI usage only — not for HTTP requests
-    runQuery(sql, params = []) {
+    async runQuery(sql, params = []) {
         this.init(); // init DB
-        let done = false;
-        let data = null;
-        let error = null;
 
-        console.log(sql, params);
-        this.#databaseServer.query(sql, params).then((result) => {
-            data = result;
-            done = true;
-            if (typeof this.#databaseServer.close === 'function') {
-                this.#databaseServer.close();
-            }
-        }).catch((err) => {
-            error = err;
-            done = true;
-            if (typeof this.#databaseServer.close === 'function') {
-                this.#databaseServer.close();
-            }
-        });
-
-        loopWhile(() => !done, 100);
-        
-        if (error) {
-            console.error('Database Error:', error);
-            return null; // or throw, depending on your use case
+        if (config('app.database.database') === 'postgresql') {
+            // replace all '?' with $1 $2 $3 ...
+            // count first if how many '?' are in the sql
+            let paramIndex = 1;
+            sql = sql.replace(/\?/g, () => `$${paramIndex++}`);
         }
+        if (config('query_trace')) {
+            // console.log(sql, params);
+            log(this.getQueryTrace(sql, params), 'query_trace', 'Query Trace:');
+        }
+        let data = await this.#databaseServer.query(sql, params);
+
         return data;
     }
 
-    runQueryNoReturn(sql, params = []) {
-        this.runQuery(sql, params);
+    async runQueryNoReturn(sql, params = []) {
+        await this.runQuery(sql, params);
     }
 
-    makeMigration(query, filename, rollback = false) {
+    async makeMigration(query, filename, rollback = false) {
         if (rollback) {
-            this.runQuery(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
-            this.runQuery(query);
+            await this.runQuery(`DELETE FROM migrations WHERE migration_name = ?`, [filename]);
+            await this.runQuery(query);
             return;
         }
         try {
-            let fileNameChecker = this.runQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
+            let fileNameChecker = await this.runQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
             if (fileNameChecker.length === 0) {
-                const migrationResult = this.runQuery(query);
+                const migrationResult = await this.runQuery(query);
 
                 if (migrationResult) {
-                    const inserted = this.runQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
+                    const inserted = await this.runQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
                     if (inserted) {
                         console.log(`Migration "${filename}" applied successfully.`);
                         return true;
@@ -90,9 +76,9 @@ class DatabaseManager {
         }
     }
 
-    searchPrimaryName(modelName) {
+    async searchPrimaryName(modelName) {
         const string = ExternalQuery.queryGetPrimaryName(modelName);
-        const data = this.runQuery(string);
+        const data = await this.runQuery(string);
         if (data.length) {
             return data[0].name;
         }
@@ -102,6 +88,10 @@ class DatabaseManager {
     escape(value) {
         this.init();
         return this.#databaseServer.escape(value);
+    }
+
+    getQueryTrace(query, params = []) {
+        return mysql.format(query, params);
     }
 }
 

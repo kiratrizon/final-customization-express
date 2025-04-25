@@ -1,6 +1,7 @@
-const QueryBuilder = require("../../../libraries/Materials/QueryBuilder");
+const QueryBuilder = require("../../../main/database/Manager/QueryBuilder");
 const RawSqlExecutor = require("../../../libraries/Materials/RawSqlExecutor");
 const ConstructorModel = require("./ConstructorModel");
+const Collection = require("../../database/Manager/Collection");
 
 class BaseModel extends ConstructorModel {
     fillable = [];
@@ -12,19 +13,21 @@ class BaseModel extends ConstructorModel {
         return builder.create(data);
     }
 
-    static find(id) {
+    static async find(id) {
         const builder = new QueryBuilder(this);
-        return builder.find(id);
+        builder.where('id', id);
+        return await builder.first();
     }
 
-    static findByEmail(email) {
+    static async all() {
         const builder = new QueryBuilder(this);
-        return builder.findByEmail(email);
+        return await builder.get();
     }
 
-    static all() {
+    static async whereFirst(column, value) {
         const builder = new QueryBuilder(this);
-        return builder.all();
+        builder.where(column, value)
+        return await builder.first();
     }
 
     static where(...args) {
@@ -78,14 +81,8 @@ class BaseModel extends ConstructorModel {
         return null;
     }
 
-    static query(...args) {
-        const builder = new QueryBuilder(this);
-        return builder.query(...args);
-    }
-
-    static findByKey(key, value) {
-        const builder = new QueryBuilder(this);
-        return builder.findByKey(key, value);
+    static query() {
+        return new QueryBuilder(this);
     }
 
     static select(...args) {

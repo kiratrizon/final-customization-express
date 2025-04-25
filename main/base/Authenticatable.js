@@ -3,19 +3,19 @@ const Hash = require("../../libraries/Services/Hash");
 
 class Authenticatable extends Model {
     static authenticatableClass = true;
-    static create(data) {
-        data['password'] = Hash.make(data['password']);
-        delete data['password_confirmation'];
-        return super.create(data);
+
+    static username() {
+        return 'email'; // Default username field for authentication
     }
-    getAuthIdentifier() {
-        return this.getAuthIdentifierName() ? this[this.getAuthIdentifierName()] : null;
+
+    static validateEmail(email) {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
     }
-    getAuthPassword() {
-        return super.getProtected('password');
-    }
-    getAuthIdentifierName() {
-        return super.getIdentifier();
+
+    static validatePhoneNumber(phone) {
+        const phoneRegex = /^\d{10}$/;
+        return phoneRegex.test(phone);
     }
 }
 

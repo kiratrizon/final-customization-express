@@ -1,5 +1,5 @@
 const Carbon = require("../../../libraries/Materials/Carbon");
-const DB = require("../../../libraries/Materials/DB");
+const DB = require("../../../main/database/Manager/DB");
 const Hash = require("../../../libraries/Services/Hash");
 const crypto = require('crypto');
 const defaultGuard = config('auth.default.guard');

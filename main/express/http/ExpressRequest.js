@@ -8,17 +8,17 @@ class ExpressRequest {
     header;
     route;
     constructor(rq = {}) {
-        this.#post = rq.body ?? {};
-        this.#get = rq.query ?? {};
-        this.#files = rq.files ?? {};
+        this.#post = rq.body || {};
+        this.#get = rq.query || {};
+        this.#files = rq.files || {};
         this.request = rq;
-        this.headers = new ExpressHeader(rq.headers ?? {});
+        this.headers = new ExpressHeader(rq.headers || {});
         this.header = function (key = '') {
             if (key === '') return this.headers.all();
-            return this.headers.all()[key] ?? null;
+            return this.headers.all()[key] || null;
         }
         this.route = function (key) {
-            return this.request['params'][key] ?? null;
+            return this.request['params'][key] || null;
         }
     }
     query(key = '') {
