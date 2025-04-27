@@ -11,7 +11,6 @@ class MigrationRunner {
 
     async run() {
         const migrationFiles = this.getMigrationFiles();
-        console.log(migrationFiles);
 
         let count = 0;
         // Use Promise.all to wait for all migrations to complete
@@ -29,6 +28,7 @@ class MigrationRunner {
                     count++;
                 }
             } catch (error) {
+                console.log(query);
                 console.error(`Error processing migration ${migrationName}:`, error);
             }
         }

@@ -60,7 +60,7 @@ class Generator {
     #writeFile(filePath, content) {
         const dir = path.dirname(filePath);
         if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
+            fs.mkdirSync(dir, { recursive: !0 });
         }
         fs.writeFileSync(filePath, content);
     }
@@ -138,7 +138,7 @@ program
     .option('--alter', 'Generate an ALTER TABLE migration')
     .action((name, options) => {
         if (options.alter) {
-            generator.createMigration(name, true);
+            generator.createMigration(name, !0);
         } else {
             generator.createMigration(name);
         }
@@ -155,11 +155,12 @@ program
 // Command to run migrations
 program
     .command('migrate')
-    .option('--seed', 'Generate migration file as well')
+    .option('--seed', 'Seed the database after migration')
     .description('Run all migrations')
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
+            await runner.migrateInit();
             await runner.run();
         } catch (e) {
             console.error('Migration failed:', e);
@@ -177,11 +178,12 @@ program
 
 program
     .command('migrate:fresh')
-    .option('--seed', 'Generate migration file as well')
+    .option('--seed', 'Seed the database after migration')
     .description('Drop all tables and run all migrations from scratch')
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
+            await runner.migrateInit();
             await runner.dropAllTables();
         } catch (e) {
             console.error('Migration failed:', e);
@@ -199,11 +201,12 @@ program
 
 program
     .command('migrate:refresh')
-    .option('--seed', 'Generate migration file as well')
+    .option('--seed', 'Seed the database after migration')
     .description('Rollback all migrations and re-run them')
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
+            await runner.migrateInit();
             await runner.rollback();
         } catch (e) {
             console.error('Migration refresh failed:', e);
@@ -211,7 +214,7 @@ program
         if (options.seed) {
             try {
                 const seeder = new DatabaseSeeder();
-                seeder.run();
+                await seeder.run();
             } catch (e) {
                 console.error('Seeding failed:', e);
             }
@@ -226,7 +229,7 @@ program
     .action(() => {
         console.log('Starting the development server...');
 
-        const devProcess = spawn('npm', ['run', 'dev'], { stdio: 'inherit', shell: true });
+        const devProcess = spawn('npm', ['run', 'dev'], { stdio: 'inherit', shell: !0 });
 
         devProcess.on('close', (code) => {
             if (code === 0) {

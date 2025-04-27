@@ -257,7 +257,7 @@ functionDesigner('is_function', (variable) => {
 // This function is use to define GLOBAL variable
 functionDesigner('define', (key, value) => {
     if (key in globalThis) {
-        throw new Error(`The global variable "${key}" is already defined.`);
+        return;
     }
     Object.defineProperty(globalThis, key, {
         value: value,
@@ -442,13 +442,13 @@ functionDesigner('method_exist', (object, method) => {
 ***************/
 
 /** Placeholder for a function that will navigate back to the previous page. */
-globalThis.back = null;
+define('back', () => { })
 
 /** Placeholder for a function that will define application routes. */
-globalThis.route = null;
+define('route', () => { })
 
-globalThis.$_SERVER = {};
-globalThis.setcookie = null;
+define('$_SERVER', {})
+define('setcookie', () => { })
 
 define('request', {});
 

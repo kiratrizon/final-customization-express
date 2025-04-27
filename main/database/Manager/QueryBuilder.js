@@ -557,9 +557,13 @@ class QueryBuilder {
         return sql;
     }
     async get() {
-        const newDB = new DBManager();
         const sql = this.toSql();
         const values = this.#values.concat(this.#orValues, this.#havingValues, this.#orHavingValues);
+        const { limit } = this.getAllProps();
+        if (limit === 1) {
+            return await this.first();
+        }
+        const newDB = new DBManager();
         let data = await newDB.runQuery(sql, values);
         if (this.#isModel) {
             data = new Collection(this.#staticModel).many(data);
@@ -567,7 +571,7 @@ class QueryBuilder {
         return data;
     }
 
-    async #getFirst() {
+    async first() {
         const newDB = new DBManager();
         this.limit(1);
         const sql = this.toSql();
@@ -577,10 +581,6 @@ class QueryBuilder {
             return new Collection(this.#staticModel).one(data);
         }
         return data[0] || null;
-    }
-
-    async first() {
-        return await this.#getFirst();
     }
 
     // for collection

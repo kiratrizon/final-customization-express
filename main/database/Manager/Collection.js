@@ -1,27 +1,27 @@
 class Collection {
 
     #isModel;
-    #model = null;
+    #instancedModel = null;
     #guarded = [];
     #fillable = [];
     #hidden = [];
     #timestamp = true;
-    #modelTable;
+    #table;
     constructor(prop) {
-        this.#model = new prop();
-        this.#modelTable = this.#model.table || generateTableNames(prop.name);
-        this.#guarded = this.#model.guarded;
-        this.#fillable = this.#model.fillable;
-        this.#hidden = this.#model.hidden;
-        this.#timestamp = this.#model.timestamp;
+        this.#instancedModel = new prop();
+        this.#table = this.#instancedModel.table || generateTableNames(prop.name);
+        this.#guarded = this.#instancedModel.guarded;
+        this.#fillable = this.#instancedModel.fillable;
+        this.#hidden = this.#instancedModel.hidden;
+        this.#timestamp = this.#instancedModel.timestamp;
 
         // delete properties of model
-        delete this.#model.guarded;
-        delete this.#model.fillable;
-        delete this.#model.hidden;
-        delete this.#model.timestamp;
-        delete this.#model.table;
-        delete this.#model.factory;
+        delete this.#instancedModel.guarded;
+        delete this.#instancedModel.fillable;
+        delete this.#instancedModel.hidden;
+        delete this.#instancedModel.timestamp;
+        delete this.#instancedModel.table;
+        delete this.#instancedModel.factory;
     }
 
     // this is for models only
@@ -32,7 +32,7 @@ class Collection {
 
     #validateData(data = []) {
         if (!is_array(data)) {
-            throw new Error('Data must be an array');
+            return [];
         }
         const newData = [];
         if (data.length) {
@@ -46,7 +46,7 @@ class Collection {
                     }
                 });
                 // get model
-                const model = this.#model;
+                const model = this.#instancedModel;
                 if (method_exist(model, 'setHidden')) {
                     model.setHidden(hiddenData);
                 }

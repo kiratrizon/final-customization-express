@@ -2,7 +2,7 @@ class Hello {
 
     static async handle(request, next) {
         // your middleware logic here
-        if (true) {
+        if (!0) {
             // return view('login');
         }
         return next();

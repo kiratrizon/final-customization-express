@@ -16,6 +16,13 @@ class Route {
     static #currentGroup = [];
     static #routers = {};
     static #currentName = [];
+    static #regex = {
+        digit: /^\d+$/,              // only digits
+        alpha: /^[a-zA-Z]+$/,         // only letters
+        alphanumeric: /^[a-zA-Z0-9]+$/, // letters and numbers
+        slug: /^[a-z0-9-]+$/,         // slug-style (lowercase, numbers, hyphens)
+        uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i // UUID
+    };
 
     // store route
     static #processMethods(method, cpath, callback) {
@@ -63,8 +70,7 @@ class Route {
                     params[key] = rq.request.params[key] || null;
                 })
                 const expressResponse = await callback(rq, ...Object.values(params));
-                const responsesOfRes = res.responses;
-                // console.log(responsesOfRes);
+                const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
                     return;
                 }
@@ -72,14 +78,15 @@ class Route {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
-                            responsesOfRes.push(html);
+                            html_dump.push(html);
                             res.status(statusCode || 200);
                             res.set(headers);
-                            res.send(responsesOfRes.join(''));
+                            res.send(html_dump.join(''));
                         } else if (returnType === 'json') {
+                            json_dump.push(json);
                             res.status(statusCode);
                             res.set(headers);
-                            res.json(json);
+                            res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {
                         const { url, statusCode } = expressResponse;
@@ -88,23 +95,19 @@ class Route {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
                         const rendered = expressResponse.getRendered();
-                        responsesOfRes.push(rendered);
-                        if (rendered) {
-                            res.send(responsesOfRes.join(''));
-                        } else {
-                            res.send(null);
-                        }
+                        html_dump.push(rendered);
+                        res.send(html_dump.join(''));
                     }
-                }
-                else {
+                } else {
                     res.status(200);
                     res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                    json_dump.push(expressResponse)
+                    html_dump.push(expressResponse);
                     if (isRequest()) {
-                        res.json(expressResponse);
+                        res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
                     }
                     else {
-                        responsesOfRes.push(expressResponse);
-                        res.send(responsesOfRes.join(''));
+                        res.send(html_dump.join(''));
                     }
                 }
                 return;
@@ -286,6 +289,7 @@ class Route {
                     }
                 }
                 const expressResponse = await middleware(rq, middlewareInitiator);
+                const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
                     return;
                 }
@@ -293,40 +297,40 @@ class Route {
                     if (expressResponse instanceof ExpressResponse) {
                         const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
                         if (returnType === 'html') {
-                            res.status(statusCode);
+                            html_dump.push(html);
+                            res.status(statusCode || 200);
                             res.set(headers);
-                            res.send(html);
+                            res.send(html_dump.join(''));
                         } else if (returnType === 'json') {
+                            json_dump.push(json);
                             res.status(statusCode);
                             res.set(headers);
-                            res.json(json);
+                            res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);
-                    } else if (expressResponse instanceof ExpressClosure) {
-                        if (expressResponse.next) {
-                            next();
-                        }
                     } else if (expressResponse instanceof ExpressView) {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
                         const rendered = expressResponse.getRendered();
-                        if (rendered) {
-                            res.send(rendered);
-                        } else {
-                            res.send(html);
+                        html_dump.push(rendered);
+                        res.send(html_dump.join(''));
+                    } else if (expressResponse instanceof ExpressClosure) {
+                        if (expressResponse.next) {
+                            next();
                         }
                     }
-                }
-                else {
+                } else {
                     res.status(200);
                     res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                    json_dump.push(expressResponse)
+                    html_dump.push(expressResponse);
                     if (isRequest()) {
-                        res.json(expressResponse);
+                        res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
                     }
                     else {
-                        res.send(expressResponse);
+                        res.send(html_dump.join(''));
                     }
                 }
                 return;

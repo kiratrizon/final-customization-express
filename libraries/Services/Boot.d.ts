@@ -5,6 +5,12 @@
  */
 declare class Boot {
   /**
+   * Define your global variables here
+   */
+  static async register(): void;
+
+
+  /**
    * Handles "Not Found" (404) responses based on the request context.
    *
    * If the current context is a web request, it returns a JSON 404 response.
@@ -12,7 +18,7 @@ declare class Boot {
    *
    * @returns The appropriate 404 response, either JSON or a rendered view.
    */
-  static notFound(): any;
+  static async notFound(): any;
 
   /**
    * Returns the configured password hasher algorithm.

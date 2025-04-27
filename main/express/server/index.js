@@ -18,31 +18,6 @@ const express = require('express');
 const ExpressView = require('../http/ExpressView');
 const util = require('util');
 
-const renderData = (data, shouldExit = true, res, dumped = false) => {
-	const html = `
-		<style>
-			body { background: #f8fafc; color: #1a202c; font-family: sans-serif; padding: 2rem; }
-			pre { background: #1a202c; color: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; font-size: 14px; overflow-x: auto; }
-			code { white-space: pre-wrap; word-break: break-word; }
-		</style>
-		<pre><code>${util.inspect(data, { colors: false, depth: null })}</code></pre>
-	`;
-
-	if (dumped) {
-		res.responses.push(html);
-		return;
-	}
-
-	if (res) {
-		res.setHeader('Content-Type', 'text/html');
-		res.send(html);
-		if (shouldExit) res.end();
-	} else {
-		console.log(util.inspect(data, { colors: true, depth: null }));
-		if (shouldExit) process.exit(1);
-	}
-};
-
 class Server {
 	static express = express;
 	static app = Server.express();
@@ -74,30 +49,63 @@ class Server {
 		Server.app.set('views', view_path());
 
 		// Global request/response handlers
-		Server.app.use((req, res, next) => {
+		Server.app.use(async (req, res, next) => {
+
+			Boot.register();
+
 			// determine if it's an API request or AJAX request
 			isRequest = () => {
 				if (req.xhr) {
+					return true;
+				}
+				const userAgent = req.headers['user-agent'] || '';
+				if (userAgent.includes('Postman')) {
 					return true;
 				}
 				const apiUrl = req.path.startsWith('/api');
 				return apiUrl;
 			}
 
+			const renderData = (data, res, dumped = false) => {
+				const html = `
+					<style>
+						body { background: #f8fafc; color: #1a202c; font-family: sans-serif; padding: 2rem; }
+						pre { background: #1a202c; color: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; font-size: 14px; overflow-x: auto; }
+						code { white-space: pre-wrap; word-break: break-word; }
+					</style>
+					<pre><code>${util.inspect(data, { colors: false, depth: null })}</code></pre>
+				`;
+
+				const json = data;
+
+				if (dumped) {
+					res.responses.html_dump.push(html);
+					res.responses.json_dump.push(json);
+					return;
+				}
+
+				if (res) {
+					if (!isRequest()) {
+						res.setHeader('Content-Type', 'text/html');
+						res.send(html);
+					} else {
+						res.setHeader('Content-Type', 'application/json');
+						res.json(json);
+					}
+					res.end();
+				}
+			};
+
 			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-			res.responses = [];
-			dump = (data) => renderData(data, false, res, true);
-			dd = (data) => {
-				renderData(data, true, res);
-			};
-			res.locals['dump'] = (data) => renderData(data);
-			res.locals['dd'] = (data) => {
-				renderData(data);
-				process.exit(0);
-			};
-			res.locals['old'] = (key) => {
-				return 'test';
+			if (!res.responses) {
+				res.responses = {};
+				res.responses.html_dump = [];
+				res.responses.json_dump = [];
 			}
+			dump = (data) => renderData(data, res, true);
+			dd = (data) => {
+				renderData(data, res);
+			};
 			if (!req.session.session_auth) {
 				req.session.session_auth = {};
 			}
