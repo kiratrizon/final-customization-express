@@ -17,6 +17,7 @@ require('dotenv').config();
 const express = require('express');
 const ExpressView = require('../http/ExpressView');
 const util = require('util');
+const ExpressRegexHandler = require('../http/ExpressRegexHandler');
 
 class Server {
 	static express = express;
@@ -55,16 +56,28 @@ class Server {
 
 			// determine if it's an API request or AJAX request
 			isRequest = () => {
+				// Check if it's an AJAX request (XHR)
 				if (req.xhr) {
 					return true;
 				}
-				const userAgent = req.headers['user-agent'] || '';
-				if (userAgent.includes('Postman')) {
+
+				// Check if the path starts with '/api' to identify API routes
+				if (req.path.startsWith('/api')) {
 					return true;
 				}
-				const apiUrl = req.path.startsWith('/api');
-				return apiUrl;
-			}
+
+				// Check if the request's 'Accept' header includes 'application/json'
+				if (req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+					return true;
+				}
+
+				// Check if the request is expecting JSON content, commonly used in APIs
+				if (req.is('json')) {
+					return true;
+				}
+
+				return false; // Default to false if none of the conditions match
+			};
 
 			const renderData = (data, res, dumped = false) => {
 				const html = `
@@ -85,6 +98,9 @@ class Server {
 				}
 
 				if (res) {
+					if (res.headersSent) {
+						return;
+					}
 					if (!isRequest()) {
 						res.setHeader('Content-Type', 'text/html');
 						res.send(html);
@@ -276,60 +292,132 @@ class Server {
 			const RouteClass = require(filePath);
 			const instance = new RouteClass();
 			let data = instance.reveal();
-			const allowedMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
 			if (data) {
-				if (!empty(data.routers) && !empty(data.routeValue)) {
-					let routers = data.routers;
-					let routeValue = data.routeValue;
-					// console.log('routers', routers);
-					// console.log('routeValue', routeValue);
-					const routeKeys = Object.keys(routers);
-					routeKeys.forEach(rk => {
-						const routerPrefix = rk.replace(/\/\*\d+\*/g, '') || '/';
-						if (!empty(routers[rk])) {
-							const loadRouter = Server.express.Router({ mergeParams: true });
-							const appRouter = Server.express.Router();
-							const loadedRoute = routers[rk];
-							const { middlewares } = loadedRoute;
-							const storedRouteNames = {};
-							allowedMethods.forEach(method => {
-								if (loadedRoute[method]) {
-									loadedRoute[method].forEach(routeId => {
-										const { path, internal_middlewares, newCallback, as } = routeValue[routeId];
-										if (isset(as)) {
-											if (storedRouteNames[as]) {
-												console.warn(`Duplicate route name detected: "${as}". The route will be ignored.`);
-											} else {
-												const localPath = `${routePrefix}${['/', '{'].includes(routerPrefix[0]) ? '' : '/'}${routerPrefix}${path}`.replace(/\/{2,}/g, '/');
-												storedRouteNames[as] = {};
-												storedRouteNames[as]['allparams'] = [];
-												storedRouteNames[as]['optional'] = [];
-												const requiredParamRegex = /:([\w-]+)/g;
-												const optionalParamRegex = /{\s*\/?:([\w-]+)\??\s*}/g;
+				// if (!empty(data.routers) && !empty(data.routeValue)) {
+				// 	let routers = data.routers;
+				// 	let routeValue = data.routeValue;
+				// 	if (config('debug.routes')) {
+				// 		console.log('routers', routers);
+				// 		console.log('routeValue', routeValue);
+				// 	}
+				// 	const routeKeys = Object.keys(routers);
+				// 	routeKeys.forEach(rk => {
+				// 		const routerPrefix = rk.replace(/\/\*\d+\*/g, '') || '/';
+				// 		if (!empty(routers[rk])) {
+				// 			const loadRouter = Server.express.Router({ mergeParams: true });
+				// 			const appRouter = Server.express.Router();
+				// 			const loadedRoute = routers[rk];
+				// 			const { middlewares } = loadedRoute;
+				// 			const storedRouteNames = {};
+				// 			allowedMethods.forEach(method => {
+				// 				if (loadedRoute[method]) {
+				// 					loadedRoute[method].forEach(routeId => {
+				// 						const { path, internal_middlewares, newCallback, as, regex } = routeValue[routeId];
+				// 						if (isset(as)) {
+				// 							if (storedRouteNames[as]) {
+				// 								console.warn(`Duplicate route name detected: "${as}". The route will be ignored.`);
+				// 							} else {
+				// 								const localPath = `${routePrefix}${['/', '{'].includes(routerPrefix[0]) ? '' : '/'}${routerPrefix}${path}`.replace(/\/{2,}/g, '/');
+				// 								storedRouteNames[as] = {};
+				// 								storedRouteNames[as]['allparams'] = [];
+				// 								storedRouteNames[as]['optional'] = [];
+				// 								const requiredParamRegex = /:([\w-]+)/g;
+				// 								const optionalParamRegex = /{\s*\/?:([\w-]+)\??\s*}/g;
 
-												let match;
-												while ((match = requiredParamRegex.exec(localPath)) !== null) {
-													storedRouteNames[as]['allparams'].push(match[1]);
-												}
+				// 								let match;
+				// 								while ((match = requiredParamRegex.exec(localPath)) !== null) {
+				// 									storedRouteNames[as]['allparams'].push(match[1]);
+				// 								}
 
-												while ((match = optionalParamRegex.exec(localPath)) !== null) {
-													storedRouteNames[as]['optional'].push(match[1]);
-												}
+				// 								while ((match = optionalParamRegex.exec(localPath)) !== null) {
+				// 									storedRouteNames[as]['optional'].push(match[1]);
+				// 								}
 
-												storedRouteNames[as]['path'] = `${localPath}`.replace(/{/g, '').replace(/}/g, '').replace(/\/{2,}/g, '/');
-											}
-										}
-										// console.log(path)
-										loadRouter[method](path, ...internal_middlewares, newCallback);
-									});
-								}
-							});
-							appRouter.use(routerPrefix, ...middlewares, loadRouter);
-							Server.app.use(routePrefix, appRouter);
-							Server.#duplicateRoutesDetector(Server.#routes, storedRouteNames);
+				// 								storedRouteNames[as]['path'] = `${localPath}`.replace(/{/g, '').replace(/}/g, '').replace(/\/{2,}/g, '/');
+				// 							}
+				// 						}
+
+				// 						if (!empty(regex)) {
+				// 							const regexHandler = new ExpressRegexHandler(regex);
+				// 							const regexMiddleware = regexHandler.applyRegex();
+				// 							internal_middlewares.unshift(regexMiddleware);
+				// 						}
+				// 						loadRouter[method](path, ...internal_middlewares, newCallback);
+				// 					});
+				// 				}
+				// 			});
+				// 			appRouter.use(routerPrefix, ...middlewares, loadRouter);
+				// 			Server.app.use(routePrefix, appRouter);
+				// 			Server.#duplicateRoutesDetector(Server.#routes, storedRouteNames);
+				// 		}
+				// 	});
+				// }
+				const { default_route, group, routes } = data;
+				// for default route
+				const filteredKeys = Object.entries(default_route)
+					.filter(([key, value]) => value.length > 0)
+					.map(([key]) => key);
+				const rDf = Server.express.Router({
+					mergeParams: true
+				});
+				filteredKeys.forEach((key) => {
+					const arrData = default_route[key];
+					arrData.forEach((routeId) => {
+						const routeInstanced = routes[routeId];
+						if (is_function(routeInstanced.getRouteData)) {
+							const { method, path, callback, internal_middlewares, as, regex } = routeInstanced.getRouteData();
+							// regex
+							if (!empty(regex)) {
+								const regexHandler = new ExpressRegexHandler(regex);
+								const regexMiddleware = regexHandler.applyRegex();
+								internal_middlewares.unshift(regexMiddleware);
+							}
+							rDf[method](path, ...internal_middlewares, callback);
 						}
+					})
+				});
+				Server.app.use(routePrefix, rDf);
+
+				// for group
+				const groupKeys = Object.keys(group);
+				groupKeys.forEach((key) => {
+					const grDf = Server.express.Router({
+						mergeParams: true
 					});
-				}
+					const gaDf = Server.express.Router();
+					const groupRoute = key;
+					const arrangeGroupRoute = groupRoute.replace(/\/\*\d+\*/g, '') || '/';
+					const instancedGroup = group[key];
+					const { as, middlewares, childRoutes } = instancedGroup.getGroup();
+
+					// filterChildRoutes
+					const filteredChildRoutes = Object.entries(childRoutes)
+						.filter(([key, value]) => value.length > 0)
+						.map(([key]) => key);
+					filteredChildRoutes.forEach((k) => {
+						const arrData = childRoutes[k];
+						arrData.forEach((routeId) => {
+							const routeInstanced = routes[routeId];
+							if (is_function(routeInstanced.getRouteData)) {
+								const { method, path, callback, internal_middlewares, as, regex, match } = routeInstanced.getRouteData();
+								// regex
+								if (!empty(regex)) {
+									const regexHandler = new ExpressRegexHandler(regex);
+									const regexMiddleware = regexHandler.applyRegex();
+									internal_middlewares.unshift(regexMiddleware);
+								}
+								grDf[method](path, ...internal_middlewares, callback);
+								if (is_array(match) && !empty(match)) {
+									match.forEach((m) => {
+										grDf[m](path, ...internal_middlewares, callback);
+									})
+								}
+							}
+						})
+					})
+					gaDf.use(groupRoute, ...middlewares, grDf);
+					Server.app.use(routePrefix, gaDf);
+				});
 			}
 		})
 

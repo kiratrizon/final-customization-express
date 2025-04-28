@@ -1,7 +1,9 @@
 const UserController = require('../app/Controllers/UserController');
-const Route = require('../main/express/server/Router/Route');
+const Route = require('../main/express/server/Route');
 
-Route.get('{/:id}', [UserController, 'index']);
+Route.all('/:id', [UserController, 'index']).where({
+    'id': 'digit'
+}).middleware('test');
 
 
 

@@ -4,8 +4,8 @@ class Test {
 
     static async handle(request, next) {
         // your middleware logic here
-        if (false) {
-            return redirect().route('login');
+        if (request.is('post')) {
+            return 'hello';
         }
         return next();
     }

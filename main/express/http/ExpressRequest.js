@@ -59,6 +59,16 @@ class ExpressRequest {
         if (key === '') return this.#files;
         return this.#files[key] ?? null;
     }
+    is(type) {
+        if (is_array(type) || is_string(type)) {
+            if (is_array(type)) {
+                type = type.map(e => e.toLowerCase());
+                return type.includes(this.request.method.toLowerCase());
+            } else {
+                return this.request.method.toLowerCase() === type.toLowerCase();
+            }
+        }
+    }
 }
 
 module.exports = ExpressRequest;

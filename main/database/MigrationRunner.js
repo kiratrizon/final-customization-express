@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const DatabaseConnection = require('./Manager/DatabaseManager');
-
 class MigrationRunner {
+    #db;
     constructor() {
         this.migrationsPath = path.join(__dirname, '..', 'database', 'migrations');
         console.log(this.migrationsPath);
-        this.db = new DatabaseConnection();
+        this.#db = new DatabaseConnection();
     }
 
     async run() {
@@ -19,11 +19,12 @@ class MigrationRunner {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
+            if (!is_function(instantiatedMigrationModule.up)) continue;
             const query = instantiatedMigrationModule.up();
 
             try {
                 // Assuming makeMigration is a method that returns a promise
-                const success = await this.db.makeMigration(query, migrationName);
+                const success = await this.#db.makeMigration(query, migrationName);
                 if (success) {
                     count++;
                 }
@@ -62,7 +63,7 @@ class MigrationRunner {
             `;
         }
 
-        await this.db.runQuery(migrationsTableQuery);
+        await this.#db.runQuery(migrationsTableQuery);
     }
 
     async rollback() {
@@ -74,7 +75,7 @@ class MigrationRunner {
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
 
-            await this.db.makeMigration(query, migrationName, true);
+            await this.#db.makeMigration(query, migrationName, true);
         });
         console.log('Rolled back successfully.');
 
@@ -93,11 +94,16 @@ class MigrationRunner {
             let schema = config('app.database.mysql.database');
             params.push(schema);
         } else if (config('app.database.database') === 'sqlite') {
-            sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'";
+            sql = `SELECT name 
+                    FROM sqlite_master 
+                    WHERE type = 'table' 
+                    AND name NOT LIKE 'sqlite_%'
+                    AND name != 'migrations'`;
+
         }
 
 
-        const tables = await this.db.runQuery(sql, params);
+        const tables = await this.#db.runQuery(sql, params);
 
         if (!tables.length) {
             console.log('No tables to drop.');
@@ -105,20 +111,20 @@ class MigrationRunner {
 
         // Disable foreign key constraints for SQLite
         if (config('app.database.database') === 'sqlite') {
-            await this.db.runQuery('PRAGMA foreign_keys = OFF');
+            await this.#db.runQuery('PRAGMA foreign_keys = OFF');
         }
 
         tables.map(async (table) => {
             const dropTableQuery = `DROP TABLE IF EXISTS ${table.name};`;
-            await this.db.runQuery(dropTableQuery);
+            await this.#db.runQuery(dropTableQuery);
         })
 
         // Re-enable foreign key constraints for SQLite
         if (config('app.database.database') === 'sqlite') {
-            await this.db.runQuery('PRAGMA foreign_keys = ON');
+            await this.#db.runQuery('PRAGMA foreign_keys = ON');
         }
 
-        await this.db.runQuery("DELETE FROM migrations");
+        await this.#db.runQuery("DELETE FROM migrations");
 
         console.log('All tables dropped successfully.');
 

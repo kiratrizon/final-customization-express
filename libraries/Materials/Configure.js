@@ -22,20 +22,19 @@ class Configure {
       }
       if (fs.existsSync(pathJs + ".js")) {
         Configure.storedData[firstKey] = require(pathJs);
+        configData = Configure.storedData[firstKey];
       }
-      if ((configData = Configure.storedData[firstKey])) {
-        keys.forEach((key) => {
-          if (!Array.isArray(configData) && typeof key === "number") {
-            key = key.toString();
-          }
-          if (configData && configData[key]) {
-            configData = configData[key];
-          } else {
-            configData = null;
-            return;
-          }
-        });
-      }
+      keys.forEach((key) => {
+        if (!Array.isArray(configData) && typeof key === "number") {
+          key = key.toString();
+        }
+        if (configData && configData[key]) {
+          configData = configData[key];
+        } else {
+          configData = null;
+          return;
+        }
+      });
     }
 
     return configData;
@@ -52,10 +51,11 @@ class Configure {
     const firstKey = String(keys.shift());
 
     // If firstKey still doesn't exist in storedData after reading, throw an error
-    if (!Configure.read(firstKey)) {
-      throw new Error(
-        `The key ${firstKey} does not exist in the config file or no value is set`
+    if (Configure.read(firstKey) === undefined) {
+      console.warn(
+        `Warning: "${firstKey}" does not exist in config path.`
       );
+      return;
     }
 
     let current = Configure.storedData[firstKey];
@@ -78,12 +78,6 @@ class Configure {
       }
     });
   }
-
-  static init() {
-    Configure.storedData = {};
-  }
 }
-
-Configure.init();
 
 module.exports = Configure;

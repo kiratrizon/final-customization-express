@@ -18,7 +18,7 @@ class DatabaseManager {
     }
 
     // This is for artisan/CLI usage only — not for HTTP requests
-    async runQuery(sql, params = []) {
+    async runQuery(sql = '', params = []) {
         this.init(); // init DB
 
         if (config('app.database.database') === 'postgresql') {
@@ -29,7 +29,8 @@ class DatabaseManager {
         }
         if (config('query_trace')) {
             // console.log(sql, params);
-            log(this.getQueryTrace(sql, params), 'query_trace', 'Query Trace:');
+            const tracing = new Error().stack.split('\n').slice(2).map(line => line.trim()).join('\n');
+            log(tracing + this.getQueryTrace(sql, params), 'query_trace', 'Query Trace:');
         }
         let data = await this.#databaseServer.query(sql, params);
 

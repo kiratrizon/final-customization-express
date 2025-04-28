@@ -87,6 +87,7 @@ functionDesigner('config', function () {
         const pathString = args[0];
         const data = args[1];
         Configure.write(pathString, data);
+        return data;
     } else {
         throw new Error('Invalid number of arguments');
     }
@@ -321,7 +322,7 @@ functionDesigner('transferFile', (filePath, destination) => {
     return forReturn;
 });
 
-functionDesigner('fetchData', (url, data = {
+functionDesigner('fetchData', async (url, data = {
     timeout: 5000,
     method: 'GET',
     headers: {},
@@ -359,19 +360,19 @@ functionDesigner('fetchData', (url, data = {
         config.data = body;
     }
 
-    let done = false;
-    let returnData = false;
-    axios[methodLower](url, config)
-        .then(res => {
-            done = true;
-            returnData = [false, res.data];
-        })
-        .catch(error => {
-            done = true;
-            console.error('Error fetching data:', error);
-            returnData = [true, error];
-        });
-    loopWhile(() => !done, 100);
+    let returnData = [true, null];
+    try {
+        const data = await axios[methodLower](url, config);
+        returnData = [false, data.data];
+    } catch (e) {
+        if (e.response) {
+            returnData = [true, e.response.data];
+        } else if (e.request) {
+            returnData = [true, e.request];
+        } else {
+            returnData = [true, e.message];
+        }
+    }
     return returnData;
 });
 

@@ -19,8 +19,8 @@ class Logger {
             fs.writeFileSync(logPath, "", "utf8");
         }
 
-        console.log(logMessage);
         if (env("NODE_ENV") === "production") {
+            console.log(logMessage);
             return;
         }
 
