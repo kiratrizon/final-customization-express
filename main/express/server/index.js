@@ -62,7 +62,7 @@ class Server {
 				}
 
 				// Check if the path starts with '/api' to identify API routes
-				if (req.path.startsWith('/api')) {
+				if (req.path.startsWith('/api/')) {
 					return true;
 				}
 
