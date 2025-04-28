@@ -19,30 +19,6 @@ class RouteMethod {
         const pathCheckerForRegex = path.join(currentGroup, cpath);
         if (is_function(callback)) {
             newCallback = async (req, res) => {
-                // determine if it's an API request or AJAX request
-                isRequest = () => {
-                    // Check if it's an AJAX request (XHR)
-                    if (req.xhr) {
-                        return true;
-                    }
-
-                    // Check if the path starts with '/api' to identify API routes
-                    if (req.path.startsWith('/api/')) {
-                        return true;
-                    }
-
-                    // Check if the request's 'Accept' header includes 'application/json'
-                    if (req.headers['accept'] && req.headers['accept'].includes('application/json')) {
-                        return true;
-                    }
-
-                    // Check if the request is expecting JSON content, commonly used in APIs
-                    if (req.is('json')) {
-                        return true;
-                    }
-
-                    return false; // Default to false if none of the conditions match
-                };
                 $_POST = req.body || {};
                 $_GET = req.query || {};
                 $_FILES = req.files || {};
