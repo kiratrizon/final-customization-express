@@ -4,10 +4,10 @@ class Test {
 
     static async handle(request, next) {
         // your middleware logic here
-        if (request.is('post')) {
+        if (!Auth.check()) {
             return 'hello';
         }
-        return next();
+        return next(request);
     }
 }
 

@@ -37,21 +37,13 @@ class Collection {
         const newData = [];
         if (data.length) {
             data.forEach((item) => {
-                // hiddens
-                const hiddenData = {};
-                this.#hidden.forEach((e) => {
-                    if (item[e]) {
-                        hiddenData[e] = item[e];
-                        delete item[e];
-                    }
-                });
+
                 // get model
                 const model = this.#instancedModel;
                 if (method_exist(model, 'setHidden')) {
-                    model.setHidden(hiddenData);
+                    model.setHidden(this.#hidden);
                 }
                 Object.assign(model, item);
-                // push to newData
                 newData.push(model);
             });
         }

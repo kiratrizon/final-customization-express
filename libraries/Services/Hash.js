@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const bcryptjs = require('bcryptjs');
 
-const Boot = require('./../Boot');
+const Boot = require('./Boot');
 
 class Hash {
     static make(password) {

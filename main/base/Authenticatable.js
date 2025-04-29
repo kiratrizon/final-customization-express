@@ -1,22 +1,30 @@
 const Model = require("./Model");
-const Hash = require("../../libraries/Services/Hash");
 
 class Authenticatable extends Model {
-    static authenticatableClass = true;
-
-    static username() {
-        return 'email'; // Default username field for authentication
+    getAuthIdentifierName() {
+        return 'id';
     }
 
-    static validateEmail(email) {
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        return emailRegex.test(email);
+    getAuthIdentifier() {
+        return this[getAuthIdentifierName()];
     }
 
-    static validatePhoneNumber(phone) {
-        const phoneRegex = /^\d{10}$/;
-        return phoneRegex.test(phone);
+    getAuthPassword() {
+        return this.password;
     }
+
+    getRememberToken() {
+        return this.remember_token;
+    }
+
+    setRememberToken(token) {
+        this.remember_token = token;
+    }
+
+    getRememberTokenName() {
+        return 'remember_token';
+    }
+
 }
 
 module.exports = Authenticatable;

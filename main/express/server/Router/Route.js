@@ -1,6 +1,6 @@
 const path = require("path");
-const RouteGroup = require('./group');
-const RouteMethod = require('./method');
+const RouteGroup = require('./RouteHandlers/group');
+const RouteMethod = require('./RouteHandlers/method');
 class Route {
     static #routeId = 0;
     static #groupId = 0;

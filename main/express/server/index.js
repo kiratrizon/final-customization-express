@@ -19,6 +19,8 @@ const ExpressView = require('../http/ExpressView');
 const util = require('util');
 const ExpressRegexHandler = require('../http/ExpressRegexHandler');
 
+
+const myLink = `https://github.com/kiratrizon/final-customization-express`;
 class Server {
 	static express = express;
 	static app = Server.express();
@@ -52,6 +54,9 @@ class Server {
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
 
+			if (env('NODE_ENV') !== 'production') {
+				res.setHeader('X-Developer', 'Throy Tower');
+			}
 			Boot.register();
 
 			// determine if it's an API request or AJAX request
@@ -284,6 +289,14 @@ class Server {
 		const routesDir = path.join(base_path(), 'routes');
 		const routeFiles = fs.readdirSync(routesDir);
 		const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
+		// remove web.js
+		let webjs = null;
+		if (jsFiles.includes('web.js')) {
+			// splice
+			jsFiles.splice(jsFiles.indexOf('web.js'), 1);
+			webjs = 'web.js';
+			jsFiles.push(webjs);
+		}
 		jsFiles.forEach(file => {
 			// set prefix
 			const fileName = file.replace('.js', '');
@@ -293,65 +306,6 @@ class Server {
 			const instance = new RouteClass();
 			let data = instance.reveal();
 			if (data) {
-				// if (!empty(data.routers) && !empty(data.routeValue)) {
-				// 	let routers = data.routers;
-				// 	let routeValue = data.routeValue;
-				// 	if (config('debug.routes')) {
-				// 		console.log('routers', routers);
-				// 		console.log('routeValue', routeValue);
-				// 	}
-				// 	const routeKeys = Object.keys(routers);
-				// 	routeKeys.forEach(rk => {
-				// 		const routerPrefix = rk.replace(/\/\*\d+\*/g, '') || '/';
-				// 		if (!empty(routers[rk])) {
-				// 			const loadRouter = Server.express.Router({ mergeParams: true });
-				// 			const appRouter = Server.express.Router();
-				// 			const loadedRoute = routers[rk];
-				// 			const { middlewares } = loadedRoute;
-				// 			const storedRouteNames = {};
-				// 			allowedMethods.forEach(method => {
-				// 				if (loadedRoute[method]) {
-				// 					loadedRoute[method].forEach(routeId => {
-				// 						const { path, internal_middlewares, newCallback, as, regex } = routeValue[routeId];
-				// 						if (isset(as)) {
-				// 							if (storedRouteNames[as]) {
-				// 								console.warn(`Duplicate route name detected: "${as}". The route will be ignored.`);
-				// 							} else {
-				// 								const localPath = `${routePrefix}${['/', '{'].includes(routerPrefix[0]) ? '' : '/'}${routerPrefix}${path}`.replace(/\/{2,}/g, '/');
-				// 								storedRouteNames[as] = {};
-				// 								storedRouteNames[as]['allparams'] = [];
-				// 								storedRouteNames[as]['optional'] = [];
-				// 								const requiredParamRegex = /:([\w-]+)/g;
-				// 								const optionalParamRegex = /{\s*\/?:([\w-]+)\??\s*}/g;
-
-				// 								let match;
-				// 								while ((match = requiredParamRegex.exec(localPath)) !== null) {
-				// 									storedRouteNames[as]['allparams'].push(match[1]);
-				// 								}
-
-				// 								while ((match = optionalParamRegex.exec(localPath)) !== null) {
-				// 									storedRouteNames[as]['optional'].push(match[1]);
-				// 								}
-
-				// 								storedRouteNames[as]['path'] = `${localPath}`.replace(/{/g, '').replace(/}/g, '').replace(/\/{2,}/g, '/');
-				// 							}
-				// 						}
-
-				// 						if (!empty(regex)) {
-				// 							const regexHandler = new ExpressRegexHandler(regex);
-				// 							const regexMiddleware = regexHandler.applyRegex();
-				// 							internal_middlewares.unshift(regexMiddleware);
-				// 						}
-				// 						loadRouter[method](path, ...internal_middlewares, newCallback);
-				// 					});
-				// 				}
-				// 			});
-				// 			appRouter.use(routerPrefix, ...middlewares, loadRouter);
-				// 			Server.app.use(routePrefix, appRouter);
-				// 			Server.#duplicateRoutesDetector(Server.#routes, storedRouteNames);
-				// 		}
-				// 	});
-				// }
 				const { default_route, group, routes } = data;
 				// for default route
 				const filteredKeys = Object.entries(default_route)
@@ -360,6 +314,7 @@ class Server {
 				const rDf = Server.express.Router({
 					mergeParams: true
 				});
+				const aDf = Server.express.Router();
 				filteredKeys.forEach((key) => {
 					const arrData = default_route[key];
 					arrData.forEach((routeId) => {
@@ -415,12 +370,11 @@ class Server {
 							}
 						})
 					})
-					gaDf.use(groupRoute, ...middlewares, grDf);
+					gaDf.use(arrangeGroupRoute, ...middlewares, grDf);
 					Server.app.use(routePrefix, gaDf);
 				});
 			}
 		})
-
 
 		Server.#finishBoot();
 	}

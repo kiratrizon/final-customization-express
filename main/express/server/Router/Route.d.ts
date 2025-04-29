@@ -1,5 +1,5 @@
-import RouteMethod from "./Route/method";
-import RouteGroup from "./Route/group";
+import RouteMethod from "./RouteHandlers/method";
+import RouteGroup from "./RouteHandlers/group";
 
 declare class Route {
   private static routeId: number;

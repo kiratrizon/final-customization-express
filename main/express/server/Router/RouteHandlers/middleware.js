@@ -59,7 +59,7 @@ class RouteMiddleware {
                 const middlewareInitiator = () => {
                     return new ExpressClosure();
                 }
-                request = (getInput = '') => {
+                request = (getInput) => {
                     if (!is_string(getInput)) {
                         return rq;
                     } else {
@@ -73,17 +73,22 @@ class RouteMiddleware {
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
-                        const { html, json, headers, statusCode, returnType } = expressResponse.accessData();
-                        if (returnType === 'html') {
-                            html_dump.push(html);
-                            res.status(statusCode || 200);
-                            res.set(headers);
-                            res.send(html_dump.join(''));
-                        } else if (returnType === 'json') {
-                            json_dump.push(json);
-                            res.status(statusCode);
-                            res.set(headers);
-                            res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
+                        const { html, json, file, download, error, headers, statusCode, returnType } = expressResponse.accessData();
+                        res.set(headers).status(statusCode);
+                        if (isset(error)) {
+                            res.send(error);
+                        } else {
+                            if (returnType === 'html') {
+                                html_dump.push(html);
+                                res.send(html_dump.join(''));
+                            } else if (returnType === 'json') {
+                                json_dump.push(json);
+                                res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
+                            } else if (returnType === 'file') {
+                                res.sendFile(file);
+                            } else if (returnType === 'download') {
+                                res.download(...download);
+                            }
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {
                         const { url, statusCode } = expressResponse;

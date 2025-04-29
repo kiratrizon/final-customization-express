@@ -23,10 +23,7 @@ class Factory {
             }
             await model.insert(createdData);
             const getInsertedAgain = await model.orderBy('id', 'desc').limit(count).get();
-            // getInsertedAgain.forEach((e) => {
-            //     const modelData = new QueryBuilder(model);
-            //     allData.unshift(modelData.factoryFind(e));
-            // });
+            allData.push(...getInsertedAgain);
         }
         console.log('Inserted', c, 'records');
         return allData;

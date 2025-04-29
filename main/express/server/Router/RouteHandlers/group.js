@@ -1,10 +1,9 @@
-const RouteMiddleware = require("../middleware");
+const RouteMiddleware = require("./middleware");
 
 class RouteGroup {
 
     #as = [];
     #middlewares = [];
-    #parent = [];
     #childRoutes = {
         get: [],
         post: [],

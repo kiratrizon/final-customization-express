@@ -418,6 +418,13 @@ functionDesigner('isset', (value) => {
     return typeof value !== 'undefined' && value !== null;
 });
 
+functionDesigner('key_exist', (object, key) => {
+    if (typeof object !== 'object' || object === null) {
+        return false;
+    }
+    return Object.prototype.hasOwnProperty.call(object, key);
+})
+
 // empty
 functionDesigner('empty', (value) => {
     if (
@@ -451,7 +458,7 @@ define('route', () => { })
 define('$_SERVER', {})
 define('setcookie', () => { })
 
-define('request', {});
+define('request', () => { });
 
 /** Placeholder for a function that will dump variable contents for debugging. */
 define('dump', () => { });

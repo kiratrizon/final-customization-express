@@ -59,7 +59,6 @@ class QueryBuilder {
             [column, operator, value] = conditions;
         }
 
-        console.log(column)
         // Allowed operators validation
         const allowedOperators = ['=', '!=', '<', '>', '<=', '>=', 'LIKE', 'NOT LIKE'];
         if (!allowedOperators.includes(operator)) {
@@ -157,7 +156,7 @@ class QueryBuilder {
         if (!this.#isWhereEmpty()) {
             type = 'AND';
         }
-        this.#where.push({ column, operator: 'BETWEEN', value: ['?', '?'], type });
+        this.#where.push({ column, operator: 'NOT BETWEEN', value: ['?', '?'], type });
         this.#values.push(values[0], values[1]);
         return this;
     }
@@ -169,7 +168,7 @@ class QueryBuilder {
             throw new Error('orWhereNotBetween requires exactly 2 values');
         }
 
-        this.#orWhere.push({ column, operator: 'BETWEEN', value: ['?', '?'], type: 'OR' });
+        this.#orWhere.push({ column, operator: 'NOT BETWEEN', value: ['?', '?'], type: 'OR' });
         this.#orValues.push(values[0], values[1]);
         return this;
     }
@@ -360,7 +359,7 @@ class QueryBuilder {
             }
         } else if (conditions.length === 3) {
             const [column1, operator, column2] = conditions;
-            const allowedOperators = ['=', '!=', '<', '>', '<=', '>=', 'LIKE', 'IN', 'NOT IN'];
+            const allowedOperators = ['=', '!=', '<', '>', '<=', '>=', 'LIKE', 'NOT LIKE'];
             if (!allowedOperators.includes(operator.toUpperCase())) {
                 throw new Error(`Invalid operator: ${operator}`);
             }
@@ -559,10 +558,6 @@ class QueryBuilder {
     async get() {
         const sql = this.toSql();
         const values = this.#values.concat(this.#orValues, this.#havingValues, this.#orHavingValues);
-        const { limit } = this.getAllProps();
-        if (limit === 1) {
-            return await this.first();
-        }
         const newDB = new DBManager();
         let data = await newDB.runQuery(sql, values);
         if (this.#isModel) {
@@ -601,6 +596,11 @@ class QueryBuilder {
         const { sql, values } = insertQuery.build();
         const result = await newDB.runQuery(sql, values);
         return result;
+    }
+
+    async find(id) {
+        this.where('id', id);
+        return await this.first();
     }
 }
 

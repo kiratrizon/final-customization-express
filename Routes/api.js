@@ -1,4 +1,4 @@
-const Route = require('../main/express/server/Route');
+const Route = require('../main/express/server/Router/Route');
 
 const UserController = require('../app/Controllers/UserController');
 Route.get('/', () => {

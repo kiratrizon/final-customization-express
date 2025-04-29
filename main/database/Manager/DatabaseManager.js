@@ -1,4 +1,3 @@
-const ExternalQuery = require('./ExternalQuery');
 const mysql = require('mysql2'); // for query tracing
 
 let allowedDatabases = ['mysql', 'sqlite'];
@@ -75,15 +74,6 @@ class DatabaseManager {
         if (!this.#databaseServer) {
             this.#databaseServer = new this.#selectedDB();
         }
-    }
-
-    async searchPrimaryName(modelName) {
-        const string = ExternalQuery.queryGetPrimaryName(modelName);
-        const data = await this.runQuery(string);
-        if (data.length) {
-            return data[0].name;
-        }
-        return null;
     }
 
     escape(value) {
