@@ -1,5 +1,6 @@
 // functions.d.ts
 import ExpressRedirect from "../http/ExpressRedirect";
+import ExpressRequest from "../http/ExpressRequest";
 import ExpressResponse from "../http/ExpressResponse";
 
 interface IFetchDataOption {
@@ -207,14 +208,14 @@ declare global {
   // var classExists: (name: string) => boolean;
 
   /**
-   * Defines a global variable on `globalThis` with the specified name and value.
+   * Defines a global variable on `global` with the specified name and value.
    * The variable will be writable but not configurable, meaning:
    * - It can be modified but not deleted.
    * - If the variable already exists, it cannot be redefined.
    *
    * Usage:
    *   define("myVar", 123);
-   *   console.log(globalThis.myVar); // 123
+   *   console.log(global.myVar); // 123
    *
    * @param {string} name - The name of the global variable.
    * @param {any} value - The value to assign to the global variable.
@@ -289,6 +290,8 @@ declare global {
 
   /** A function that will determine if it's from a request */
   var isRequest: (url: string) => boolean;
+
+  var request: (input?: string) => ExpressRequest;
 
   /**
    * The base URL of the application.

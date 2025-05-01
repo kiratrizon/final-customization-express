@@ -21,8 +21,8 @@ const constant = {
     },
     providers: {
         users: {
-            driver: 'table',
-            table: 'users',
+            driver: 'eloquent',
+            model: User,
         },
         admins: {
             driver: 'eloquent',

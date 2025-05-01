@@ -26,7 +26,7 @@ const constant = {
         timezone: env('DATABASE_TIMEZONE', '+08:00'),
     },
     redis: {
-        "url": env('REDIS_URL', '')
+        "url": env('REDIS_URL', ''),
     }
 };
 module.exports = constant;

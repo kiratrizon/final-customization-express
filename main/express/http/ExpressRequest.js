@@ -1,9 +1,11 @@
+const Validator = require("../../../libraries/Services/Validator");
 const ExpressHeader = require("./ExpressHeader");
 
 class ExpressRequest {
     #post;
     #get;
     #files;
+    #cookies;
     headers;
     header;
     route;
@@ -11,6 +13,7 @@ class ExpressRequest {
         this.#post = rq.body || {};
         this.#get = rq.query || {};
         this.#files = rq.files || {};
+        this.#cookies = rq.cookies || {};
         this.request = rq;
         this.headers = new ExpressHeader(rq.headers || {});
         this.header = function (key = '') {
@@ -68,6 +71,18 @@ class ExpressRequest {
                 return this.request.method.toLowerCase() === type.toLowerCase();
             }
         }
+    }
+    async validate(rules = {}) {
+        if (!is_object(rules)) {
+            throw new Error('Rules must be an object');
+        }
+        const keys = Object.keys(rules);
+        const data = this.only(keys);
+        const validator = await Validator.make(data, rules);
+        if (validator.fails()) {
+            response_error(validator.getErrors());
+        }
+        return data;
     }
 }
 

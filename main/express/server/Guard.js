@@ -2,6 +2,8 @@ const Hash = require("../../../libraries/Services/Hash");
 const JWT = require("../../../libraries/Services/JWT");
 const DB = require("../../database/Manager/DB");
 const jwtObj = config('jwt');
+const MemoryCache = require('../../../vendor/MemoryCache');
+const Collection = require("../../database/Manager/Collection");
 
 class Guard {
     #driver; // session, jwt
@@ -21,7 +23,21 @@ class Guard {
 
     async attempt(data = {}) {
         if (!is_object(data)) {
-            return false;
+            return null;
+        }
+        if (this.#driver === 'jwt') {
+
+            if (!this.#isModel) {
+                return null;
+            }
+            const instance = new this.#model();
+            if (
+                !method_exist(instance, 'getJWTCustomClaims')
+                || !method_exist(instance, 'getJWTIdentifier')
+            ) {
+                console.warn('Please define the getJWTCustomClaims and getJWTIdentifier methods in your model.');
+                return null;
+            }
         }
         let key = 'email';
         if (this.#isModel && method_exist(this.#model, 'getUsername')) {
@@ -36,9 +52,13 @@ class Guard {
                 user = DB.table(this.#table).where(key, data[key]).first();
             }
             if (user) {
-                if (Hash.check(user.password, data.password)) {
+                if (Hash.check(data.password, user.password)) {
                     if (this.#driver === 'jwt') {
-                        let filtered = only(user, ['id', key]);
+                        let filtered = user.getJWTCustomClaims();
+                        const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${user.id}`;
+                        const cache = new MemoryCache();
+                        // save to cache
+                        await cache.set(keyName, user.makeVisible('password').toJson());
                         return JWT.generateToken(filtered, jwtObj.secret_key, jwtObj.expiration.default * 60, jwtObj.algorithm);
                     } else if (this.#driver === 'session') {
                         return user;
@@ -52,11 +72,10 @@ class Guard {
     check() {
         if (this.#driver === 'jwt') {
             // Get token from Authorization header
-            const token = request().header('Authorization');
-
-            // If no token is provided, return false
+            const token = request().header('authorization');
+            // If no token is provided, return null
             if (empty(token)) {
-                return false;
+                return null;
             }
 
             // Remove the 'Bearer ' part from the token string
@@ -68,10 +87,36 @@ class Guard {
 
                 return decoded;
             } catch (error) {
-                // If verification fails (expired, invalid token), return false
-                return false;
+                // If verification fails (expired, invalid token), return null
+                return null;
             }
         }
+    }
+
+    async user() {
+        const check = this.check();
+        if (check) {
+            if (this.#driver === 'jwt') {
+                const cache = new MemoryCache();
+                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${check.sub}`;;
+                const user = await cache.get(keyName);
+                if (user) {
+                    console.log('user from cache', user);
+                    return new Collection(this.#model).one([user]);
+                } else {
+                    // If not found in cache, fetch from database
+                    const model = this.#model;
+                    const userFromDB = await model.find(check.sub);
+                    if (userFromDB) {
+                        // Store in cache for future use
+                        await cache.set(keyName, userFromDB.makeVisible('password').toArray());
+                        userFromDB.makeHidden('password');
+                        return userFromDB;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
 

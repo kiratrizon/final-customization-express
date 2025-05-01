@@ -3,6 +3,7 @@ const path = require('path');
 const Configure = require('../../../libraries/Materials/Configure');
 const Carbon = require('../../../libraries/Materials/Carbon');
 const ExpressView = require('../http/ExpressView');
+const AppProviders = require('../../../app/Providers/AppProviders');
 require('dotenv').config();
 
 
@@ -10,15 +11,15 @@ require('dotenv').config();
  * @functions *
 ***************/
 
-Object.defineProperty(globalThis, 'functionDesigner', {
+Object.defineProperty(global, 'functionDesigner', {
     value: (key, value) => {
-        if (key in globalThis) {
+        if (key in global) {
             return;
         }
         if (typeof value !== 'function') {
             throw new Error(`The value for "${key}" must be a function.`);
         }
-        Object.defineProperty(globalThis, key, {
+        Object.defineProperty(global, key, {
             value: value,
             writable: false,
             configurable: false,
@@ -257,10 +258,10 @@ functionDesigner('is_function', (variable) => {
 
 // This function is use to define GLOBAL variable
 functionDesigner('define', (key, value) => {
-    if (key in globalThis) {
+    if (key in global) {
         return;
     }
-    Object.defineProperty(globalThis, key, {
+    Object.defineProperty(global, key, {
         value: value,
         writable: true,
         configurable: false,
@@ -444,6 +445,25 @@ functionDesigner('method_exist', (object, method) => {
     return typeof object[method] === 'function';
 });
 
+functionDesigner('use', (className) => {
+    const appProviders = AppProviders.register();
+    if (className in appProviders) {
+        return appProviders[className];
+    }
+    return null;
+});
+
+functionDesigner('json_encode', (data) => {
+    return JSON.stringify(data);
+});
+
+functionDesigner('json_decode', (data) => {
+    if (is_string(data)) {
+        return JSON.parse(data);
+    }
+    return data;
+});
+
 
 /**************
  * @variables *
@@ -465,6 +485,7 @@ define('dump', () => { });
 
 /** Placeholder for a function that will dump variable contents and terminate execution. */
 define('dd', () => { });
+define('response_error', () => { })
 
 define('BASE_URL', '');
 define('PATH_URL', '');

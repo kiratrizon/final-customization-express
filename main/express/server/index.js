@@ -18,6 +18,8 @@ const express = require('express');
 const ExpressView = require('../http/ExpressView');
 const util = require('util');
 const ExpressRegexHandler = require('../http/ExpressRegexHandler');
+const Auth = require('./Auth');
+const ExpressRequest = require('../http/ExpressRequest');
 
 
 const myLink = `https://github.com/kiratrizon/final-customization-express`;
@@ -28,13 +30,13 @@ class Server {
 	static #routes = {};
 	static router = Server.express.Router();
 
-	static boot() {
+	static async boot() {
 		Server.app.use(morgan('dev'));
 		Server.app.use(Server.express.json());
 		Server.app.use(Server.express.urlencoded({ extended: true }));
 		Server.app.use(Server.express.static(public_path()));
 		Server.app.use('/favicon.ico', Server.express.static(public_path('favicon.ico')));
-		const handleBoot = Server.#handle();
+		const handleBoot = await Server.#handle();
 
 		const appEssentials = [
 			'session',
@@ -54,6 +56,35 @@ class Server {
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
 
+			console.log(req.sessionID);
+			$_POST = req.body || {};
+			$_GET = req.query || {};
+			$_FILES = req.files || {};
+			$_COOKIE = req.cookies || {};
+			const methodType = req.method.toUpperCase();
+			const REQUEST = {
+				method: methodType,
+				headers: req.headers,
+				body: $_POST,
+				query: $_GET,
+				cookies: $_COOKIE,
+				path: req.path,
+				originalUrl: req.originalUrl,
+				ip: req.ip,
+				protocol: req.protocol,
+				files: $_FILES,
+			};
+			const rq = new ExpressRequest(REQUEST);
+			PATH_URL = REQUEST.path;
+			QUERY_URL = REQUEST.originalUrl;
+			ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
+			request = (getInput) => {
+				if (!is_string(getInput)) {
+					return rq;
+				} else {
+					return rq.input(getInput);
+				}
+			}
 			if (env('NODE_ENV') !== 'production') {
 				res.setHeader('X-Developer', 'Throy Tower');
 			}
@@ -123,26 +154,13 @@ class Server {
 				res.responses.html_dump = [];
 				res.responses.json_dump = [];
 			}
+
 			dump = (data) => renderData(data, res, true);
 			dd = (data) => {
 				renderData(data, res);
 			};
-			if (!req.session.session_auth) {
-				req.session.session_auth = {};
-			}
-			if (!req.session.session_hidden) {
-				req.session.session_hidden = {};
-			}
-			if (!req.session.global_variables) {
-				req.session.global_variables = {};
-			}
-			if (!req.session.oldPost) {
-				req.session.oldPost = {};
-			}
-			$_SESSION = req.session.global_variables;
-			const session = req.session;
-			globalThis.$_SESSION_AUTH = session.session_auth;
-			globalThis.$_SESSION_HIDDEN = session.session_hidden;
+
+			define('auth', () => Auth);
 
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			route = (name, args = {}) => {
@@ -199,6 +217,14 @@ class Server {
 				return req.get('Referrer') || '/';
 			};
 
+			response_error = (error, data) => {
+				if (isRequest) {
+					res.status(422).json({ error });
+				} else {
+					res.redirect(422, back());
+				}
+			}
+
 
 			BASE_URL = Server.#baseUrl;
 			next();
@@ -207,35 +233,51 @@ class Server {
 		Server.#loadAndValidateRoutes();
 	}
 
-	static #handle() {
-		let redisClient = createClient(config('app.redis'));
-		redisClient.connect().catch(console.error)
+	static async #handle() {
+		let store;
 
-		// Initialize store.
-		let redisStore = new RedisStore({
-			client: redisClient,
-			prefix: "myreact:",
-			ttl: 315576000 * 60
-		})
+		if (env('USE_MEMORY_CACHE') !== 'true' && env('NODE_ENV') === 'production') {
+			let redisClient = createClient(config('app.redis'));
+
+			try {
+				await redisClient.connect();  // Await Redis connection
+				// Initialize RedisStore after successful connection
+				store = new RedisStore({
+					client: redisClient,
+					prefix: "myreact:",
+					ttl: 60 * 60 * 24 * 7, // 7 days
+				});
+			} catch (err) {
+				console.error('Redis connection error:', err);
+				// Fallback to in-memory store if Redis fails
+				store = new session.MemoryStore();
+			}
+		} else {
+			store = new session.MemoryStore();
+		}
+
 		const sessionObj = {
-			store: redisStore,
-			secret: process.env.MAIN_KEY || 'secret',
+			store: store,
+			secret: env('MAIN_KEY') || 'secret',
 			resave: false,
 			saveUninitialized: false,
 			cookie: {
-				secure: false,
-				httpOnly: false,
-				maxAge: 1000 * 60 * 60 * 24 * 365 * 60
+				secure: env('NODE_ENV') === 'production',
+				httpOnly: true,
+				maxAge: 300000, // 30 seconds
 			},
 		};
-		const origins = config('origins.origins').length ? config('origins.origins') : '*'
+
+		const origins = config('origins.origins').length ? config('origins.origins') : '*';
+
 		const corsOptions = {
 			origin: origins,
-			methods: ['GET', 'POST', 'PUT', 'DELETE'],
+			methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
 			credentials: true,
 			allowedHeaders: ['Content-Type', 'Authorization'],
 			optionsSuccessStatus: 200,
 		};
+
 		return {
 			cookieParser: cookieParser(),
 			session: session(sessionObj),
@@ -307,31 +349,6 @@ class Server {
 			let data = instance.reveal();
 			if (data) {
 				const { default_route, group, routes } = data;
-				// for default route
-				const filteredKeys = Object.entries(default_route)
-					.filter(([key, value]) => value.length > 0)
-					.map(([key]) => key);
-				const rDf = Server.express.Router({
-					mergeParams: true
-				});
-				const aDf = Server.express.Router();
-				filteredKeys.forEach((key) => {
-					const arrData = default_route[key];
-					arrData.forEach((routeId) => {
-						const routeInstanced = routes[routeId];
-						if (is_function(routeInstanced.getRouteData)) {
-							const { method, path, callback, internal_middlewares, as, regex } = routeInstanced.getRouteData();
-							// regex
-							if (!empty(regex)) {
-								const regexHandler = new ExpressRegexHandler(regex);
-								const regexMiddleware = regexHandler.applyRegex();
-								internal_middlewares.unshift(regexMiddleware);
-							}
-							rDf[method](path, ...internal_middlewares, callback);
-						}
-					})
-				});
-				Server.app.use(routePrefix, rDf);
 
 				// for group
 				const groupKeys = Object.keys(group);
@@ -369,10 +386,36 @@ class Server {
 								}
 							}
 						})
-					})
+					});
+
 					gaDf.use(arrangeGroupRoute, ...middlewares, grDf);
 					Server.app.use(routePrefix, gaDf);
 				});
+
+				// for default route
+				const filteredKeys = Object.entries(default_route)
+					.filter(([key, value]) => value.length > 0)
+					.map(([key]) => key);
+				const rDf = Server.express.Router({
+					mergeParams: true
+				});
+				filteredKeys.forEach((key) => {
+					const arrData = default_route[key];
+					arrData.forEach((routeId) => {
+						const routeInstanced = routes[routeId];
+						if (is_function(routeInstanced.getRouteData)) {
+							const { method, path, callback, internal_middlewares, as, regex } = routeInstanced.getRouteData();
+							// regex
+							if (!empty(regex)) {
+								const regexHandler = new ExpressRegexHandler(regex);
+								const regexMiddleware = regexHandler.applyRegex();
+								internal_middlewares.unshift(regexMiddleware);
+							}
+							rDf[method](path, ...internal_middlewares, callback);
+						}
+					})
+				});
+				Server.app.use(routePrefix, rDf);
 			}
 		})
 
@@ -380,13 +423,4 @@ class Server {
 	}
 }
 
-Server.boot();
-
-// const r = Server.express.Router();
-// r.get('/test', (req, res) => {
-// 	console.log(req.params);
-// 	res.send('Hello World');
-// });
-// Server.app.use('{/:id}', r);
-
-module.exports = Server.app;
+module.exports = Server;

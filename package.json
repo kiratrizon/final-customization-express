@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon ./main/express/server/run-server.js"
+    "dev": "nodemon ./main/express/server/run-server.mjs"
   },
   "keywords": [],
   "author": "",
@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@faker-js/faker": "^9.3.0",
+    "@types/redis": "^4.0.10",
     "@upstash/redis": "^1.34.3",
     "@vitalets/google-translate-api": "^9.2.0",
     "argon2": "^0.41.1",

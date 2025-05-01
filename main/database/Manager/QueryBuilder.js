@@ -543,6 +543,9 @@ class QueryBuilder {
     }
 
     toSql() {
+        if (this.#isModel && this.#model.softDelete) {
+            this.whereNull('deleted_at');
+        }
         const rsql = new RawSQL(config('app.database.database'), this.getAllProps());
         let sql = rsql.build();
         return sql;
@@ -601,6 +604,18 @@ class QueryBuilder {
     async find(id) {
         this.where('id', id);
         return await this.first();
+    }
+    async delete(id) {
+        const newDB = new DBManager();
+        if (this.#isModel && this.#model.softDelete) {
+            const sql = `UPDATE ${this.#table} SET deleted_at = ? WHERE id = ?`;
+            const values = [date(), id];
+            return await newDB.runQuery(sql, values);
+        } else {
+            const sql = `DELETE FROM ${this.#table} WHERE id = ?`;
+            const values = [id];
+            return await newDB.runQuery(sql, values);
+        }
     }
 }
 

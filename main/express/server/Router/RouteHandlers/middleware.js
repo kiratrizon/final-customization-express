@@ -34,37 +34,9 @@ class RouteMiddleware {
         }
         if (isset(middleware) && is_function(middleware)) {
             const newCallback = async (req, res, next) => {
-                $_POST = req.body || {};
-                $_GET = req.query || {};
-                $_FILES = req.files || {};
-                $_COOKIE = req.cookies || {};
-                const methodType = req.method.toUpperCase();
-                const REQUEST = {
-                    method: methodType,
-                    params: req.params,
-                    headers: req.headers,
-                    body: $_POST,
-                    query: $_GET,
-                    cookies: $_COOKIE,
-                    path: req.path,
-                    originalUrl: req.originalUrl,
-                    ip: req.ip,
-                    protocol: req.protocol,
-                    files: $_FILES,
-                };
-                const rq = new ExpressRequest(REQUEST);
-                PATH_URL = REQUEST.path;
-                QUERY_URL = REQUEST.originalUrl;
-                ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
+                const rq = request();
                 const middlewareInitiator = () => {
                     return new ExpressClosure();
-                }
-                request = (getInput) => {
-                    if (!is_string(getInput)) {
-                        return rq;
-                    } else {
-                        return rq.input(getInput);
-                    }
                 }
                 const expressResponse = await middleware(rq, middlewareInitiator);
                 const { html_dump, json_dump } = res.responses;

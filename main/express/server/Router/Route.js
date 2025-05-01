@@ -1,6 +1,19 @@
 const path = require("path");
 const RouteGroup = require('./RouteHandlers/group');
 const RouteMethod = require('./RouteHandlers/method');
+
+const Controller = require("../../../base/Controller");
+
+function isClassInheritsFrom(child, parent) {
+    let prototype = Object.getPrototypeOf(child);
+    while (prototype) {
+        if (prototype === parent) {
+            return true;
+        }
+        prototype = Object.getPrototypeOf(prototype);
+    }
+    return false;
+}
 class Route {
     static #routeId = 0;
     static #groupId = 0;
@@ -28,6 +41,9 @@ class Route {
         let callback;
         if (is_array(handler)) {
             const controller = handler[0];
+            if (!isClassInheritsFrom(controller, Controller)) {
+                throw new Error(`Controller ${controller.name} must extend Controller class`);
+            }
             const action = handler[1];
             const controllerName = controller.name;
             if (!this.#storedControllers[controllerName]) {

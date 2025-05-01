@@ -34,6 +34,40 @@ class BaseModel extends ConstructorModel {
         return builder.where(...args);
     }
 
+    static whereIn(...args) {
+        const builder = new QueryBuilder(this);
+        return builder.whereIn(...args);
+    }
+
+    static whereNotIn(...args) {
+        const builder = new QueryBuilder(this);
+        return builder.whereNotIn(...args);
+    }
+
+    static whereNull(...args) {
+        const builder = new QueryBuilder(this);
+        return builder.whereNull(...args);
+    }
+
+    static whereNotNull(...args) {
+        const builder = new QueryBuilder(this);
+        return builder.whereNotNull(...args);
+    }
+
+    static whereBetween(...args) {
+        const builder = new QueryBuilder(this);
+        return builder.whereBetween(...args);
+    }
+    static whereNotBetween(...args) {
+        const builder = new QueryBuilder(this);
+        return builder.whereNotBetween(...args);
+    }
+
+    static async delete(id) {
+        const builder = new QueryBuilder(this);
+        return await builder.delete(id);
+    }
+
     save(data = {}) {
 
     }

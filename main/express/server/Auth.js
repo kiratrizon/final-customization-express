@@ -60,7 +60,7 @@ class Auth {
         this.#defaultGuard = guardName;
     }
 
-    static guard(name = defaultGuard) {
+    static guard(name = Auth.#defaultGuard) {
         if (empty(name)) {
             throw new Error('Guard name is empty');
         }

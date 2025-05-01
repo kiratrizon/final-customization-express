@@ -97,6 +97,13 @@ class Blueprint {
         this.columns.push({ name: 'updated_at', type: updatedAt });
     }
 
+    softDeletes() {
+        const deletedAt = config('app.database.database') === 'sqlite'
+            ? 'DATETIME DEFAULT NULL'
+            : 'DATETIME DEFAULT NULL';
+        this.columns.push({ name: 'deleted_at', type: deletedAt });
+    }
+
     // Get column definitions for CREATE TABLE
     getColumns() {
         return this.columns.map(col => {
@@ -134,6 +141,7 @@ class Blueprint {
     getAlterOperations() {
         return this.alterOperations.join(', ');
     }
+
 }
 
 module.exports = Blueprint;

@@ -2,13 +2,11 @@ const auth = config('auth');
 const Guard = require('./Guard');
 
 class GuardInitiator {
-    #guard;
     #driver;
     #model;
     #table;
     #driverType;
     constructor(guard) {
-        this.#guard = guard;
         this.#driver = auth.guards[guard].driver;
         const providerKey = auth.guards[guard].provider;
         this.#driverType = auth.providers[providerKey].driver;

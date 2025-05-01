@@ -5,6 +5,10 @@ class BaseController extends ConstructorController {
         if (is_array(models)) {
             models.forEach((modelName) => {
                 const ModelClass = LoadModel.init(modelName);
+                if (!isset(ModelClass)) {
+                    console.warn(`Model ${modelName} not found`);
+                    return;
+                }
                 if (!this[modelName]) {
                     this[modelName] = ModelClass;
                 } else {
@@ -13,6 +17,10 @@ class BaseController extends ConstructorController {
             });
         } else if (is_string(models)) {
             const ModelClass = LoadModel.init(models);
+            if (!isset(ModelClass)) {
+                console.warn(`Model ${models} not found`);
+                return;
+            }
             if (!this[models]) {
                 this[models] = ModelClass;
             } else {

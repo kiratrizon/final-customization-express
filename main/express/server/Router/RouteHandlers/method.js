@@ -19,30 +19,9 @@ class RouteMethod {
         const pathCheckerForRegex = path.join(currentGroup, cpath);
         if (is_function(callback)) {
             newCallback = async (req, res) => {
-                $_POST = req.body || {};
-                $_GET = req.query || {};
-                $_FILES = req.files || {};
-                $_COOKIE = req.cookies || {};
-                const methodType = req.method.toUpperCase();
-                const REQUEST = {
-                    method: methodType,
-                    params: { ...req.params },
-                    headers: req.headers,
-                    body: $_POST,
-                    query: $_GET,
-                    cookies: $_COOKIE,
-                    path: req.path,
-                    originalUrl: req.originalUrl,
-                    ip: req.ip,
-                    protocol: req.protocol,
-                    files: $_FILES,
-                };
-                const rq = new ExpressRequest(REQUEST);
-                PATH_URL = REQUEST.path;
-                QUERY_URL = REQUEST.originalUrl;
-                ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
+                request().request.params = { ...req.params }
+                const rq = request();
                 const regex = /{\/?:([\w-]+)\??}|:(\w+)/g;
-
                 const keys = [];
                 let match;
 
@@ -55,13 +34,6 @@ class RouteMethod {
                 keys.forEach((key) => {
                     params[key] = rq.request.params[key] || null;
                 })
-                request = (getInput) => {
-                    if (!is_string(getInput)) {
-                        return rq;
-                    } else {
-                        return rq.input(getInput);
-                    }
-                }
                 const expressResponse = await callback(rq, ...Object.values(params));
                 const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
@@ -69,7 +41,7 @@ class RouteMethod {
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
-                        const { html, json, file, download, error, headers, statusCode, returnType } = expressResponse.accessData();
+                        const { html, json, file, download, streamDownload, error, headers, statusCode, returnType } = expressResponse.accessData();
                         res.set(headers).status(statusCode);
                         if (isset(error)) {
                             res.send(error);
@@ -84,6 +56,15 @@ class RouteMethod {
                                 res.sendFile(file);
                             } else if (returnType === 'download') {
                                 res.download(...download);
+                            } else if (returnType === 'streamDownload') {
+                                const [callback, fileName] = streamDownload;
+                                const STREAM = use('STREAM');
+                                const stream = new STREAM();
+                                callback(stream);
+                                res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+                                const text = stream.get();
+                                res.write(text);
+                                res.end();
                             }
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {

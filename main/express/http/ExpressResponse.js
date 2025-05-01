@@ -85,7 +85,7 @@ class ExpressResponse {
     }
 
     #responseValidator(insertType = 'html') {
-        let returnTypes = ['html', 'json', 'file'];
+        let returnTypes = ['html', 'json', 'file', 'download'];
         // splice the insertType from returnTypes
         returnTypes.splice(returnTypes.indexOf(insertType), 1);
         let countErrors = 0;
@@ -154,6 +154,26 @@ class ExpressResponse {
             throw new Error('File is a block device');
         }
         return false;
+    }
+
+    streamDownload(callback, fileName, statusCode = this.#defaultStatusCode) {
+        try {
+            this.#responseValidator('streamDownload');
+            if (!is_function(callback)) {
+                throw new Error('Callback must be a function');
+            }
+            if (!is_string(fileName)) {
+                throw new Error('File name must be a string');
+            }
+            this.#returnData['streamDownload'] = [callback, fileName];
+            this.#returnStatusCode = statusCode;
+            return this;
+        } catch (error) {
+            // Handle errors by returning a generic response
+            this.#returnData['error'] = error.message;
+            this.#returnStatusCode = 400; // You can adjust the status code as needed
+            return this;
+        }
     }
 }
 

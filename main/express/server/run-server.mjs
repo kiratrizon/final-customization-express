@@ -1,4 +1,4 @@
-const app = require('../../../index');
+import app from './connect.mjs'
 
 const PORT = env('PORT', 3000);
 
