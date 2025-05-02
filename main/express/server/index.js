@@ -164,37 +164,37 @@ class Server {
 
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			route = (name, args = {}) => {
-				if (Server.#routes.hasOwnProperty(name) && isset(Server.#routes[name])) {
-					let { path, allparams, optional } = Server.#routes[name];
-					const requiredParams = allparams.filter(p => !optional.includes(p));
-					const argsKeys = Object.keys(args);
-					let passed = [];
-					requiredParams.forEach(param => {
-						if (argsKeys.includes(param)) {
-							passed.push(param);
-							path = path.replace(`:${param}`, args[param]);
+				if (name in Server.#routes) {
+					const { full_path, required = [], optional = [] } = Server.#routes[name];
+					required.forEach((key) => {
+						if (!(key in args)) {
+							throw new Error(`Missing required parameter: ${key}`);
 						}
-					})
-					if (requiredParams.length !== passed.length) {
-						throw `route("${name}") not found. Required parameters are missing. ${requiredParams.join(', ')}`;
-					}
+					});
 
-					optional.forEach(param => {
-						let val = args[param];
-						if (!isset(val) || empty(val)) {
-							val = '';
-							path = path.replace(`/:${param}`, val);
+					let url;
+					const allparams = [...required, ...optional];
+					allparams.forEach((key) => {
+						if (key in args) {
+							url = full_path.replace(`:${key}/`, `${args[key]}/`);
 						} else {
-							path = path.replace(`:${param}`, val);
+							url = full_path.replace(`:${key}/`, '/');
 						}
 					})
 
-					return `${Server.#baseUrl}${path}`;
-				}
 
-				const stack = new Error().stack;
-				const caller = stack.split("\n")[2].trim();
-				throw `route("${name}") not found.\n${caller}`;
+
+					// Remove trailing slash if present
+					if (url.endsWith('/')) {
+						url = url.slice(0, -1);
+					}
+					// Remove double slashes
+					url = url.replace(/\/+/g, '/');
+					// Add base URL
+					url = path.join(Server.#baseUrl, url);
+					return url;
+				}
+				return null;
 			};
 
 			// req.flash('hello', 'world');
@@ -287,18 +287,6 @@ class Server {
 		};
 	}
 
-	static #duplicateRoutesDetector(obj1, obj2) {
-		// prioritize the first object
-		const duplicateKeys = Object.keys(obj1).filter(key => obj2.hasOwnProperty(key));
-		if (duplicateKeys.length > 0) {
-			duplicateKeys.forEach(key => {
-				console.warn(`Duplicate route detected: "${key}". The route from the second object will be ignored.`);
-			});
-			obj2 = except(obj2, duplicateKeys);
-		}
-		Server.#routes = { ...obj1, ...obj2 };
-	}
-
 	static #finishBoot() {
 		if (typeof Boot['notFound'] === 'function') {
 			Server.app.use(async (req, res) => {
@@ -350,6 +338,7 @@ class Server {
 			if (data) {
 				const { default_route, group, routes } = data;
 
+				// console.log(data)
 				// for group
 				const groupKeys = Object.keys(group);
 				groupKeys.forEach((key) => {
@@ -358,10 +347,11 @@ class Server {
 					});
 					const gaDf = Server.express.Router();
 					const groupRoute = key;
-					const arrangeGroupRoute = groupRoute.replace(/\/\*\d+\*/g, '') || '/';
+					let arrangeGroupRoute = groupRoute.replace(/\*\d+\*/g, '') || '/';
+					arrangeGroupRoute = arrangeGroupRoute.replace(/\/+/g, '/');
 					const instancedGroup = group[key];
-					const { as, middlewares, childRoutes } = instancedGroup.getGroup();
-
+					const { as = [], middlewares, childRoutes } = instancedGroup.getGroup();
+					let groupAs = as.join('.');
 					// filterChildRoutes
 					const filteredChildRoutes = Object.entries(childRoutes)
 						.filter(([key, value]) => value.length > 0)
@@ -371,17 +361,45 @@ class Server {
 						arrData.forEach((routeId) => {
 							const routeInstanced = routes[routeId];
 							if (is_function(routeInstanced.getRouteData)) {
-								const { method, path, callback, internal_middlewares, as, regex, match } = routeInstanced.getRouteData();
+								const { method, url, callback, internal_middlewares, as = '', regex, match, params, full_path } = routeInstanced.getRouteData();
+								let routeAs = as;
+								if (!empty(routeAs)) {
+									if (!empty(groupAs)) {
+										routeAs = `${groupAs}.${as}`;
+									} else {
+										routeAs = `${as}`;
+									}
+									// replace duplicate dots
+									routeAs = routeAs.replace(/\.+/g, '.');
+									// remove last dot
+									if (routeAs.endsWith('.')) {
+										routeAs = routeAs.slice(0, -1);
+									}
+									// remove first dot
+									if (routeAs.startsWith('.')) {
+										routeAs = routeAs.slice(1);
+									}
+
+									// set route
+									if (routeAs in Server.#routes) {
+										console.warn(`${routeAs} already exists in routes`);
+									} else {
+										Server.#routes[routeAs] = {
+											full_path: path.join(routePrefix, full_path),
+											...params,
+										}
+									}
+								}
 								// regex
 								if (!empty(regex)) {
 									const regexHandler = new ExpressRegexHandler(regex);
 									const regexMiddleware = regexHandler.applyRegex();
 									internal_middlewares.unshift(regexMiddleware);
 								}
-								grDf[method](path, ...internal_middlewares, callback);
+								grDf[method](url, ...internal_middlewares, callback);
 								if (is_array(match) && !empty(match)) {
 									match.forEach((m) => {
-										grDf[m](path, ...internal_middlewares, callback);
+										grDf[m](url, ...internal_middlewares, callback);
 									})
 								}
 							}
@@ -399,19 +417,47 @@ class Server {
 				const rDf = Server.express.Router({
 					mergeParams: true
 				});
-				filteredKeys.forEach((key) => {
-					const arrData = default_route[key];
+				filteredKeys.forEach((k) => {
+					const arrData = default_route[k];
 					arrData.forEach((routeId) => {
 						const routeInstanced = routes[routeId];
 						if (is_function(routeInstanced.getRouteData)) {
-							const { method, path, callback, internal_middlewares, as, regex } = routeInstanced.getRouteData();
+							const { method, url, callback, internal_middlewares, as = '', regex, match, params, full_path } = routeInstanced.getRouteData();
+							let routeAs = as;
+							if (!empty(routeAs)) {
+								// replace duplicate dots
+								routeAs = routeAs.replace(/\.+/g, '.');
+								// remove last dot
+								if (routeAs.endsWith('.')) {
+									routeAs = routeAs.slice(0, -1);
+								}
+								// remove first dot
+								if (routeAs.startsWith('.')) {
+									routeAs = routeAs.slice(1);
+								}
+
+								// set route
+								if (routeAs in Server.#routes) {
+									console.warn(`${routeAs} already exists in routes`);
+								} else {
+									Server.#routes[routeAs] = {
+										full_path: path.join(routePrefix, full_path),
+										...params,
+									}
+								}
+							}
 							// regex
 							if (!empty(regex)) {
 								const regexHandler = new ExpressRegexHandler(regex);
 								const regexMiddleware = regexHandler.applyRegex();
 								internal_middlewares.unshift(regexMiddleware);
 							}
-							rDf[method](path, ...internal_middlewares, callback);
+							rDf[method](url, ...internal_middlewares, callback);
+							if (is_array(match) && !empty(match)) {
+								match.forEach((m) => {
+									rDf[m](url, ...internal_middlewares, callback);
+								})
+							}
 						}
 					})
 				});

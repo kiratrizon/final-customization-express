@@ -3,7 +3,6 @@ const ExpressResponse = require('../../../http/ExpressResponse');
 const ExpressRedirect = require('../../../http/ExpressRedirect');
 const ExpressView = require('../../../http/ExpressView');
 const RouteMiddleware = require('./middleware');
-const ExpressRequest = require('../../../http/ExpressRequest');
 
 class RouteMethod {
     constructor(config = {}) {
@@ -13,23 +12,18 @@ class RouteMethod {
 
     // store route
     #processMethods(config = {}) {
-        const { method, url, callback, currentGroup, hasMatch } = config;
-        let cpath = url;
+        const { method, urlProps, callback, groupProps, hasMatch } = config;
+        let url = urlProps.string;
+        let currentGroup = groupProps.string;
+        let optionalParams = [...groupProps.optionalParams, ...urlProps.optionalParams];
+        let requiredParams = [...groupProps.requiredParams, ...urlProps.requiredParams];
         let newCallback = null;
-        const pathCheckerForRegex = path.join(currentGroup, cpath);
+        const pathChecker = [currentGroup, url].join('').replace(/[{}]/g, '').replace(/\*\d+\*/g, '').replace(/\/+/g, '/');
         if (is_function(callback)) {
             newCallback = async (req, res) => {
                 request().request.params = { ...req.params }
                 const rq = request();
-                const regex = /{\/?:([\w-]+)\??}|:(\w+)/g;
-                const keys = [];
-                let match;
-
-                while ((match = regex.exec(pathCheckerForRegex)) !== null) {
-                    const key = match[1] ?? match[2]; // nullish coalescing
-                    if (key) keys.push(key);
-                }
-
+                const keys = [...pathChecker.matchAll(/:([a-zA-Z0-9_]+)/g)].map(match => match[1]);
                 const params = {};
                 keys.forEach((key) => {
                     params[key] = rq.request.params[key] || null;
@@ -94,10 +88,15 @@ class RouteMethod {
         }
         if (is_function(newCallback)) {
             this.#routeData['method'] = method.toLowerCase();
-            this.#routeData['path'] = url;
+            this.#routeData['url'] = url;
             this.#routeData['callback'] = newCallback;
             if (is_array(hasMatch) && hasMatch.length > 0) {
                 this.#routeData['match'] = hasMatch;
+            }
+            this.#routeData['full_path'] = pathChecker + '/';
+            this.#routeData['params'] = {
+                'required': requiredParams,
+                'optional': optionalParams,
             }
         }
     }
@@ -105,7 +104,7 @@ class RouteMethod {
     #routeData = {
         'internal_middlewares': [],
         'regex': {},
-        'as': null,
+        'as': '',
         'match': null,
     }
 

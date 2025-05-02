@@ -13,6 +13,21 @@ class Admin extends Authenticatable {
     hidden = [
         'password'
     ];
+
+    getUsername() {
+        return 'email';
+    }
+
+    getJWTIdentifier() {
+        return this.getAuthIdentifierName();
+    }
+
+    getJWTCustomClaims() {
+        return {
+            'sub': this.id,
+            'email': this.email,
+        };
+    }
 };
 
 module.exports = Admin;

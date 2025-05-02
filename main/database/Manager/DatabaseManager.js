@@ -13,6 +13,7 @@ class DatabaseManager {
     constructor() {
         let databaseType = config('app.database.database') || 'sqlite';
         this.#selectedDB = databases[databaseType];
+        this.init();
     }
 
     async runQuery(sql = '', params = []) {

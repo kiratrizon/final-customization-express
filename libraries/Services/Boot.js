@@ -9,7 +9,7 @@ class Boot {
 
     static async notFound() {
         if (isRequest()) {
-            return response().json({ error: 'Not Found' }, 404);
+            return response().json({ message: 'Not Found' }, 404);
         }
         return view('error');
     }

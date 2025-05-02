@@ -63,18 +63,19 @@ class Route {
     }
 
     static #processRoute(url, handler, method, hasMatch = false) {
+        const urlProps = Route.#processString(url);
         let callback = Route.#handlerProcessor(handler, method);
         const config = {
-            method, url, callback, currentGroup: Route.#groupCombiner(), hasMatch
+            method, urlProps, callback, groupProps: Route.#groupCombiner(), hasMatch
         }
         const methodInstance = new RouteMethod(config);
         Route.#routeId++;
         const routeId = Route.#routeId;
         Route.#methodPreference[routeId] = methodInstance;
-        if (empty(Route.#groupCombiner()) && empty(Route.#currentGroup)) {
+        if (empty(Route.#groupCombiner().string) && empty(Route.#currentGroup)) {
             Route.#defaultRoute[method].push(routeId);
-        } else if (!empty(Route.#groupCombiner()) && !empty(Route.#currentGroup)) {
-            Route.#groupPreference[Route.#groupCombiner()].pushRoute(method, routeId);
+        } else if (!empty(Route.#groupCombiner().string) && !empty(Route.#currentGroup)) {
+            Route.#groupPreference[Route.#groupCombiner().string].pushRoute(method, routeId);
         }
         return Route.#methodPreference[routeId];
     }
@@ -86,7 +87,93 @@ class Route {
         if (convertion === '.') {
             convertion = '';
         }
-        return convertion;
+        return Route.#processString(convertion);
+    }
+
+    static #processString(input) {
+        const requiredParams = [];
+        const optionalParams = [];
+        if (input === '') {
+            return { string: input, requiredParams, optionalParams };
+        }
+        const regex = {
+            digit: /^\d+$/,
+            alpha: /^[a-zA-Z]+$/,
+            alphanumeric: /^[a-zA-Z0-9]+$/,
+            slug: /^[a-z0-9-]+$/,
+            uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+        };
+        // Step 1: Replace multiple slashes with a single slash
+        input = input.replace(/\/+/g, '/');
+
+        if (input.startsWith('/')) {
+            input = input.slice(1); // Remove leading slash
+        }
+        if (input.endsWith('/')) {
+            input = input.slice(0, -1); // Remove trailing slash
+        }
+        // Step 2: Split the string by slash
+        const parts = input.split('/');
+
+        const result = parts.map(part => {
+            const constantPart = part;
+            if (part.startsWith('{') && part.endsWith('}')) {
+                // Handle part wrapped in {}
+                let isOptional = false;
+                part = part.slice(1, -1); // Remove curly braces
+
+                // Check if it's optional
+                if (part.endsWith('?')) {
+                    part = part.slice(0, -1); // Remove the '?' character
+                    isOptional = true;
+                }
+
+                // If it's an alpha string, handle it
+                if (regex.alphanumeric.test(part)) {
+                    if (isOptional) {
+                        optionalParams.push(part);
+                        return `{:${part}}`; // Optional, wrapped with ":"
+                    } else {
+                        requiredParams.push(part);
+                        return `:${part}`; // Non-optional, just with ":"
+                    }
+                }
+
+                throw new Error(`${constantPart} is not a valid parameter name`);
+            } else {
+                if (regex.digit.test(part)) {
+                    return `${part}`;
+                }
+                if (regex.alpha.test(part)) {
+                    return `${part}`;
+                }
+                if (regex.alphanumeric.test(part)) {
+                    return `${part}`;
+                }
+                if (regex.slug.test(part)) {
+                    return `${part}`;
+                }
+                if (regex.uuid.test(part)) {
+                    return `${part}`;
+                }
+
+                if (part.startsWith('*') && part.endsWith('*')) {
+                    const type = part.slice(1, -1); // remove * *
+
+                    if (regex.digit.test(type)) {
+                        return `${part}`;
+                    }
+                }
+                throw new Error(`${constantPart} is not a valid route`);
+            }
+        });
+        let modifiedString = `/${path.join(...result)}`;
+        if (modifiedString.endsWith('/') && modifiedString.length > 1) {
+            modifiedString = modifiedString.slice(0, -1).replace(/\/\{/g, '{/'); // Remove trailing slash
+        } else {
+            modifiedString = modifiedString.replace(/\/\{/g, '{/');
+        }
+        return { string: modifiedString, requiredParams, optionalParams };
     }
 
     static group(config = {}, callback) {
@@ -100,7 +187,7 @@ class Route {
         } else {
             Route.#currentGroup = [...currentGroup, prefix];
         }
-        Route.#groupPreference[Route.#groupCombiner()] = groupInstance;
+        Route.#groupPreference[Route.#groupCombiner().string] = groupInstance;
         if (is_function(callback)) {
             callback();
         }

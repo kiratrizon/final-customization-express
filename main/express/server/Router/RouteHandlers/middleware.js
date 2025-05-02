@@ -1,7 +1,6 @@
 const MiddlewareHandler = require("../../../../../app/MiddlewareHandler");
 const ExpressClosure = require("../../../http/ExpressClosure");
 const ExpressRedirect = require("../../../http/ExpressRedirect");
-const ExpressRequest = require("../../../http/ExpressRequest");
 const ExpressResponse = require("../../../http/ExpressResponse");
 const ExpressView = require("../../../http/ExpressView");
 
@@ -21,11 +20,13 @@ class RouteMiddleware {
                 });
             } else if (is_string(handler)) {
                 const middlewareHandler = new MiddlewareHandler();
-                const middlewareAliases = middlewareHandler.middlewareAliases();
-                if (isset(middlewareAliases[handler])) {
-                    const classUsed = middlewareAliases[handler];
+                const getMiddleware = middlewareHandler.getMiddleware(handler)
+                if (isset(getMiddleware)) {
+                    const classUsed = getMiddleware;
                     if (method_exist(classUsed, 'handle') && is_function(classUsed.handle)) {
-                        middleware = classUsed.handle;
+                        // middleware = classUsed.handle;
+                        // bind
+                        middleware = classUsed.handle.bind(classUsed);
                     }
                 }
             } else if (is_function(handler)) {
