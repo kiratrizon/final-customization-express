@@ -5,6 +5,7 @@ const UserController = require('../app/Controllers/UserController');
 Route.post('/login', [UserController, 'login']);
 Route.get('/auth/user', [UserController, 'index']).middleware('user');
 Route.get('/users', [UserController, 'users']);
+Route.get('/admins', [UserController, 'admins']);
 
 
 module.exports = Route;

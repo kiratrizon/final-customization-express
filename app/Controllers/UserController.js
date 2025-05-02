@@ -2,6 +2,7 @@ const Validator = require("../../libraries/Services/Validator");
 const Controller = require("../../main/base/Controller");
 const DB = require("../../main/database/Manager/DB");
 const Auth = require("../../main/express/server/Auth");
+const Admin = require("../../models/Admin");
 const User = require("../../models/User");
 class UserController extends Controller {
     async index(request) {
@@ -30,6 +31,13 @@ class UserController extends Controller {
 
     async users(request) {
         const users = (await User.all()).map((user) => {
+            return user.toArray();
+        });
+        return response().json({ users });
+    }
+
+    async admins(request) {
+        const users = (await Admin.all()).map((user) => {
             return user.toArray();
         });
         return response().json({ users });
