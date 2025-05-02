@@ -4,7 +4,6 @@ class JWTMiddleware {
 
     guard;
     constructor(guard) {
-        console.log('JWTMiddleware guard:', guard);
         this.guard = guard;
     }
     async handle(request, next) {
