@@ -13,9 +13,10 @@ class MiddlewareHandler {
 
 
     #middleware() {
+        // middleware name => [DefaultMiddleware, guard]
         return {
-            'jwt_user': [JWTMiddleware, 'jwt_user'],
-            'jwt_admin': [JWTMiddleware, 'jwt_admin'],
+            'user': [JWTMiddleware, 'jwt_user'],
+            'admin': [JWTMiddleware, 'jwt_admin'],
         };
     }
 
