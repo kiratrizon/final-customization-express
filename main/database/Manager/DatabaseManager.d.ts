@@ -1,7 +1,5 @@
 // types/DatabaseManager.d.ts
 
-import ExternalQuery from "./ExternalQuery";
-
 /**
  * Provides a unified interface to interact with different SQL databases
  * such as MySQL, SQLite, and PostgreSQL.
@@ -66,6 +64,12 @@ declare class DatabaseManager {
    * @param params Values to replace the placeholders.
    */
   getQueryTrace(query: string, params?: any[]): string;
+
+  /**
+   * Closes the database connection.
+   * Should be called when the application is shutting down.
+   */
+  close(): Promise<boolean>;
 }
 
 export = DatabaseManager;

@@ -4,7 +4,7 @@ const constant = {
     date_format: "Y-m-d",
     time_format: "H:i:s",
     database: {
-        database: 'sqlite',
+        database: env('DATABASE', 'sqlite'),
         mysql: {
             host: env('MYSQL_HOST', 'localhost'),
             port: env('MYSQL_PORT', 3306),

@@ -34,6 +34,7 @@ class MigrationRunner {
             }
         }
 
+        await this.#db.close();
         // Check the count after all migrations are completed
         if (count === 0) {
             console.log('Nothing to migrate.');
@@ -64,19 +65,20 @@ class MigrationRunner {
         }
 
         await this.#db.runQuery(migrationsTableQuery);
+        await this.#db.close();
     }
 
     async rollback() {
         const migrationFiles = this.getMigrationFiles();
 
-        migrationFiles.map(async (file) => {
+        for (const file of migrationFiles) {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
 
             await this.#db.makeMigration(query, migrationName, true);
-        });
+        }
         console.log('Rolled back successfully.');
 
         await this.run();
@@ -114,10 +116,11 @@ class MigrationRunner {
             await this.#db.runQuery('PRAGMA foreign_keys = OFF');
         }
 
-        tables.map(async (table) => {
+        // use forloop to wait for all drop table queries to finish
+        for (const table of tables) {
             const dropTableQuery = `DROP TABLE IF EXISTS ${table.name};`;
             await this.#db.runQuery(dropTableQuery);
-        })
+        }
 
         // Re-enable foreign key constraints for SQLite
         if (config('app.database.database') === 'sqlite') {

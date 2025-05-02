@@ -1,23 +1,24 @@
 const sqlite3 = require('better-sqlite3');
 const path = require('path');
 
-// Your path to the SQLite database file
 const dbPath = path.join(__dirname, '..', 'database.sqlite');
 
 class SQLite {
+    static db = null;
+
     constructor() {
-        this.dbPath = dbPath;
+        if (!SQLite.db) {
+            SQLite.db = sqlite3(dbPath);
+        }
     }
 
     query(query, params = []) {
         return new Promise((resolve, reject) => {
-            let db;
             let data;
 
             try {
-                db = sqlite3(this.dbPath); // Use the path to open the DB
                 const queryType = query.trim().split(' ')[0].toLowerCase();
-                const stmt = db.prepare(query);
+                const stmt = SQLite.db.prepare(query);
 
                 switch (queryType) {
                     case 'insert':
@@ -44,11 +45,11 @@ class SQLite {
                         break;
                 }
 
-                resolve(data); // Return the result via resolve
+                resolve(data);
             } catch (err) {
-                console.log('SQLite Query Error:', err);
+                console.error('SQLite Query Error:', err);
                 console.log(query);
-                resolve(null); // Reject if an error occurs
+                resolve(null);
             }
         });
     }
@@ -58,18 +59,18 @@ class SQLite {
             const escaped = value.replace(/\\/g, '\\\\').replace(/'/g, "''");
             return `'${escaped}'`;
         }
-        if (typeof value === 'boolean') {
-            return value ? 1 : 0;
-        }
-        if (value === null) {
-            return 'NULL';
-        }
-        if (value instanceof Date) {
-            return `'${value.toISOString()}'`;
-        }
+        if (typeof value === 'boolean') return value ? 1 : 0;
+        if (value === null) return 'NULL';
+        if (value instanceof Date) return `'${value.toISOString()}'`;
         return value;
     }
 
+    async close() {
+        if (SQLite.db) {
+            SQLite.db.close();
+            SQLite.db = null;
+        }
+    }
 }
 
 module.exports = SQLite;

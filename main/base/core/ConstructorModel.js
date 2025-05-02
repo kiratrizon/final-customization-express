@@ -16,7 +16,6 @@ class ConstructorModel {
     }
     setHidden(data = []) {
         this.#privates = [...this.#privates, ...data];
-        console.log(this.#privates);
         return this;
     }
     toJson() {

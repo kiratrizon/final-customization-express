@@ -1,6 +1,5 @@
 const mysql = require('mysql2'); // for query tracing
 
-let allowedDatabases = ['mysql', 'sqlite'];
 const databases = {
     "mysql": require('./MySQL'),
     "sqlite": require('./SQLite'),
@@ -8,32 +7,28 @@ const databases = {
 };
 
 class DatabaseManager {
-
+    static #databaseServer; // <-- now static
     #selectedDB;
-    #databaseServer;
+
     constructor() {
         let databaseType = config('app.database.database') || 'sqlite';
         this.#selectedDB = databases[databaseType];
     }
 
-    // This is for artisan/CLI usage only — not for HTTP requests
     async runQuery(sql = '', params = []) {
-        this.init(); // init DB
+        this.init();
 
         if (config('app.database.database') === 'postgresql') {
-            // replace all '?' with $1 $2 $3 ...
-            // count first if how many '?' are in the sql
             let paramIndex = 1;
             sql = sql.replace(/\?/g, () => `$${paramIndex++}`);
         }
+
         if (config('query_trace')) {
-            // console.log(sql, params);
             const tracing = new Error().stack.split('\n').slice(2).map(line => line.trim()).join('\n');
             log(tracing + this.getQueryTrace(sql, params), 'query_trace', 'Query Trace:');
         }
-        let data = await this.#databaseServer.query(sql, params);
 
-        return data;
+        return await DatabaseManager.#databaseServer.query(sql, params);
     }
 
     async runQueryNoReturn(sql, params = []) {
@@ -46,11 +41,11 @@ class DatabaseManager {
             await this.runQuery(query);
             return;
         }
+
         try {
-            let fileNameChecker = await this.runQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
+            const fileNameChecker = await this.runQuery(`SELECT * FROM migrations WHERE migration_name = ?`, [filename]);
             if (fileNameChecker.length === 0) {
                 const migrationResult = await this.runQuery(query);
-
                 if (migrationResult) {
                     const inserted = await this.runQuery(`INSERT INTO migrations (migration_name) VALUES (?)`, [filename]);
                     if (inserted) {
@@ -67,23 +62,49 @@ class DatabaseManager {
         } catch (err) {
             console.error(`Error applying migration "${filename}":`, err);
         }
+
         return false;
     }
 
     init() {
-        if (!this.#databaseServer) {
-            this.#databaseServer = new this.#selectedDB();
+        if (!DatabaseManager.#databaseServer) {
+            DatabaseManager.#databaseServer = new this.#selectedDB();
         }
     }
 
     escape(value) {
         this.init();
-        return this.#databaseServer.escape(value);
+        return DatabaseManager.#databaseServer.escape(value);
     }
 
     getQueryTrace(query, params = []) {
         return mysql.format(query, params);
     }
+
+    async close() {
+        if (DatabaseManager.#databaseServer?.close) {
+            await DatabaseManager.#databaseServer.close();
+            DatabaseManager.#databaseServer = null;
+        }
+        return true;
+    }
 }
+
+// Handle graceful shutdown
+// This will ensure that the database connection is closed when the process exits
+let isShuttingDown = false;
+
+const shutdown = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    const db = new DatabaseManager();
+    await db.close();
+    console.log('Database connection closed.');
+    process.exit(0);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 module.exports = DatabaseManager;

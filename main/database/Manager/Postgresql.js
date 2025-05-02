@@ -1,66 +1,80 @@
 const { Client } = require('pg');
 
 class Postgres {
-    config = null;
+    static client = null;
+    static config = null;
 
     constructor() {
-        this.config = config('app.database.postgresql'); // Your config loader (like env or custom)
+        if (!Postgres.config) {
+            Postgres.config = config('app.database.postgresql');
+        }
+
+        if (!Postgres.client) {
+            Postgres.client = new Client(Postgres.config);
+        }
     }
 
-    query(query, params = []) {
-        return new Promise((resolve, reject) => {
-            const client = new Client(this.config);
+    async #ensureConnection() {
+        if (Postgres.client._connected !== true) {
+            try {
+                await Postgres.client.connect();
+            } catch (err) {
+                console.error('PostgreSQL Connection Error:', err);
+                return false;
+            }
+        }
+        return true;
+    }
 
-            const queryType = query.trim().split(' ')[0].toLowerCase();
+    async query(query, params = []) {
+        const queryType = query.trim().split(' ')[0].toLowerCase();
 
-            client.connect((err) => {
-                if (err) {
-                    console.log('PostgreSQL Connection Error:', err);
-                    return resolve(null);
-                }
+        const connected = await this.#ensureConnection();
+        if (!connected) return null;
 
-                client.query(query, params, (err, result) => {
-                    let data;
+        try {
+            const result = await Postgres.client.query(query, params);
 
-                    if (err) {
-                        console.log('PostgreSQL Query Error:', err);
-                        client.end();
-                        return resolve(null);
-                    }
-
-                    switch (queryType) {
-                        case 'insert':
-                            data = result.rows[0]?.id || null;
-                            break;
-                        case 'update':
-                        case 'delete':
-                            data = result.rowCount > 0;
-                            break;
-                        case 'create':
-                        case 'alter':
-                        case 'drop':
-                            data = true;
-                            break;
-                        case 'select':
-                            data = result.rows.length > 0 ? result.rows : [];
-                            break;
-                        default:
-                            data = result;
-                            break;
-                    }
-
-                    client.end();
-                    return resolve(data);
-                });
-            });
-        });
+            switch (queryType) {
+                case 'insert':
+                    return result.rows[0]?.id || null;
+                case 'update':
+                case 'delete':
+                    return result.rowCount > 0;
+                case 'create':
+                case 'alter':
+                case 'drop':
+                    return true;
+                case 'select':
+                    return result.rows.length > 0 ? result.rows : [];
+                default:
+                    return result;
+            }
+        } catch (err) {
+            console.error('PostgreSQL Query Error:', err);
+            return null;
+        }
     }
 
     escape(value) {
-        // Manual escaping (not recommended, safer to use parameterized queries)
+        // Use with care – best to stick with parameterized queries
         if (value === null || value === undefined) return 'NULL';
         if (typeof value === 'number') return value;
         return `'${value.toString().replace(/'/g, "''")}'`;
+    }
+
+    async close() {
+        if (Postgres.client) {
+            try {
+                await Postgres.client.end();
+                Postgres.client = null;
+                return true;
+            } catch (err) {
+                console.error('Error closing PostgreSQL client:', err);
+                return false;
+            }
+        }
+        return false;
     }
 }
 

@@ -1,26 +1,25 @@
 const mysql = require('mysql2');
 
 class MySQL {
-    config = null;
+    static pool = null;
+
     constructor() {
-        this.config = config('app.database.mysql');
+        if (!MySQL.pool) {
+            MySQL.pool = mysql.createPool(config('app.database.mysql'));
+        }
     }
 
     query(query, params = []) {
         return new Promise((resolve, reject) => {
-            const connection = mysql.createConnection(this.config);
-
             const queryType = query.trim().split(' ')[0].toLowerCase();
 
-            connection.query(query, params, (err, results) => {
-                let data;
-
+            MySQL.pool.query(query, params, (err, results) => {
                 if (err) {
                     console.log('MySQL Query Error:', err);
-                    connection.end();
                     return resolve(null);
                 }
 
+                let data;
                 switch (queryType) {
                     case 'insert':
                         data = results.insertId;
@@ -42,7 +41,6 @@ class MySQL {
                         break;
                 }
 
-                connection.end();
                 return resolve(data);
             });
         });
@@ -50,6 +48,23 @@ class MySQL {
 
     escape(value) {
         return mysql.escape(value);
+    }
+
+    close() {
+        return new Promise((resolve, reject) => {
+            if (MySQL.pool) {
+                MySQL.pool.end(err => {
+                    if (err) {
+                        console.error('Error closing MySQL pool:', err);
+                        return reject(err);
+                    }
+                    MySQL.pool = null;
+                    resolve(true);
+                });
+            } else {
+                resolve(false); // nothing to close
+            }
+        });
     }
 }
 

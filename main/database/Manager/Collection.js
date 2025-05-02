@@ -41,7 +41,6 @@ class Collection {
                 newData.push(model);
             });
         }
-        console.log(newData[0].toArray())
         return newData;
     }
 
