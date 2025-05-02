@@ -1,5 +1,6 @@
-const { createClient } = require('redis');
-const redisConfig = config('app.redis');
+import { createClient } from 'redis';
+
+const redisConfig = await config('app.redis');
 
 class Redis {
     #client = null;

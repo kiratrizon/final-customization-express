@@ -26,7 +26,7 @@ class Configure {
       if (fs.existsSync(pathJs + '.mjs')) {
         const module = await import(pathJs + '.mjs');  // Use dynamic import
         Configure.storedData[firstKey] = module;
-        configData = Configure.storedData[firstKey];
+        configData = Configure.storedData[firstKey].default;
       }
 
       keys.forEach((key) => {

@@ -1,4 +1,5 @@
-const RouteMiddleware = require("./middleware");
+import RouteMiddleware from './middleware.mjs';
+
 
 class RouteGroup {
 

@@ -1,5 +1,6 @@
-const Validator = require("../../../libraries/Services/Validator");
-const ExpressHeader = require("./ExpressHeader");
+import Validator from "../../../libraries/Services/Validator.mjs";
+import ExpressHeader from "./ExpressHeader.mjs";
+
 
 class ExpressRequest {
     #post;

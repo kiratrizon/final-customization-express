@@ -1,4 +1,5 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
+
 
 class JWT {
     static generateToken(payload = {}, secretKey = null, expiration = null, algorithm = null) {

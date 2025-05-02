@@ -1,9 +1,10 @@
-const Hash = require("../../../libraries/Services/Hash");
-const JWT = require("../../../libraries/Services/JWT");
-const DB = require("../../database/Manager/DB");
-const jwtObj = config('jwt');
-const MemoryCache = require('../../../vendor/MemoryCache');
-const Collection = require("../../database/Manager/Collection");
+import Hash from "../../../libraries/Services/Hash.mjs";
+import JWT from "../../../libraries/Services/JWT.mjs";
+import DB from "../../database/Manager/DB.mjs";
+import MemoryCache from "../../../vendor/MemoryCache.mjs";
+import Collection from "../../database/Manager/Collection.mjs";
+
+const jwtObj = await config('jwt');
 
 class Guard {
     #driver; // session, jwt

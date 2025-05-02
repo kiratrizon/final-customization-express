@@ -1,6 +1,7 @@
-const JWTMiddleware = require("../main/express/defaults/middleware/jwt-middleware");
-const Hello = require("./Middlewares/Hello");
-const Test = require("./Middlewares/Test");
+import JWTMiddleware from "../main/express/defaults/middleware/jwt-middleware.mjs";
+import Hello from "./Middlewares/Hello.mjs";
+import Test from "./Middlewares/Test.mjs";
+
 
 class MiddlewareHandler {
 

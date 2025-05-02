@@ -1,4 +1,5 @@
-const Auth = require("../../server/Auth");
+import Auth from "../../server/Auth.mjs";
+
 
 class JWTMiddleware {
 

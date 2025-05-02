@@ -1,8 +1,9 @@
-const path = require("path");
-const RouteGroup = require('./RouteHandlers/group');
-const RouteMethod = require('./RouteHandlers/method');
+import path from 'path';
+import RouteGroup from './RouteHandlers/group.mjs';
+import RouteMethod from './RouteHandlers/method.mjs';
 
-const Controller = require("../../../base/Controller");
+import Controller from '../../../base/Controller.mjs';
+
 
 function isClassInheritsFrom(child, parent) {
     let prototype = Object.getPrototypeOf(child);

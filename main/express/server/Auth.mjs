@@ -1,6 +1,7 @@
-const GuardInitiator = require("./GuardInitiator");
+import GuardInitiator from "./GuardInitiator.mjs";
 
-const defaultGuard = config('auth.default.guard');
+
+const defaultGuard = await config('auth.default.guard');
 class Auth {
 
     static #defaultGuard;

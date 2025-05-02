@@ -1,6 +1,7 @@
-const multer = require("multer");
-const Busboy = require("busboy");
-const fs = require("fs");
+import multer from "multer";
+import Busboy from "busboy";
+import fs from "fs";
+
 
 class FileHandler {
   static filePath = "";

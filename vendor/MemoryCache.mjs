@@ -1,4 +1,5 @@
-const Redis = require("./Redis");
+import Redis from './Redis.mjs';
+
 
 class MemoryCache {
     #cache = new Map();

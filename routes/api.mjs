@@ -1,6 +1,7 @@
-const Route = require('../main/express/server/Router/Route');
+import Route from '../main/express/server/Router/Route.mjs';
 
-const UserController = require('../app/Controllers/UserController');
+import UserController from '../app/Controllers/UserController.mjs';
+
 
 Route.post('/login', [UserController, 'login']);
 Route.get('/auth/user', [UserController, 'index']).middleware('user');

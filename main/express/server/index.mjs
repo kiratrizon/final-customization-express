@@ -229,7 +229,7 @@ class Server {
 			next();
 		});
 
-		Server.#loadAndValidateRoutes();
+		await Server.#loadAndValidateRoutes();
 	}
 
 	static async #handle() {
@@ -314,7 +314,7 @@ class Server {
 		}
 	}
 
-	static #loadAndValidateRoutes() {
+	static async #loadAndValidateRoutes() {
 		const routesDir = path.join(base_path(), 'routes');
 		const routeFiles = fs.readdirSync(routesDir);
 		const jsFiles = routeFiles.filter(file => file.endsWith('.mjs'));
@@ -326,21 +326,21 @@ class Server {
 			webjs = 'web.mjs';
 			jsFiles.push(webjs);
 		}
-		jsFiles.forEach(file => {
+		for (const file of jsFiles) {
 			// set prefix
 			const fileName = file.replace('.mjs', '');
 			const routePrefix = fileName === 'web' ? '' : `/${fileName}`;
 			const filePath = path.join(routesDir, file);
-			const RouteClass = require(filePath);
-			const instance = new RouteClass();
-			let data = instance.reveal();
+			const RouteClass = await import(filePath); // Use dynamic import
+			const instance = new RouteClass.default(); // Access the default export
+			let data = await instance.reveal(); // If reveal is async, await it
 			if (data) {
 				const { default_route, group, routes } = data;
 
 				// console.log(data)
 				// for group
 				const groupKeys = Object.keys(group);
-				groupKeys.forEach((key) => {
+				for (const key of groupKeys) {
 					const grDf = Server.express.Router({
 						mergeParams: true
 					});
@@ -355,9 +355,9 @@ class Server {
 					const filteredChildRoutes = Object.entries(childRoutes)
 						.filter(([key, value]) => value.length > 0)
 						.map(([key]) => key);
-					filteredChildRoutes.forEach((k) => {
+					for (const k of filteredChildRoutes) {
 						const arrData = childRoutes[k];
-						arrData.forEach((routeId) => {
+						for (const routeId of arrData) {
 							const routeInstanced = routes[routeId];
 							if (is_function(routeInstanced.getRouteData)) {
 								const { method, url, callback, internal_middlewares, as = '', regex, match, params, full_path } = routeInstanced.getRouteData();
@@ -397,17 +397,17 @@ class Server {
 								}
 								grDf[method](url, ...internal_middlewares, callback);
 								if (is_array(match) && !empty(match)) {
-									match.forEach((m) => {
+									for (const m of match) {
 										grDf[m](url, ...internal_middlewares, callback);
-									})
+									}
 								}
 							}
-						})
-					});
+						}
+					}
 
 					gaDf.use(arrangeGroupRoute, ...middlewares, grDf);
 					Server.app.use(routePrefix, gaDf);
-				});
+				}
 
 				// for default route
 				const filteredKeys = Object.entries(default_route)
@@ -416,9 +416,9 @@ class Server {
 				const rDf = Server.express.Router({
 					mergeParams: true
 				});
-				filteredKeys.forEach((k) => {
+				for (const k of filteredKeys) {
 					const arrData = default_route[k];
-					arrData.forEach((routeId) => {
+					for (const routeId of arrData) {
 						const routeInstanced = routes[routeId];
 						if (is_function(routeInstanced.getRouteData)) {
 							const { method, url, callback, internal_middlewares, as = '', regex, match, params, full_path } = routeInstanced.getRouteData();
@@ -453,16 +453,17 @@ class Server {
 							}
 							rDf[method](url, ...internal_middlewares, callback);
 							if (is_array(match) && !empty(match)) {
-								match.forEach((m) => {
+								for (const m of match) {
 									rDf[m](url, ...internal_middlewares, callback);
-								})
+								}
 							}
 						}
-					})
-				});
+					}
+				}
 				Server.app.use(routePrefix, rDf);
 			}
-		})
+		}
+
 
 		Server.#finishBoot();
 	}

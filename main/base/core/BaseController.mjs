@@ -1,5 +1,6 @@
-const LoadModel = require("../../../libraries/Materials/LoadModel");
-const ConstructorController = require("./ConstructorController");
+import LoadModel from "../../../libraries/Materials/LoadModel.mjs";
+import ConstructorController from "./ConstructorController.mjs";
+
 class BaseController extends ConstructorController {
     loadModel(models) {
         if (is_array(models)) {

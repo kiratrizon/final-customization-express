@@ -1,4 +1,5 @@
-const BaseController = require("./core/BaseController");
+import BaseController from "./core/BaseController.mjs";
+
 class Controller extends BaseController {
 
 

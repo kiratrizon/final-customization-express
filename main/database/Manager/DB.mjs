@@ -1,5 +1,6 @@
-const QueryBuilder = require('./QueryBuilder');
-const DatabaseManager = require('./DatabaseManager');
+import QueryBuilder from './QueryBuilder.mjs';
+import DatabaseManager from './DatabaseManager.mjs';
+
 
 class DB {
 

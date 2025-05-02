@@ -1,5 +1,6 @@
-const Admin = require("../models/Admin");
-const User = require("../models/User");
+import Admin from "../models/Admin.mjs";
+import User from "../models/User.mjs";
+
 
 const constant = {
     default: {

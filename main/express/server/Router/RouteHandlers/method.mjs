@@ -1,8 +1,8 @@
-const path = require('path');
-const ExpressResponse = require('../../../http/ExpressResponse');
-const ExpressRedirect = require('../../../http/ExpressRedirect');
-const ExpressView = require('../../../http/ExpressView');
-const RouteMiddleware = require('./middleware');
+import ExpressResponse from '../../../http/ExpressResponse.mjs';
+import ExpressRedirect from '../../../http/ExpressRedirect.mjs';
+import ExpressView from '../../../http/ExpressView.mjs';
+import RouteMiddleware from './middleware.mjs';
+
 
 class RouteMethod {
     constructor(config = {}) {

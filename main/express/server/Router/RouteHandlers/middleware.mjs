@@ -1,8 +1,9 @@
-const MiddlewareHandler = require("../../../../../app/MiddlewareHandler");
-const ExpressClosure = require("../../../http/ExpressClosure");
-const ExpressRedirect = require("../../../http/ExpressRedirect");
-const ExpressResponse = require("../../../http/ExpressResponse");
-const ExpressView = require("../../../http/ExpressView");
+import MiddlewareHandler from "../../../../../app/MiddlewareHandler.mjs";
+import ExpressClosure from "../../../http/ExpressClosure.mjs";
+import ExpressRedirect from "../../../http/ExpressRedirect.mjs";
+import ExpressResponse from "../../../http/ExpressResponse.mjs";
+import ExpressView from "../../../http/ExpressView.mjs";
+
 
 class RouteMiddleware {
     #middlewares = [];

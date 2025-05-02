@@ -1,4 +1,5 @@
-const DB = require("../../main/database/Manager/DB");
+import DB from "../../main/database/Manager/DB.mjs";
+
 
 class Validator {
     #validRules = [

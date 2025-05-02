@@ -1,9 +1,8 @@
-const Validator = require("../../libraries/Services/Validator");
-const Controller = require("../../main/base/Controller");
-const DB = require("../../main/database/Manager/DB");
-const Auth = require("../../main/express/server/Auth");
-const Admin = require("../../models/Admin");
-const User = require("../../models/User");
+import Controller from "../../main/base/Controller.mjs";
+import Auth from "../../main/express/server/Auth.mjs";
+import Admin from "../../models/Admin.mjs";
+import User from "../../models/User.mjs";
+
 class UserController extends Controller {
     async index(request) {
         const user = await Auth.user();

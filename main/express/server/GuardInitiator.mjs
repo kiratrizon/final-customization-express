@@ -1,5 +1,6 @@
-const auth = config('auth');
-const Guard = require('./Guard');
+const auth = await config('auth');
+import Guard from './Guard.mjs';
+
 
 class GuardInitiator {
     #driver;

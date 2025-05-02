@@ -1,4 +1,5 @@
-const Route = require('../main/express/server/Router/Route');
+import Route from '../main/express/server/Router/Route.mjs';
+
 
 Route.view('/', 'index');
 
