@@ -22,7 +22,7 @@ class Blueprint {
 
     // Method for adding an "id" column (Primary Key)
     id() {
-        const idDefinition = process.env.DATABASE === 'sqlite'
+        const idDefinition = config('app.database.database') === 'sqlite'
             ? 'INTEGER PRIMARY KEY'
             : 'INT AUTO_INCREMENT PRIMARY KEY';
         this.columns.push({ name: 'id', type: idDefinition });
@@ -32,7 +32,7 @@ class Blueprint {
     string(name, args = {}) {
         let { length } = args;
         if (length === undefined) length = 255;
-        const type = process.env.DATABASE === 'sqlite' ? 'TEXT' : `VARCHAR(${length})`;
+        const type = config('app.database.database') === 'sqlite' ? 'TEXT' : `VARCHAR(${length})`;
         this.#handleCreateColumn(name, type, args);
     }
 
@@ -50,19 +50,19 @@ class Blueprint {
 
     // Method for adding a float column with optional constraints
     float(name, args = {}) {
-        const type = process.env.DATABASE === 'sqlite' ? 'REAL' : 'FLOAT';
+        const type = config('app.database.database') === 'sqlite' ? 'REAL' : 'FLOAT';
         this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a double column with optional constraints
     double(name, args = {}) {
-        const type = process.env.DATABASE === 'sqlite' ? 'REAL' : 'DOUBLE';
+        const type = config('app.database.database') === 'sqlite' ? 'REAL' : 'DOUBLE';
         this.#handleCreateColumn(name, type, args);
     }
 
     // Method for adding a boolean column with optional constraints
     boolean(name, args = {}) {
-        const type = process.env.DATABASE === 'sqlite' ? 'INTEGER' : 'BOOLEAN';
+        const type = config('app.database.database') === 'sqlite' ? 'INTEGER' : 'BOOLEAN';
         this.#handleCreateColumn(name, type, args);
     }
 
@@ -86,15 +86,22 @@ class Blueprint {
     }
     // Method for adding timestamp columns (created_at, updated_at)
     timestamp() {
-        const createdAt = process.env.DATABASE === 'sqlite'
+        const createdAt = config('app.database.database') === 'sqlite'
             ? 'DATETIME DEFAULT CURRENT_TIMESTAMP'
             : 'DATETIME DEFAULT CURRENT_TIMESTAMP';  // Change to DATETIME for MySQL
-        const updatedAt = process.env.DATABASE === 'sqlite'
+        const updatedAt = config('app.database.database') === 'sqlite'
             ? 'DATETIME DEFAULT CURRENT_TIMESTAMP'
             : 'DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
 
         this.columns.push({ name: 'created_at', type: createdAt });
         this.columns.push({ name: 'updated_at', type: updatedAt });
+    }
+
+    softDeletes() {
+        const deletedAt = config('app.database.database') === 'sqlite'
+            ? 'DATETIME DEFAULT NULL'
+            : 'DATETIME DEFAULT NULL';
+        this.columns.push({ name: 'deleted_at', type: deletedAt });
     }
 
     // Get column definitions for CREATE TABLE
@@ -134,6 +141,7 @@ class Blueprint {
     getAlterOperations() {
         return this.alterOperations.join(', ');
     }
+
 }
 
 module.exports = Blueprint;

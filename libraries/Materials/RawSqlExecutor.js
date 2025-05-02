@@ -1,14 +1,10 @@
-const Database = require("../../main/database/Database");
+const Database = require("../../main/database/Manager/DatabaseManager");
 
 class RawSqlExecutor {
     static database = new Database();
 
-    static async run(rawSql, params = []) {
-        return await RawSqlExecutor.database.runQuery(rawSql, params);
-    }
-
-    static async runNoLogs(rawSql, params = []) {
-        return await RawSqlExecutor.database.runQueryNoLogs(rawSql, params);
+    static run(rawSql, params = []) {
+        return RawSqlExecutor.database.runQuery(rawSql, params);
     }
 }
 

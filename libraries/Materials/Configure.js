@@ -1,48 +1,83 @@
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 
 class Configure {
-   static basePath = path.join(__dirname, '..', '..', 'config');
+  static storedData = {};
+  static basePath = path.join(__dirname, "..", "..", "config");
 
-   static read(pathString) {
-      let keys = pathString.split('.');
-      let basePath = Configure.basePath;
-      let currentPath;
+  static read(pathString) {
+    let keys = pathString.split(".").map((key) => {
+      const parsed = Number(key);
+      return Number.isInteger(parsed) ? parsed : key;
+    });
 
-      if (keys.length === 1) {
-         const singleKeyPath = path.join(basePath, keys[0]);
-         if (fs.existsSync(singleKeyPath + '.js')) {
-            return require(singleKeyPath);
-         } else {
-            return undefined;
-         }
+    let basePath = Configure.basePath;
+    let configData = null;
+
+    if (keys.length) {
+      const firstKey = String(keys.shift());
+      const pathJs = path.join(basePath, firstKey);
+      if (!keys.length && Configure.storedData[firstKey]) {
+        return Configure.storedData[firstKey];
       }
-
-      do {
-         currentPath = path.join(basePath, keys.shift());
-      } while (fs.existsSync(currentPath) && fs.lstatSync(currentPath).isDirectory());
-
-      if (!fs.existsSync(currentPath + '.js')) {
-         return undefined;
+      if (fs.existsSync(pathJs + ".js")) {
+        Configure.storedData[firstKey] = require(pathJs);
+        configData = Configure.storedData[firstKey];
       }
+      keys.forEach((key) => {
+        if (!Array.isArray(configData) && typeof key === "number") {
+          key = key.toString();
+        }
+        if (configData && configData[key]) {
+          configData = configData[key];
+        } else {
+          configData = null;
+          return;
+        }
+      });
+    }
 
-      let configData;
-      try {
-         configData = require(currentPath);
-      } catch (error) {
-         return undefined;
+    return configData;
+  }
+
+  static write(pathString, data) {
+    let keys = pathString.split(".").map((key) => {
+      const parsed = Number(key);
+      return Number.isInteger(parsed) ? parsed : key;
+    });
+
+    if (!keys.length) return;
+
+    const firstKey = String(keys.shift());
+
+    // If firstKey still doesn't exist in storedData after reading, throw an error
+    if (Configure.read(firstKey) === undefined) {
+      console.warn(
+        `Warning: "${firstKey}" does not exist in config path.`
+      );
+      return;
+    }
+
+    let current = Configure.storedData[firstKey];
+
+    // Traverse the keys
+    keys.forEach((key, index) => {
+      const isLastKey = index === keys.length - 1;
+      const keyToUse =
+        typeof key === "number" || Array.isArray(current) ? key : String(key);
+
+      if (isLastKey) {
+        // Assign the final value
+        current[keyToUse] = data;
+      } else {
+        // Initialize the key if it doesn't exist
+        if (!(keyToUse in current) || typeof current[keyToUse] !== "object") {
+          current[keyToUse] = {};
+        }
+        current = current[keyToUse]; // Move deeper
       }
-
-      while (keys.length > 0) {
-         let key = keys.shift();
-         if (configData[key] === undefined) {
-            return undefined;
-         }
-         configData = configData[key];
-      }
-
-      return configData;
-   }
+    });
+  }
 }
 
 module.exports = Configure;

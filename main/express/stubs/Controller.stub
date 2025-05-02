@@ -1,7 +1,10 @@
 const Controller = require("../../main/base/Controller");
 
 class {{ ControllerName }} extends Controller {
-    // Create methods here
+    // Create methods here 
+    /*
+     * All methods related to Routes must be asynchronous
+    */
 
     
 }

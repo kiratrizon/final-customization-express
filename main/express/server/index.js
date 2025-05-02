@@ -1,4 +1,4 @@
-require('./GlobalFunctions');
+require('./functions-and-variables');
 const path = require('path');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
@@ -10,285 +10,274 @@ const cors = require('cors');
 const { default: helmet } = require('helmet');
 const { createClient } = require('redis');
 const { RedisStore } = require('connect-redis');
+const FileHandler = require('../http/ExpressFileHandler');
+const ExpressRedirect = require('../http/ExpressRedirect');
+const ExpressResponse = require('../http/ExpressResponse');
 require('dotenv').config();
+const express = require('express');
+const ExpressView = require('../http/ExpressView');
+const util = require('util');
+const ExpressRegexHandler = require('../http/ExpressRegexHandler');
+const Auth = require('./Auth');
+const ExpressRequest = require('../http/ExpressRequest');
 
 
-const renderData = (data, shouldExit = false, res) => {
-	const tailwindStyles = `
-        <style>
-            div.debug { font-family: sans-serif; padding: 2rem; background-color: #f7fafc; }
-            pre { background-color: #000030; padding: 1rem; border-radius: 0.5rem; }
-            .data-type-wrapper {
-                display: inline-block;
-                max-width: 100%;
-                overflow-wrap: break-word;
-                word-wrap: break-word;
-                word-break: break-word;
-                white-space: pre-wrap;
-            }
-            .scrollable {
-                max-width: 100%;
-                overflow-x: auto;
-            }
-            .string { color: #48bb78; } /* Green for strings */
-            .number { color: #ed8936; } /* Orange for numbers */
-            .boolean { color: #3182ce; } /* Blue for booleans */
-            .object-key { color: #a0aec0; font-weight: bold; } /* Gray for object keys */
-            .object-value { color: #2d3748; }
-            .array { color: #805ad5; } /* Purple for arrays */
-            .null { color: #9b2c2c; } /* Red for null */
-            .undefined { color: #ed8936; } /* Orange for undefined */
-            .indentation { padding-left: 20px; }
-        </style>
-    `;
-
-	const recursiveRender = (value, level = 0) => {
-		const indentClass = `indentation level-${level}`;
-		if (Array.isArray(value)) {
-			return `<div class="array scrollable ${indentClass}">${value.map(item => `<div>${recursiveRender(item, level + 1)}</div>`).join('')}</div>`;
-		} else if (value === null) {
-			return `<div class="null ${indentClass}">null</div>`;
-		} else if (typeof value === 'object') {
-			return `<div class="object scrollable ${indentClass}">${Object.entries(value).map(([key, val]) =>
-				`<div><span class="object-key">${key}:</span> <span class="object-value">${recursiveRender(val, level + 1)}</span></div>`
-			).join('')}</div>`;
-		} else if (typeof value === 'string') {
-			return `<div class="string ${indentClass}">"${value}"</div>`;
-		} else if (typeof value === 'number') {
-			return `<div class="number ${indentClass}">${value}</div>`;
-		} else if (typeof value === 'boolean') {
-			return `<div class="boolean ${indentClass}">${value}</div>`;
-		} else if (typeof value === 'undefined') {
-			return `<div class="undefined ${indentClass}">undefined</div>`;
-		}
-		return `<div>${value}</div>`;
-	};
-
-	const htmlContent = `
-        ${tailwindStyles}
-        <div class="debug">
-            <pre class="data-type-wrapper">${recursiveRender(data)}</pre>
-        </div>
-    `;
-
-	// Send HTML if shouldExit is false
-	if (res) {
-		res.set('Content-Type', 'text/html');
-		res.send(htmlContent);
-	}
-
-	// End response if shouldExit is true
-	if (shouldExit) res.end();
-};
-
+const myLink = `https://github.com/kiratrizon/final-customization-express`;
 class Server {
-	static express = require('express');
+	static express = express;
 	static app = Server.express();
 	static #baseUrl = '';
 	static #routes = {};
 	static router = Server.express.Router();
-	static #validateRoute(args1) {
-		const instantiatedRoutes = new args1();
-		if (
-			!instantiatedRoutes ||
-			typeof instantiatedRoutes.mainRouter !== 'function' ||
-			typeof instantiatedRoutes.mainRouter.stack !== 'object' ||
-			!Array.isArray(instantiatedRoutes.mainRouter.stack)
-		) {
-			return;
-		}
-		const routePrefix = instantiatedRoutes.getPrefix();
-		const storedRoutes = Object.entries(instantiatedRoutes.getStoredRoutes());
-		// console.log(args1.getStoredRoutes());
-		const routeNames = {};
-		storedRoutes.forEach(([method, routes]) => {
-			Object.entries(routes).forEach(([url, values]) => {
-				// console.log(`URL: ${url}`);
-				// console.log(`Values: `, values);
-				if (values['function_use'] === undefined && typeof values['function_use'] !== 'function') {
-					return;
-				}
-				const middlewares = values['middlewares'] || [];
-				let newUrl = '';
-				if (routePrefix !== '/') {
-					newUrl = `${routePrefix}${url == '' ? '/' : url}`;
-				} else {
-					newUrl = url == '' ? '/' : url;
-				}
-				if (values['name'] !== undefined && values['name'] !== '' && typeof values['name'] === 'string') {
-					routeNames[values['name']] = newUrl;
-					if (values['name'].endsWith('.')) {
-						console.warn(`Route.${method}(${url}, callback)`, `name is incomplete ${values['name']}`);
-					}
-				}
-				// console.log(`Method: ${method}`);
-				Server.router[method](url == '' ? '/' : url, ...middlewares, values['function_use']);
-			});
-		});
-		Server.#duplicateRoutesDetector(Server.#routes, routeNames);
-		Server.app.use(routePrefix, Server.router);
-		Server.router = Server.express.Router();
-	}
 
-	static boot() {
+	static async boot() {
 		Server.app.use(morgan('dev'));
 		Server.app.use(Server.express.json());
 		Server.app.use(Server.express.urlencoded({ extended: true }));
-		Server.app.use(Server.express.static(path.join(__dirname, '..', 'public')));
-		const handleBoot = Server.#handle();
-		Boot.use().forEach(key => {
+		Server.app.use(Server.express.static(public_path()));
+		Server.app.use('/favicon.ico', Server.express.static(public_path('favicon.ico')));
+		const handleBoot = await Server.#handle();
+
+		const appEssentials = [
+			'session',
+			'cors',
+			'cookieParser',
+			'flash',
+			'helmet'
+		];
+		appEssentials.forEach(key => {
 			Server.app.use(handleBoot[key]);
 		});
-		Server.app.set('view engine', 'ejs');
+		Server.app.use(FileHandler.getFileHandler());
+		Server.app.use(FileHandler.handleFiles);
+		Server.app.set('view engine', config('view.defaultViewEngine'));
 		Server.app.set('views', view_path());
 
 		// Global request/response handlers
-		Server.app.use((req, res, next) => {
+		Server.app.use(async (req, res, next) => {
+
+			console.log(req.sessionID);
+			$_POST = req.body || {};
+			$_GET = req.query || {};
+			$_FILES = req.files || {};
+			$_COOKIE = req.cookies || {};
 			const methodType = req.method.toUpperCase();
-
-			global.$_POST = req.body || {};
-			global.$_GET = req.query || {};
-
-			const data = {
-				request: {
-					method: methodType,
-					url: req.originalUrl,
-					params: req.params,
-					headers: req.headers,
-					body: req.body,
-					query: req.query,
-					cookies: req.cookies,
-					path: req.path,
-					originalUrl: req.originalUrl,
-					ip: req.ip,
-					protocol: req.protocol,
-					user: req.user || null,
-					acceptLanguage: req.headers['accept-language'],
-					referer: req.headers['referer'] || null,
-					files: req.files || null,
-				},
+			const REQUEST = {
+				method: methodType,
+				headers: req.headers,
+				body: $_POST,
+				query: $_GET,
+				cookies: $_COOKIE,
+				path: req.path,
+				originalUrl: req.originalUrl,
+				ip: req.ip,
+				protocol: req.protocol,
+				files: $_FILES,
 			};
-			global.REQUEST = data.request;
-			global.dump = (data) => renderData(data, false, res);
-			global.dd = (data) => {
-				renderData(data, true, res);
-			};
-			res.locals.dump = (data) => renderData(data);
-			res.locals.dd = (data) => {
-				renderData(data);
-				process.exit(0);
-			};
-			if (!req.session.session_auth) {
-				req.session.session_auth = {};
-			}
-			if (!req.session.session_hidden) {
-				req.session.session_hidden = {};
-			}
-			if (!req.session.global_variables) {
-				req.session.global_variables = {};
-			}
-			global.$_SESSION = req.session.global_variables;
-			const session = req.session;
-			global.$_SESSION_AUTH = session.session_auth;
-			global.$_SESSION_HIDDEN = session.session_hidden;
-			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
-			// req.flash('hello', 'world');
-			global.jsonResponse = (data, status = 200) => res.status(status).json(data);
-			global.view = (view, data = {}) => {
-				const viewPath = path.join(view_path(), `${view.split('.').join('/')}.ejs`);
-
-				if (fs.existsSync(viewPath)) {
-					res.status(200).render(view, data);
+			const rq = new ExpressRequest(REQUEST);
+			PATH_URL = REQUEST.path;
+			QUERY_URL = REQUEST.originalUrl;
+			ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
+			request = (getInput) => {
+				if (!is_string(getInput)) {
+					return rq;
 				} else {
-					dump({ "error": `${path.relative(base_path(), view_path())}/${view}.ejs not found` }, true);
+					return rq.input(getInput);
+				}
+			}
+			if (env('NODE_ENV') !== 'production') {
+				res.setHeader('X-Developer', 'Throy Tower');
+			}
+			Boot.register();
+
+			// determine if it's an API request or AJAX request
+			isRequest = () => {
+				// Check if it's an AJAX request (XHR)
+				if (req.xhr) {
+					return true;
+				}
+
+				// Check if the path starts with '/api' to identify API routes
+				if (req.path.startsWith('/api/')) {
+					return true;
+				}
+
+				// Check if the request's 'Accept' header includes 'application/json'
+				if (req.headers['accept'] && req.headers['accept'].includes('application/json')) {
+					return true;
+				}
+
+				// Check if the request is expecting JSON content, commonly used in APIs
+				if (req.is('json')) {
+					return true;
+				}
+
+				return false; // Default to false if none of the conditions match
+			};
+
+			const renderData = (data, res, dumped = false) => {
+				const html = `
+					<style>
+						body { background: #f8fafc; color: #1a202c; font-family: sans-serif; padding: 2rem; }
+						pre { background: #1a202c; color: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; font-size: 14px; overflow-x: auto; }
+						code { white-space: pre-wrap; word-break: break-word; }
+					</style>
+					<pre><code>${util.inspect(data, { colors: false, depth: null })}</code></pre>
+				`;
+
+				const json = data;
+
+				if (dumped) {
+					res.responses.html_dump.push(html);
+					res.responses.json_dump.push(json);
+					return;
+				}
+
+				if (res) {
+					if (res.headersSent) {
+						return;
+					}
+					if (!isRequest()) {
+						res.setHeader('Content-Type', 'text/html');
+						res.send(html);
+					} else {
+						res.setHeader('Content-Type', 'application/json');
+						res.json(json);
+					}
+					res.end();
 				}
 			};
-			global.redirect = (url) => res.redirect(url);
-			global.back = () => res.redirect(req.get('Referrer') || '/');
-			global.isApiUrl = () => req.path.startsWith('api');
-			// Set up global functions
-			global.route = (name, args = {}) => {
-				if (Server.#routes.hasOwnProperty(name)) {
-					let route = Server.#routes[name];
 
-					// Validate required parameters
-					const requiredParams = (route.match(/:([^\/\?]+)(?=[\/\?]|$)/g) || []).map(param => param.substring(1));
-					requiredParams.forEach(param => {
-						if (!(param in args) || args[param] === undefined || args[param] === null) {
-							const stack = new Error().stack;
-							const callerLine = stack.split("\n")[4].trim();
-							throw `Missing required parameter "${param}" for route "${name}".\n    ${callerLine}`;
+			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+			if (!res.responses) {
+				res.responses = {};
+				res.responses.html_dump = [];
+				res.responses.json_dump = [];
+			}
+
+			dump = (data) => renderData(data, res, true);
+			dd = (data) => {
+				renderData(data, res);
+			};
+
+			define('auth', () => Auth);
+
+			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
+			route = (name, args = {}) => {
+				if (name in Server.#routes) {
+					const { full_path, required = [], optional = [] } = Server.#routes[name];
+					required.forEach((key) => {
+						if (!(key in args)) {
+							throw new Error(`Missing required parameter: ${key}`);
 						}
 					});
 
-					// Replace placeholders with values from args
-					Object.entries(args).forEach(([key, value]) => {
-						const regexOptional = new RegExp(`:${key}\\?`, "g"); // Match optional parameter
-						const regexRequired = new RegExp(`:${key}`, "g"); // Match required parameter
-
-						if (value !== undefined) {
-							// Replace both required and optional parameters with the value
-							route = route.replace(regexOptional, value).replace(regexRequired, value);
+					let url;
+					const allparams = [...required, ...optional];
+					allparams.forEach((key) => {
+						if (key in args) {
+							url = full_path.replace(`:${key}/`, `${args[key]}/`);
 						} else {
-							// Remove optional parameters if no value is provided
-							route = route.replace(regexOptional, "");
+							url = full_path.replace(`:${key}/`, '/');
 						}
-					});
+					})
 
-					// Remove leftover optional placeholders (e.g., /user/:id?)
-					route = route.replace(/\/:[^\/]+\?/g, "");
 
-					return `${Server.#baseUrl}${route}`;
+
+					// Remove trailing slash if present
+					if (url.endsWith('/')) {
+						url = url.slice(0, -1);
+					}
+					// Remove double slashes
+					url = url.replace(/\/+/g, '/');
+					// Add base URL
+					url = path.join(Server.#baseUrl, url);
+					return url;
 				}
-
-				const stack = new Error().stack;
-				const caller = stack.split("\n")[2].trim();
-				throw `route("${name}") not found.\n${caller}`;
+				return null;
 			};
 
-			global.BASE_URL = Server.#baseUrl;
-			res.locals.BASE_URL = Server.#baseUrl;
-			global.PATH_URL = REQUEST.path;
-			res.locals.PATH_URL = REQUEST.path;
-			global.PATH_QUERY = REQUEST.originalUrl;
-			res.locals.PATH_QUERY = REQUEST.originalUrl;
-			global.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
-			res.locals.ORIGINAL_URL = `${BASE_URL}${PATH_QUERY}`;
+			// req.flash('hello', 'world');
+			functionDesigner('redirect', (url = null) => {
+				const instance = new ExpressRedirect(url);
+
+				instance.back = () => {
+					instance.url = req.get('Referrer') || '/';
+					return instance;
+				};
+
+				instance.route = (name, args = {}) => {
+					instance.url = route(name, args);
+					return instance;
+				};
+
+				return instance;
+			});
+			back = () => {
+				return req.get('Referrer') || '/';
+			};
+
+			response_error = (error, data) => {
+				if (isRequest) {
+					res.status(422).json({ error });
+				} else {
+					res.redirect(422, back());
+				}
+			}
+
+
+			BASE_URL = Server.#baseUrl;
 			next();
 		});
 
 		Server.#loadAndValidateRoutes();
 	}
 
-	static #handle() {
-		let redisClient = createClient(config('app.redis'));
-		redisClient.connect().catch(console.error)
+	static async #handle() {
+		let store;
 
-		// Initialize store.
-		let redisStore = new RedisStore({
-			client: redisClient,
-			prefix: "myreact:",
-			ttl: 315576000 * 60
-		})
+		if (env('USE_MEMORY_CACHE') !== 'true' && env('NODE_ENV') === 'production') {
+			let redisClient = createClient(config('app.redis'));
+
+			try {
+				await redisClient.connect();  // Await Redis connection
+				// Initialize RedisStore after successful connection
+				store = new RedisStore({
+					client: redisClient,
+					prefix: "myreact:",
+					ttl: 60 * 60 * 24 * 7, // 7 days
+				});
+			} catch (err) {
+				console.error('Redis connection error:', err);
+				// Fallback to in-memory store if Redis fails
+				store = new session.MemoryStore();
+			}
+		} else {
+			store = new session.MemoryStore();
+		}
+
 		const sessionObj = {
-			store: redisStore,
-			secret: process.env.MAIN_KEY || 'secret',
+			store: store,
+			secret: env('MAIN_KEY') || 'secret',
 			resave: false,
 			saveUninitialized: false,
 			cookie: {
-				secure: false,
-				httpOnly: false,
-				maxAge: 1000 * 60 * 60 * 24 * 365 * 60
+				secure: env('NODE_ENV') === 'production',
+				httpOnly: true,
+				maxAge: 300000, // 30 seconds
 			},
 		};
-		const origins = config('origins.origins').length ? config('origins.origins') : '*'
+
+		const origins = config('origins.origins').length ? config('origins.origins') : '*';
+
 		const corsOptions = {
 			origin: origins,
-			methods: ['GET', 'POST', 'PUT', 'DELETE'],
+			methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
 			credentials: true,
 			allowedHeaders: ['Content-Type', 'Authorization'],
 			optionsSuccessStatus: 200,
 		};
+
 		return {
 			cookieParser: cookieParser(),
 			session: session(sessionObj),
@@ -298,71 +287,186 @@ class Server {
 		};
 	}
 
-	static #duplicateRoutesDetector(obj1, obj2) {
-		const duplicates = Object.keys(obj2).filter(key => obj1.hasOwnProperty(key));
-		if (duplicates.length > 0) {
-			throw new Error(`Duplicate routes detected: ${duplicates.join(', ')}`);
-		}
-		Server.#routes = { ...obj1, ...obj2 };
-	}
-
 	static #finishBoot() {
-		if (typeof Boot['404'] === 'function') {
-			Server.app.use(Boot['404']);
-		}
-	}
-
-	static async #getCorsOptions() {
-		return new Promise((resolve) => {
-			const corsOptions = {
-				origin: (origin, callback) => {
-					const allowedOrigins = config('origins.origins') || '*';
-					if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-						callback(null, true);
-					} else {
-						callback(new Error('Not allowed by CORS'));
+		if (typeof Boot['notFound'] === 'function') {
+			Server.app.use(async (req, res) => {
+				const expressResponse = await Boot['notFound']();
+				if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
+					if (expressResponse instanceof ExpressResponse) {
+						const { html, statusCode, json, headers, returnType } = expressResponse.accessData();
+						if (returnType === 'json') {
+							res.status(statusCode).set(headers).json(json);
+						} else if (returnType === 'html') {
+							res.status(statusCode).set(headers).send(html);
+						}
+					} else if (expressResponse instanceof ExpressView) {
+						const htmlResponse = expressResponse.getRendered();
+						res.status(404).set({
+							'Content-Type': 'text/html',
+						}).send(htmlResponse);
 					}
-				},
-				methods: ['GET', 'POST', 'PUT', 'DELETE'],
-				// credentials: true,
-				allowedHeaders: ['Content-Type', 'Authorization'],
-				optionsSuccessStatus: 200,
-			};
-			console.log('testCorsOptions', corsOptions);
-			resolve(corsOptions);
-		});
-	}
-
-	static async #corsAsync(req, res, next) {
-		try {
-			const corsOptions = await Server.#getCorsOptions();
-			cors(corsOptions)(req, res, next);
-		} catch (err) {
-			next(err);
+				} else if (expressResponse !== undefined) {
+					res.status(404).set({
+						'Content-Type': 'text/html',
+					}).send(expressResponse);
+				}
+				return;
+			});
 		}
 	}
 
 	static #loadAndValidateRoutes() {
-		const routesDir = path.join(__dirname, '../../../Routes');
+		const routesDir = path.join(base_path(), 'routes');
 		const routeFiles = fs.readdirSync(routesDir);
 		const jsFiles = routeFiles.filter(file => file.endsWith('.js'));
-
+		// remove web.js
+		let webjs = null;
 		if (jsFiles.includes('web.js')) {
-			const webRoutePath = path.join(routesDir, 'web.js');
-			const webRoute = require(webRoutePath);
-			Server.#validateRoute(webRoute);
+			// splice
 			jsFiles.splice(jsFiles.indexOf('web.js'), 1);
+			webjs = 'web.js';
+			jsFiles.push(webjs);
 		}
-
 		jsFiles.forEach(file => {
-			const routePath = path.join(routesDir, file);
-			const route = require(routePath);
-			Server.#validateRoute(route);
-		});
+			// set prefix
+			const fileName = file.replace('.js', '');
+			const routePrefix = fileName === 'web' ? '' : `/${fileName}`;
+			const filePath = path.join(routesDir, file);
+			const RouteClass = require(filePath);
+			const instance = new RouteClass();
+			let data = instance.reveal();
+			if (data) {
+				const { default_route, group, routes } = data;
+
+				// console.log(data)
+				// for group
+				const groupKeys = Object.keys(group);
+				groupKeys.forEach((key) => {
+					const grDf = Server.express.Router({
+						mergeParams: true
+					});
+					const gaDf = Server.express.Router();
+					const groupRoute = key;
+					let arrangeGroupRoute = groupRoute.replace(/\*\d+\*/g, '') || '/';
+					arrangeGroupRoute = arrangeGroupRoute.replace(/\/+/g, '/');
+					const instancedGroup = group[key];
+					const { as = [], middlewares, childRoutes } = instancedGroup.getGroup();
+					let groupAs = as.join('.');
+					// filterChildRoutes
+					const filteredChildRoutes = Object.entries(childRoutes)
+						.filter(([key, value]) => value.length > 0)
+						.map(([key]) => key);
+					filteredChildRoutes.forEach((k) => {
+						const arrData = childRoutes[k];
+						arrData.forEach((routeId) => {
+							const routeInstanced = routes[routeId];
+							if (is_function(routeInstanced.getRouteData)) {
+								const { method, url, callback, internal_middlewares, as = '', regex, match, params, full_path } = routeInstanced.getRouteData();
+								let routeAs = as;
+								if (!empty(routeAs)) {
+									if (!empty(groupAs)) {
+										routeAs = `${groupAs}.${as}`;
+									} else {
+										routeAs = `${as}`;
+									}
+									// replace duplicate dots
+									routeAs = routeAs.replace(/\.+/g, '.');
+									// remove last dot
+									if (routeAs.endsWith('.')) {
+										routeAs = routeAs.slice(0, -1);
+									}
+									// remove first dot
+									if (routeAs.startsWith('.')) {
+										routeAs = routeAs.slice(1);
+									}
+
+									// set route
+									if (routeAs in Server.#routes) {
+										console.warn(`${routeAs} already exists in routes`);
+									} else {
+										Server.#routes[routeAs] = {
+											full_path: path.join(routePrefix, full_path),
+											...params,
+										}
+									}
+								}
+								// regex
+								if (!empty(regex)) {
+									const regexHandler = new ExpressRegexHandler(regex);
+									const regexMiddleware = regexHandler.applyRegex();
+									internal_middlewares.unshift(regexMiddleware);
+								}
+								grDf[method](url, ...internal_middlewares, callback);
+								if (is_array(match) && !empty(match)) {
+									match.forEach((m) => {
+										grDf[m](url, ...internal_middlewares, callback);
+									})
+								}
+							}
+						})
+					});
+
+					gaDf.use(arrangeGroupRoute, ...middlewares, grDf);
+					Server.app.use(routePrefix, gaDf);
+				});
+
+				// for default route
+				const filteredKeys = Object.entries(default_route)
+					.filter(([key, value]) => value.length > 0)
+					.map(([key]) => key);
+				const rDf = Server.express.Router({
+					mergeParams: true
+				});
+				filteredKeys.forEach((k) => {
+					const arrData = default_route[k];
+					arrData.forEach((routeId) => {
+						const routeInstanced = routes[routeId];
+						if (is_function(routeInstanced.getRouteData)) {
+							const { method, url, callback, internal_middlewares, as = '', regex, match, params, full_path } = routeInstanced.getRouteData();
+							let routeAs = as;
+							if (!empty(routeAs)) {
+								// replace duplicate dots
+								routeAs = routeAs.replace(/\.+/g, '.');
+								// remove last dot
+								if (routeAs.endsWith('.')) {
+									routeAs = routeAs.slice(0, -1);
+								}
+								// remove first dot
+								if (routeAs.startsWith('.')) {
+									routeAs = routeAs.slice(1);
+								}
+
+								// set route
+								if (routeAs in Server.#routes) {
+									console.warn(`${routeAs} already exists in routes`);
+								} else {
+									Server.#routes[routeAs] = {
+										full_path: path.join(routePrefix, full_path),
+										...params,
+									}
+								}
+							}
+							// regex
+							if (!empty(regex)) {
+								const regexHandler = new ExpressRegexHandler(regex);
+								const regexMiddleware = regexHandler.applyRegex();
+								internal_middlewares.unshift(regexMiddleware);
+							}
+							rDf[method](url, ...internal_middlewares, callback);
+							if (is_array(match) && !empty(match)) {
+								match.forEach((m) => {
+									rDf[m](url, ...internal_middlewares, callback);
+								})
+							}
+						}
+					})
+				});
+				Server.app.use(routePrefix, rDf);
+			}
+		})
+
 		Server.#finishBoot();
 	}
 }
 
-Server.boot();
-
-module.exports = Server.app;
+module.exports = Server;

@@ -1,92 +1,100 @@
-const validRules = [
-    'required',
-    'email',
-    'min',
-    'max',
-    'unique',
-    'confirmed',
-    'exists'
-];
-
-const Database = require('../../main/database/Database');
+const DB = require("../../main/database/Manager/DB");
 
 class Validator {
-    static params;
-    static #data;
-    static errors;
-    static validRules = validRules;
-    static old;
-    static uniques = [];
-    static #database = new Database();
+    #validRules = [
+        'required',
+        'email',
+        'min',
+        'max',
+        'unique',
+        'confirmed'
+    ];
 
-    // Handle the validation for each field
-    static async #handle() {
-        let keysToValidate = Object.keys(this.params);
+    static async make(data = {}, $validations = {}) {
+        const validate = new Validator(data, $validations);
+        await validate.startValidate();
+        return validate;
+    }
+
+    #data;
+    #errors = {};
+    #validations;
+    constructor(data = {}, $validations = {}) {
+        this.#data = data;
+        this.#validations = $validations;
+    }
+
+    async startValidate() {
+        await this.#handle();
+        return this;
+    }
+
+    getErrors() {
+        // filter out empty errors
+        const filteredErrors = Object.fromEntries(
+            Object.entries(this.#errors).filter(([key, value]) => value.length > 0)
+        );
+        return filteredErrors;
+    }
+
+    async #handle() {
+        let keysToValidate = Object.keys(this.#validations);
         for (const key of keysToValidate) {
-            let rules = this.params[key].split('|');
+            this.#errors[key] = [];
+            let rules = this.#validations[key].split('|');
             for (const rule of rules) {
                 let [ruleName, ruleValue] = rule.split(':');
-                const isValid = await this.#validate(key, ruleName, ruleValue);
-                if (!isValid) {
-                    break;
-                }
+                await this.#validate(key, ruleName, ruleValue);
             }
         }
     }
 
-    // Initialize errors and old values
-    static #initialize() {
-        this.errors = {};
-        this.old = {};
-        this.#data = undefined;
-    }
-
-    // Validate a field based on its rules
-    static async #validate(key, ruleName, ruleValue = undefined) {
+    async #validate(key, ruleName, ruleValue = undefined) {
         let returnData = true;
+
+        if (!this.#validRules.includes(ruleName)) {
+            return;
+        }
 
         switch (ruleName) {
             case 'required':
-                if (!this.#data[key] || this.#data[key] === '') {
-                    this.errors[key] = 'This field is required.';
+                if (!isset(this.#data[key]) || empty(this.#data[key])) {
+                    this.#errors[key].push('This field is required.');
                     returnData = false;
                 }
                 break;
             case 'email':
-                if (!this.#validateEmail(this.#data[key])) {
-                    this.errors[key] = 'Invalid email address.';
+                if (!this.#data[key].match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                    this.#errors[key].push('Invalid email format.');
                     returnData = false;
                 }
                 break;
             case 'min':
-                if (this.#data[key].length < Number(ruleValue)) {
-                    this.errors[key] = `This field must be at least ${ruleValue} characters.`;
+                if (this.#data[key].length < parseInt(ruleValue)) {
+                    this.#errors[key].push(`Minimum length is ${ruleValue}.`);
                     returnData = false;
                 }
                 break;
             case 'max':
-                if (this.#data[key].length > Number(ruleValue)) {
-                    this.errors[key] = `This field must be at most ${ruleValue} characters.`;
+                if (this.#data[key].length > parseInt(ruleValue)) {
+                    this.#errors[key].push(`Maximum length is ${ruleValue}.`);
                     returnData = false;
                 }
                 break;
             case 'unique':
-                const isUnique = await this.#validateUnique(this.#data[key], ruleValue, key);
-                if (!isUnique) {
-                    this.errors[key] = `The ${key} already used.`;
-                    returnData = false;
+                // Implement unique validation logic
+                if (isset(ruleValue)) {
+                    const [table, column] = ruleValue.split(',');
+                    const isUnique = await this.#checkUnique(key, table, column);
+                    if (!isUnique) {
+                        this.#errors[key].push(`The ${key} must be unique.`);
+                        returnData = false;
+                    }
                 }
                 break;
             case 'confirmed':
-                if (this.#data[`${key}_confirmation`] !== this.#data[key]) {
-                    this.errors[key] = 'This field must match the confirmation field.';
-                    returnData = false;
-                }
-                break;
-            case 'exists':
-                const isNotExist = await this.#validateExists(this.#data[key], ruleValue);
-                if (!isNotExist) {
-                    this.errors[key] = 'This value exists.';
+                if (this.#data[key] !== this.#data[`${key}_confirmation`]) {
+                    this.#errors[key].push('Confirmation does not match.');
                     returnData = false;
                 }
                 break;
@@ -97,62 +105,19 @@ class Validator {
         return returnData;
     }
 
-    // Validate email format
-    static #validateEmail(value) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(value);
+    async #checkUnique(key, table, column) {
+        const value = this.#data[key];
+        return !(await DB.table(table).where(column, value).first());
     }
 
-    // Check if the value is unique in the database
-    static async #validateUnique(value, table, key) {
-        let sql = `SELECT ${key} FROM ${table} WHERE ${key} = ?`;
-        let data = await this.#database.runQuery(sql, [value]);
-        return data.length === 0;
-    }
-
-    // Check if the value exists in the database
-    static async #validateExists(value, table) {
-        let keys = Object.keys(value);
-        let sql = `SELECT id FROM ${table} WHERE `;
-        let params = [];
-        let values = [];
-        keys.forEach(key => {
-            params.push(`${key} = ?`);
-            values.push(value[key]);
+    fails() {
+        let count = 0;
+        Object.keys(this.#errors).forEach((key) => {
+            if (this.#errors[key].length > 0) {
+                count++;
+            }
         });
-        sql += params.join(' AND ');
-        let data = await this.#database.runQuery(sql, values);
-        return data.length === 0;
-    }
-
-    // Checks if there are any validation errors
-    static fails() {
-        return (Object.keys(this.errors).length > 0);
-    }
-
-    // Revoke all errors and old data
-    static revoke() {
-        this.errors = {};
-        this.old = {};
-    }
-
-    // Initialize the validator with data and parameters
-    static async make(data = {}, params = {}) {
-        this.#initialize();
-        this.params = params;
-        this.#data = data;
-        await this.#handle();
-        let returnData = (Object.keys(this.errors).length > 0);
-        if (returnData) {
-            let returnKeys = {};
-            Object.keys(this.#data).forEach(key => {
-                if (this.#data[key] !== '' && this.#data[key] !== null && typeof this.#data[key] !== 'undefined' && this.#data[key]) {
-                    returnKeys[key] = this.#data[key];
-                }
-            });
-            this.old = returnKeys;
-        }
-        return this;
+        return count > 0;
     }
 }
 

@@ -2,6 +2,9 @@ const Authenticatable = require("../main/base/Authenticatable");
 
 class Admin extends Authenticatable {
     static factory = true;
+    static softDelete = true;
+
+
     fillable = [
         'name',
         'email',
@@ -10,6 +13,21 @@ class Admin extends Authenticatable {
     hidden = [
         'password'
     ];
+
+    getUsername() {
+        return 'email';
+    }
+
+    getJWTIdentifier() {
+        return this.getAuthIdentifierName();
+    }
+
+    getJWTCustomClaims() {
+        return {
+            'sub': this.id,
+            'email': this.email,
+        };
+    }
 };
 
 module.exports = Admin;

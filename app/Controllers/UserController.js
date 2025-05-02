@@ -1,77 +1,46 @@
 const Validator = require("../../libraries/Services/Validator");
-const User = require("../../models/User");
 const Controller = require("../../main/base/Controller");
+const DB = require("../../main/database/Manager/DB");
 const Auth = require("../../main/express/server/Auth");
-const Hash = require("../../libraries/Services/Hash");
-const DB = require("../../libraries/Materials/DB");
-const Post = require("../../models/Post");
-const Escaper = require("../../libraries/Materials/Escaper");
-const Carbon = require("../../libraries/Materials/Carbon");
-const helloWorld = () => {
-    return "Hello World";
-}
+const Admin = require("../../models/Admin");
+const User = require("../../models/User");
 class UserController extends Controller {
-    async index() {
-        // log($_POST, 'debug', 'test');
-        jsonResponse(true);
-    }
-    static testFunction() {
-        jsonResponse("Hello World");
-    }
-    async create() {
-        jsonResponse({ message: "UserController create" })
-    }
-
-    async store() {
-        let validate = await Validator.make($_POST, {
-            name: "required",
-            email: "required|email|unique:users",
-            password: "required|min:6|confirmed"
-        });
-        if (validate.fails()) {
-            return jsonResponse({ errors: validate.errors }, 400);
-        }
-        const user = await User.create($_POST);
-        return jsonResponse({ user }, user ? 201 : 403);
-    }
-
-    async show(id) {
-        jsonResponse(ORIGINAL_URL);
-    }
-
-    async edit(id) {
-        jsonResponse(GET)
-    }
-
-    async update(id) {
-        jsonResponse({ message: "UserController update" })
-    }
-
-    async destroy(id) {
-        jsonResponse({ message: "UserController destroy" })
-    }
-
-    async login() {
-        let validate = await Validator.make($_POST, {
-            email: "required|email",
-            password: "required"
-        });
-        if (validate.fails()) {
-            return jsonResponse({ errors: validate.errors }, 400);
-        }
-        if ((await Auth.attempt($_POST))) {
-            return back();
-        }
-        redirect('/');
-    }
-
-    async getUser() {
+    async index(request) {
         const user = await Auth.user();
-        jsonResponse({ user });
+        // console.log(user.toArray());
+        return response().json({ user: user.toArray() });
+
     }
 
-    async sessionUser() {
-        jsonResponse(REQUEST);
+    async login(request) {
+        const credentials = await request.validate({
+            'email': 'required|email',
+            'password': 'required'
+        });
+
+        let token;
+        if (!(token = await Auth.attempt(credentials))) {
+            return response().json({ message: 'Invalid credentials' }, 401);
+        }
+
+        return response().json({
+            message: 'Login successful',
+            token: token
+        });
+    }
+
+    async users(request) {
+        const users = (await User.all()).map((user) => {
+            return user.toArray();
+        });
+        return response().json({ users });
+    }
+
+    async admins(request) {
+        const users = (await Admin.all()).map((user) => {
+            return user.toArray();
+        });
+        return response().json({ users });
     }
 }
 

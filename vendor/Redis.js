@@ -1,46 +1,79 @@
-const { createClient } = require('redis')
+const { createClient } = require('redis');
 const redisConfig = config('app.redis');
-class Redis {
-    #client = createClient(redisConfig);
-    #isConnected = false;
-    #expiration = null; // seconds
-    constructor() {
-        this.#expiration = null;
-        this.#client.on('error', err => console.log('Redis Client Error', err));
-    }
 
-    async #init() {
-        if (!this.#isConnected) {
-            await this.#client.connect();
-            this.#isConnected = true;
+class Redis {
+    #client = null;
+    #isConnected = false;
+    // 30 mins
+    #expiration = 1800; // seconds
+
+    constructor(expiration) {
+        if (!isNaN(expiration)) {
+            this.#expiration = expiration; // seconds
         }
     }
+
+    // Initialize Redis client
+    async #init() {
+        if (this.#client && this.#isConnected) return;
+        this.#client = createClient(redisConfig);
+
+        this.#client.on('error', err => {
+            console.error('Redis Client Error:', err);
+            this.#isConnected = false;
+        });
+
+        this.#client.on('connect', () => {
+            this.#isConnected = true;
+        });
+
+        try {
+            // Ensure connection is established
+            if (!this.#isConnected) {
+                await this.#client.connect();
+                this.#isConnected = true;
+            }
+        } catch (error) {
+            console.error('Error connecting to Redis:', error);
+        }
+    }
+
     setExpiration(time) {
         this.#expiration = time;
     }
+
     async set(key, value) {
         await this.#init();
-        await this.#client.set(key, value);
-        if (this.#expiration) {
-            await this.#client.expire(key, this.#expiration);
+        try {
+            if (this.#expiration) {
+                // Use SETEX to set value and expiration in one call
+                await this.#client.setEx(key, this.#expiration, json_encode(value));
+            } else {
+                await this.#client.set(key, json_encode(value));
+            }
+        } catch (error) {
+            console.error(`Error setting key ${key}:`, error);
         }
     }
 
     async get(key) {
         await this.#init();
-        const data = await this.#client.get(key);
-        return data;
-    }
-
-    async #close() {
-        if (this.#isConnected) {
-            await this.#client.quit();
-            this.#isConnected = false;
+        try {
+            const data = await this.#client.get(key);
+            return json_decode(data);
+        } catch (error) {
+            console.error(`Error getting key ${key}:`, error);
+            return null;
         }
     }
 
-    client() {
-        return this.#client;
+    async delete(key) {
+        await this.#init();
+        try {
+            await this.#client.del(key);
+        } catch (error) {
+            console.error(`Error deleting key ${key}:`, error);
+        }
     }
 }
 

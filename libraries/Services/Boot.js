@@ -1,25 +1,23 @@
 class Boot {
-    static use() {
-        return [
-            'session',
-            'cors',
-            'cookieParser',
-            'flash',
-            'helmet'
-        ]
+
+    static async register() {
+        // define your global variables here
+
+        define('helloworld', 'hi');
     }
 
-    static 404() {
-        if (isApiUrl()) {
-            json({ message: "Not Found" }, 404);
-        } else {
-            dump({ message: "Not Found" });
+
+    static async notFound() {
+        if (isRequest()) {
+            return response().json({ message: 'Not Found' }, 404);
         }
+        return view('error');
     }
 
     static hasher() {
         return 'bcrypt';
     }
+
 }
 
 module.exports = Boot;

@@ -1,31 +1,40 @@
 const fs = require('fs');
 const path = require('path');
-const DatabaseConnection = require('./Database');
-
+const DatabaseConnection = require('./Manager/DatabaseManager');
 class MigrationRunner {
+    #db;
     constructor() {
         this.migrationsPath = path.join(__dirname, '..', 'database', 'migrations');
-        this.db = new DatabaseConnection();
+        console.log(this.migrationsPath);
+        this.#db = new DatabaseConnection();
     }
 
     async run() {
         const migrationFiles = this.getMigrationFiles();
+
         let count = 0;
         // Use Promise.all to wait for all migrations to complete
-        await Promise.all(
-            migrationFiles.map(async (file) => {
-                const migrationName = file.replace('.js', '');
-                const migrationModule = require(path.join(this.migrationsPath, file));
-                const instantiatedMigrationModule = new migrationModule();
-                const query = instantiatedMigrationModule.up();
+        for (let i = 0; i < migrationFiles.length; i++) {
+            const file = migrationFiles[i];
+            const migrationName = file.replace('.js', '');
+            const migrationModule = require(path.join(this.migrationsPath, file));
+            const instantiatedMigrationModule = new migrationModule();
+            if (!is_function(instantiatedMigrationModule.up)) continue;
+            const query = instantiatedMigrationModule.up();
 
-                const success = await this.db.makeMigration(query, migrationName);
+            try {
+                // Assuming makeMigration is a method that returns a promise
+                const success = await this.#db.makeMigration(query, migrationName);
                 if (success) {
                     count++;
                 }
-            })
-        );
+            } catch (error) {
+                console.log(query);
+                console.error(`Error processing migration ${migrationName}:`, error);
+            }
+        }
 
+        await this.#db.close();
         // Check the count after all migrations are completed
         if (count === 0) {
             console.log('Nothing to migrate.');
@@ -37,7 +46,7 @@ class MigrationRunner {
 
     async migrateInit() {
         let migrationsTableQuery = '';
-        if (env('DATABASE') === 'mysql') {
+        if (config('app.database.database') === 'mysql') {
             migrationsTableQuery = `
                 CREATE TABLE IF NOT EXISTS migrations (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -45,7 +54,7 @@ class MigrationRunner {
                     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             `;
-        } else if (env('DATABASE') === 'sqlite') {
+        } else if (config('app.database.database') === 'sqlite') {
             migrationsTableQuery = `
                 CREATE TABLE IF NOT EXISTS migrations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,22 +64,21 @@ class MigrationRunner {
             `;
         }
 
-        await this.db.runQuery(migrationsTableQuery);
+        await this.#db.runQuery(migrationsTableQuery);
+        await this.#db.close();
     }
 
     async rollback() {
         const migrationFiles = this.getMigrationFiles();
 
-        // Use a for loop to ensure order
-        await Promise.all(migrationFiles.map(async (file) => {
+        for (const file of migrationFiles) {
             const migrationName = file.replace('.js', '');
             const migrationModule = require(path.join(this.migrationsPath, file));
             const instantiatedMigrationModule = new migrationModule();
             const query = instantiatedMigrationModule.down();
 
-            await this.db.makeMigration(query, migrationName, true);
-        }));
-
+            await this.#db.makeMigration(query, migrationName, true);
+        }
         console.log('Rolled back successfully.');
 
         await this.run();
@@ -80,40 +88,46 @@ class MigrationRunner {
         let sql;
         const params = [];
 
-        if (env('DATABASE') === 'mysql') {
-            sql = `SELECT TABLE_NAME AS \`table\`
+        if (config('app.database.database') === 'mysql') {
+            sql = `SELECT TABLE_NAME AS name
                 FROM INFORMATION_SCHEMA.TABLES
                 WHERE TABLE_SCHEMA = ?
                 AND TABLE_NAME != 'migrations'`;
-            params.push(config('app.database.mysql.database'));
-        } else if (env('DATABASE') === 'sqlite') {
-            sql = 'SELECT name AS table FROM sqlite_master WHERE type = "table" AND table NOT LIKE "sqlite_%"';
+            let schema = config('app.database.mysql.database');
+            params.push(schema);
+        } else if (config('app.database.database') === 'sqlite') {
+            sql = `SELECT name 
+                    FROM sqlite_master 
+                    WHERE type = 'table' 
+                    AND name NOT LIKE 'sqlite_%'
+                    AND name != 'migrations'`;
+
         }
 
 
-        const tables = await this.db.runQueryNoLogs(sql, params);
+        const tables = await this.#db.runQuery(sql, params);
 
         if (!tables.length) {
             console.log('No tables to drop.');
-            return;
         }
 
         // Disable foreign key constraints for SQLite
-        if (env('DATABASE') === 'sqlite') {
-            await this.db.runQueryNoLogs('PRAGMA foreign_keys = OFF');
+        if (config('app.database.database') === 'sqlite') {
+            await this.#db.runQuery('PRAGMA foreign_keys = OFF');
         }
 
-        await Promise.all(tables.map(async (table) => {
-            const dropTableQuery = `DROP TABLE IF EXISTS ${table.table};`;
-            await this.db.runQueryNoLogs(dropTableQuery);
-        }));
+        // use forloop to wait for all drop table queries to finish
+        for (const table of tables) {
+            const dropTableQuery = `DROP TABLE IF EXISTS ${table.name};`;
+            await this.#db.runQuery(dropTableQuery);
+        }
 
         // Re-enable foreign key constraints for SQLite
-        if (env('DATABASE') === 'sqlite') {
-            await this.db.runQueryNoLogs('PRAGMA foreign_keys = ON');
+        if (config('app.database.database') === 'sqlite') {
+            await this.#db.runQuery('PRAGMA foreign_keys = ON');
         }
 
-        await this.db.runQueryNoLogs("DELETE FROM migrations");
+        await this.#db.runQuery("DELETE FROM migrations");
 
         console.log('All tables dropped successfully.');
 

@@ -1,13 +1,11 @@
-const Carbon = require('../libraries/Materials/Carbon');
-
 const constant = {
     secret_key: env('JWT_SECRET_KEY'),
     oauth_db: 'oauth_access_token',
     expiration: {
-        default: 60 * 24 * 365, // minutes
-        refresh: 60, // minutes
+        default: 60 * 24 * 365, // minutes = 1 year
+        refresh: 60, // minutes = 1 hour
     },
-    algorithm: 'sha256',
+    algorithm: 'HS256',
 };
 
 module.exports = constant;
