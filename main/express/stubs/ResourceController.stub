@@ -31,4 +31,4 @@ class {{ ControllerName }} extends Controller {
     }
 }
 
-module.exports = {{ ControllerName }};
+export default {{ ControllerName }};

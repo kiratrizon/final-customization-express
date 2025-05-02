@@ -12,4 +12,4 @@ class {{ MiddlewareName }} {
     }
 }
 
-module.exports = {{ MiddlewareName }};
+export default {{ MiddlewareName }};

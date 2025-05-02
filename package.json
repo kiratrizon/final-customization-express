@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon ./main/express/server/run-server.mjs"
   },
-  "type": "commonjs",
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",

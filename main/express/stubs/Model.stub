@@ -6,4 +6,4 @@ class {{ ModelName }} extends Model {
     ];
 };
 
-module.exports = {{ ModelName }};
+export default {{ ModelName }};
