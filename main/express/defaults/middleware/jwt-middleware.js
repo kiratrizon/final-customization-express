@@ -7,8 +7,8 @@ class JWTMiddleware {
         this.guard = guard;
     }
     async handle(request, next) {
-        console.log(this.guard);
-        if (!Auth.guard(this.guard).check() && !(await Auth.guard(this.guard).user())) {
+        Auth.shouldUse(this.guard);
+        if (!Auth.check() && !(await Auth.user())) {
             return response().json({ message: 'Unauthorized' }, 401);
         }
 
