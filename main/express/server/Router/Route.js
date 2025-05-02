@@ -93,7 +93,7 @@ class Route {
     static #processString(input) {
         const requiredParams = [];
         const optionalParams = [];
-        if (input === '') {
+        if (input === '' || input === '/') {
             return { string: input, requiredParams, optionalParams };
         }
         const regex = {
