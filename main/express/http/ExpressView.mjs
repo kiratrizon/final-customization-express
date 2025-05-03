@@ -37,8 +37,8 @@ class ExpressView {
 
         let templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
         let dynamic = path.join(__dirname, '..', '..', '..', 'resources', 'views', `${viewName.split('.').join('/')}.${ExpressView.#engine}`);
-        return templatePath === dynamic ? 'true' : 'false'
-        if (!fs.existsSync(templatePath)) {
+        // return templatePath === dynamic ? 'true' : 'false'
+        if (!fs.existsSync(dynamic)) {
             return `View file not found: ${templatePath}`;
         }
         const rawHtml = fs.readFileSync(templatePath, "utf-8")
