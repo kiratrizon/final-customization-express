@@ -117,40 +117,39 @@ functionDesigner('log', (value, destination, text = "") => {
 });
 
 functionDesigner('base_path', (concatenation = '') => {
-    __dirname;
     return path.resolve(__dirname, '..', '..', '..', concatenation);
 });
 
 functionDesigner('resources_path', (concatenation = '') => {
-    return base_path(path.join('resources', concatenation));
+    return path.join(base_path(path.join('resources', concatenation)));
 });
 
 functionDesigner('view_path', (concatenation = '') => {
-    return resources_path(path.join('views', concatenation));
+    return path.join(resources_path(path.join('views', concatenation)));
 });
 
 functionDesigner('public_path', (concatenation = '') => {
-    return base_path(path.join('public', concatenation));
+    return path.join(base_path(path.join('public', concatenation)));
 });
 
 functionDesigner('database_path', (concatenation = '') => {
-    return base_path(path.join('main', 'database', concatenation));
+    return path.join(base_path(path.join('main', 'database', concatenation)));
 });
 
 functionDesigner('app_path', (concatenation = '') => {
-    return base_path(path.join('app', concatenation));
+    return path.join(base_path(path.join('app', concatenation)));
 });
 
 functionDesigner('stub_path', () => {
-    return base_path('main/express/stubs');
+    return path.join(base_path('main/express/stubs'));
 });
 
 functionDesigner('controller_path', () => {
-    return app_path('Controllers');
+    return path.join(app_path('Controllers'));
 })
 
 functionDesigner('tmp_path', () => {
-    return base_path('tmp');
+    return path.join(base_path('tmp'));
 });
 
 const irregularPlurals = await config('irregular_words');
