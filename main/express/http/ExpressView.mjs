@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import ejs from 'ejs';
+import pug from 'pug';
 
 class ExpressView {
     static #viewEngine;
@@ -11,10 +13,15 @@ class ExpressView {
     }
 
     static async init() {
-        const engine = (await config('view.defaultViewEngine')) || 'ejs';
+        const engine = await config('view.defaultViewEngine') || 'ejs';
         ExpressView.#engine = engine;
-        const viewEngine = await import(ExpressView.#engine);
-        ExpressView.#viewEngine = viewEngine.default;
+        if (engine === 'ejs') {
+            ExpressView.#viewEngine = ejs;
+        } else if (engine === 'pug') {
+            ExpressView.#viewEngine = pug;
+        } else {
+            throw `View engine not supported: ${engine}`;
+        }
     }
 
     element(viewName, data = {}) {

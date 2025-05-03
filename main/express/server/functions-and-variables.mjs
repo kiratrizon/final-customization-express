@@ -141,8 +141,6 @@ functionDesigner('tmp_path', () => {
     return base_path('tmp');
 });
 
-console.log(tmp_path())
-
 const irregularPlurals = await config('irregular_words');
 
 functionDesigner('generateTableNames', (entity) => {
