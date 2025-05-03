@@ -318,26 +318,21 @@ class Server {
 	}
 
 	static async #loadAndValidateRoutes() {
-		const routesDir = path.join(base_path('routes'));
-		const jsFiles = ['api.mjs', 'web.mjs'];
-		// remove web.js
-		let webjs = null;
-		if (jsFiles.includes('web.mjs')) {
-			// splice
-			jsFiles.splice(jsFiles.indexOf('web.mjs'), 1);
-			webjs = 'web.mjs';
-			jsFiles.push(webjs);
-		}
-		for (const file of jsFiles) {
-			// set prefix
-			const fileName = file.replace('.mjs', '');
-			const routePrefix = fileName === 'web' ? '' : `/${fileName}`;
-			const filePath = path.join(routesDir, file); // Still okay
-			const fileUrl = pathToFileURL(filePath);     // ✅ safer than manually building URLs
+		const apiRoute = await import('../../../routes/api.mjs');
+		const apiInstance = new apiRoute.default();
+		const apiData = apiInstance.reveal();
 
-			const RouteClass = await import(fileUrl.href);
-			const instance = new RouteClass.default(); // Access the default export
-			let data = await instance.reveal(); // If reveal is async, await it
+		const webRoute = await import('../../../routes/web.mjs');
+		const webInstance = new webRoute.default();
+		const webData = webInstance.reveal();
+		const dataOfRoutes = {
+			api: apiData,
+			web: webData,
+		}
+		const keys = Object.keys(dataOfRoutes);
+		for (const key of keys) {
+			const routePrefix = key === 'web' ? '' : `/${key}`;
+			const data = dataOfRoutes[key];
 			if (data) {
 				const { default_route, group, routes } = data;
 
@@ -467,7 +462,6 @@ class Server {
 				Server.app.use(routePrefix, rDf);
 			}
 		}
-
 
 		Server.#finishBoot();
 	}
