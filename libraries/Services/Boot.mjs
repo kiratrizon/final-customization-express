@@ -1,4 +1,3 @@
-import FileHandler from "../../main/express/http/ExpressFileHandler.mjs";
 import ExpressView from "../../main/express/http/ExpressView.mjs";
 
 class Boot {
@@ -23,7 +22,6 @@ class Boot {
 
     static async init() {
         await ExpressView.init();
-        FileHandler.filePath = tmp_path();
     }
 }
 
