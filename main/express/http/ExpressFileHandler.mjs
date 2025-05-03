@@ -128,9 +128,14 @@ class FileHandler {
   }
 
   static validatePath() {
-    if (!fs.existsSync(FileHandler.filePath)) {
-      fs.mkdirSync(FileHandler.filePath, { recursive: true });
+    if (!IN_PRODUCTION) {
+      if (!fs.existsSync(FileHandler.filePath)) {
+        fs.mkdirSync(FileHandler.filePath, { recursive: true });
+      }
+    } else {
+      return true;
     }
+
   }
 
   static fileSpaceCharsDevoid(name) {
