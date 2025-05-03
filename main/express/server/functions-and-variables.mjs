@@ -445,8 +445,8 @@ functionDesigner('view', (viewName, data = {}) => {
         return 'test';
     }
     const newView = new ExpressView(data);
-    const rendered = newView.element(viewName);
-    return newView.view(rendered);
+    newView.element(viewName);
+    return newView;
 });
 
 // import path from 'path';

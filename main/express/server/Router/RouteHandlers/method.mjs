@@ -64,9 +64,9 @@ class RouteMethod {
                     } else if (expressResponse instanceof ExpressView) {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
-                        const rendered = expressResponse.getRendered();
-                        html_dump.push(rendered);
-                        res.send(html_dump.join(''));
+                        const { html_data, object_data } = expressResponse.getRendered();
+                        // html_dump.push(rendered);
+                        res.render(html_data, object_data);
                         return;
                     }
                 } else {
