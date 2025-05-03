@@ -4,7 +4,7 @@ import fs from "fs";
 
 
 class FileHandler {
-  static filePath = "";
+  static filePath = "/tmp";
 
   static multer() {
     FileHandler.validatePath();

@@ -22,8 +22,8 @@ class Boot {
     }
 
     static async init() {
+        FileHandler.filePath = '/tmp/uploads';
         await ExpressView.init();
-        FileHandler.filePath = tmp_path();
     }
 }
 
