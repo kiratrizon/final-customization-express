@@ -36,7 +36,7 @@ class ExpressView {
         };
 
         const templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
-        return templatePath === path.join(__dirname, '..', '..', '..', `${viewName.split('.').join('/')}.${ExpressView.#engine}`)
+        return templatePath === path.join(__dirname, '..', '..', '..', `${viewName.split('.').join('/')}.${ExpressView.#engine}`) ? 'true' : 'false'
         if (!fs.existsSync(templatePath)) {
             return `View file not found: ${templatePath}`;
         }
