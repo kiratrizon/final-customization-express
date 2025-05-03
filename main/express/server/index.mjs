@@ -11,14 +11,16 @@ import { createClient } from 'redis';
 import { RedisStore } from 'connect-redis';
 import FileHandler from '../http/ExpressFileHandler.mjs';
 import ExpressRedirect from '../http/ExpressRedirect.mjs';
-import ExpressResponse from '../http/ExpressResponse.mjs';
 import express from 'express';
-import ExpressView from '../http/ExpressView.mjs';
 import util from 'util';
 import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
 import Auth from './Auth.mjs';
 import ExpressRequest from '../http/ExpressRequest.mjs';
-import { pathToFileURL } from 'url';
+import { fileURLToPath } from 'url';
+
+// Create __dirname using import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 const myLink = `https://github.com/kiratrizon/final-customization-express`;
@@ -53,7 +55,7 @@ class Server {
 		Server.app.use(FileHandler.getFileHandler());
 		Server.app.use(FileHandler.handleFiles);
 		Server.app.set('view engine', viewEngine);
-		Server.app.set('views', view_path());
+		Server.app.set('views', path.join(__dirname, '../../../resources/views'));
 
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
