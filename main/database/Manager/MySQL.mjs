@@ -1,12 +1,12 @@
 import mysql from 'mysql2';
-const mysqlProp = await config('app.database.mysql');
+import Configure from '../../../libraries/Materials/Configure.mjs';
 
 class MySQL {
     static pool = null;
-
+    static #mysqlProp;
     constructor() {
         if (!MySQL.pool) {
-            MySQL.pool = mysql.createPool(mysqlProp);
+            MySQL.pool = mysql.createPool(MySQL.#mysqlProp);
         }
     }
 
@@ -67,6 +67,12 @@ class MySQL {
             }
         });
     }
+    static async init() {
+        const mysqlProp = await Configure.read('app.database.mysql');
+        MySQL.#mysqlProp = mysqlProp;
+    }
 }
+
+await MySQL.init()
 
 export default MySQL;

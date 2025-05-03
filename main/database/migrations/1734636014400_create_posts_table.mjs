@@ -1,4 +1,5 @@
-const Blueprint = require('../Blueprint.mjs');
+import Blueprint from '../Blueprint.mjs';
+
 
 class Migrate {
     tableName = 'posts';

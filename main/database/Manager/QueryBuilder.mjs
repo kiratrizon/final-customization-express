@@ -4,6 +4,8 @@ import DBManager from './DatabaseManager.mjs';
 import Collection from './Collection.mjs';
 import QueryInsert from './QueryInsert.mjs';
 
+const dbUsed = await config('app.database.database');
+
 class QueryBuilder {
     // for query builder
     #fields = [];
@@ -547,7 +549,7 @@ class QueryBuilder {
         if (this.#isModel && this.#model.softDelete) {
             this.whereNull('deleted_at');
         }
-        const rsql = new RawSQL(config('app.database.database'), this.getAllProps());
+        const rsql = new RawSQL(dbUsed, this.getAllProps());
         let sql = rsql.build();
         return sql;
     }
@@ -596,7 +598,7 @@ class QueryBuilder {
         }
 
         const newDB = new DBManager();
-        const insertQuery = new QueryInsert(this.#table, insertData, config('app.database.database'));
+        const insertQuery = new QueryInsert(this.#table, insertData, dbUsed);
         const { sql, values } = insertQuery.build();
         const result = await newDB.runQuery(sql, values);
         return result;

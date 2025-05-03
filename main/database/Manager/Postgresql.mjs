@@ -1,18 +1,19 @@
 import { Client } from 'pg';
-
+import Configure from '../../../libraries/Materials/Configure.mjs';
 
 class Postgres {
     static client = null;
-    static config = null;
+    static #pgConfig;
 
     constructor() {
-        if (!Postgres.config) {
-            Postgres.config = config('app.database.postgresql');
-        }
-
         if (!Postgres.client) {
-            Postgres.client = new Client(Postgres.config);
+            Postgres.client = new Client(Postgres.#pgConfig);
         }
+    }
+
+    static async init() {
+        const pgConfig = await Configure.read('app.database.postgresql');
+        Postgres.#pgConfig = pgConfig;
     }
 
     async #ensureConnection() {
@@ -78,5 +79,7 @@ class Postgres {
         return false;
     }
 }
+
+await Postgres.init();
 
 export default Postgres;

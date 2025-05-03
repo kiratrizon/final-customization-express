@@ -1,7 +1,8 @@
-const Validator = require("../../libraries/Services/Validator");
-const Controller = require("../../main/base/Controller");
-const Auth = require("../../main/express/server/Auth");
-const Admin = require("../../models/Admin");
+import Validator from "../../libraries/Services/Validator.mjs";
+import Controller from "../../main/base/Controller.mjs";
+import Auth from "../../main/express/server/Auth.mjs";
+import Admin from "../../models/Admin.mjs";
+
 
 class AdminController extends Controller {
 

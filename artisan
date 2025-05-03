@@ -7,7 +7,10 @@ import { Command } from 'commander';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import DatabaseSeeder from './main/database/seeders/DatabaseSeeder.mjs';
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 // You can define defaultStubPath here
 const defaultStubPath = stub_path();
 
@@ -27,7 +30,7 @@ class Generator {
         const controllerStub = path.join(defaultStubPath, resource ? 'ResourceController.stub' : 'Controller.stub');
         const controllerContent = fs.readFileSync(controllerStub, 'utf-8').replace(/{{ ControllerName }}/g, name);
 
-        const controllerPath = path.join(this.controllersPath, `${name}.js`);
+        const controllerPath = path.join(this.controllersPath, `${name}.mjs`);
         this.#writeFile(controllerPath, controllerContent);
 
         console.log(`Controller created at ${controllerPath}`);
@@ -38,7 +41,7 @@ class Generator {
         const modelStub = path.join(defaultStubPath, 'Model.stub');
         let modelContent = fs.readFileSync(modelStub, 'utf-8').replace(/{{ ModelName }}/g, name);
 
-        const modelPath = path.join(this.modelsPath, `${name}.js`);
+        const modelPath = path.join(this.modelsPath, `${name}.mjs`);
         this.#writeFile(modelPath, modelContent);
 
         console.log(`Model created at ${modelPath}`);
@@ -54,7 +57,7 @@ class Generator {
         const migrationStub = path.join(defaultStubPath, `Migration${alter ? 'Alter' : ''}.stub`);
         let migrationContent = fs.readFileSync(migrationStub, 'utf-8').replace(/{{ tableName }}/g, tableName);
 
-        const migrationFileName = `${Date.now()}_${alter ? 'alter' : 'create'}_${tableName.toLowerCase()}_table.js`; // Use timestamp for uniqueness
+        const migrationFileName = `${Date.now()}_${alter ? 'alter' : 'create'}_${tableName.toLowerCase()}_table.mjs`; // Use timestamp for uniqueness
         const migrationPath = path.join(this.migrationsPath, migrationFileName);
 
         this.#writeFile(migrationPath, migrationContent);
@@ -74,7 +77,7 @@ class Generator {
         const middlewareStub = path.join(defaultStubPath, 'Middleware.stub');
         const middlewareContent = fs.readFileSync(middlewareStub, 'utf-8').replace(/{{ MiddlewareName }}/g, middlename);
 
-        const middlewarePath = path.join(__dirname, 'app', 'Middlewares', `${middlename}.js`);
+        const middlewarePath = path.join(__dirname, 'app', 'Middlewares', `${middlename}.mjs`);
         this.#writeFile(middlewarePath, middlewareContent);
 
         console.log(`Middleware created at ${middlewarePath}`);

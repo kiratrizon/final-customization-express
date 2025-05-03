@@ -1,4 +1,5 @@
-const Auth = require("../../main/express/server/Auth");
+import Auth from "../../main/express/server/Auth.mjs";
+
 
 class {{ MiddlewareName }} {
 

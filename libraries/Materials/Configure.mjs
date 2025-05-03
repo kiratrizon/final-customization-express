@@ -1,6 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class Configure {
   static storedData = {};
@@ -22,9 +25,9 @@ class Configure {
         return Configure.storedData[firstKey];
       }
 
-      // Dynamically import the JS file instead of require()
+      // Dynamically import the JS file instead of require
       if (fs.existsSync(pathJs + '.mjs')) {
-        const module = await import(pathJs + '.mjs');  // Use dynamic import
+        const module = await import(pathToFileURL(pathJs + '.mjs').href);  // Use dynamic import
         Configure.storedData[firstKey] = module;
         configData = Configure.storedData[firstKey].default;
       }

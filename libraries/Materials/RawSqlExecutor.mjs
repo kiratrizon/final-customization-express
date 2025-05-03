@@ -1,10 +1,10 @@
-const Database = require("../../main/database/Manager/DatabaseManager");
+import Database from "../../main/database/Manager/DatabaseManager.mjs";
 
 class RawSqlExecutor {
     static database = new Database();
 
-    static run(rawSql, params = []) {
-        return RawSqlExecutor.database.runQuery(rawSql, params);
+    static async run(rawSql, params = []) {
+        return await RawSqlExecutor.database.runQuery(rawSql, params);
     }
 }
 

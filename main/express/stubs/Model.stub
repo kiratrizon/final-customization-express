@@ -1,4 +1,5 @@
-const Model = require("../main/base/Model");
+import Model from "../main/base/Model.mjs";
+
 
 class {{ ModelName }} extends Model {
     fillable = [

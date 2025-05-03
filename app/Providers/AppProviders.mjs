@@ -1,8 +1,9 @@
+import { pathToFileURL } from 'url';
 class AppProviders {
 
-    static register() {
+    static async register() {
         return {
-            'STREAM': require(base_path('main/express/server/Router/RouteHandlers/stream')),
+            'STREAM': await import(pathToFileURL(base_path('main/express/server/Router/RouteHandlers/stream.mjs')).href),
 
         };
     }

@@ -1,3 +1,5 @@
+import ExpressView from "../../main/express/http/ExpressView.mjs";
+
 class Boot {
 
     static async register() {
@@ -18,6 +20,9 @@ class Boot {
         return 'bcrypt';
     }
 
+    static async init() {
+        await ExpressView.init();
+    }
 }
 
 export default Boot;

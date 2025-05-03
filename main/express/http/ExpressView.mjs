@@ -2,15 +2,19 @@ import fs from 'fs';
 import path from 'path';
 
 class ExpressView {
-    #viewEngine;
+    static #viewEngine;
     #data;
-    #engine;
+    static #engine;
     #rendered;
     constructor(data = {}) {
-        const engine = config('view.defaultViewEngine') || 'ejs';
-        this.#engine = engine;
-        this.#viewEngine = require(`${engine}`);
         this.#data = data;
+    }
+
+    static async init() {
+        const engine = (await config('view.defaultViewEngine')) || 'ejs';
+        ExpressView.#engine = engine;
+        const viewEngine = await import(ExpressView.#engine);
+        ExpressView.#viewEngine = viewEngine.default;
     }
 
     element(viewName, data = {}) {
@@ -19,12 +23,12 @@ class ExpressView {
             ...this.#data
         };
 
-        const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.${this.#engine}`);
+        const templatePath = path.join(view_path(), `${viewName.split('.').join('/')}.${ExpressView.#engine}`);
         if (!fs.existsSync(templatePath)) {
             throw `View file not found: ${templatePath}`;
         }
         const rawHtml = fs.readFileSync(templatePath, "utf-8")
-        const rendered = this.#viewEngine.render(rawHtml, this.#data);
+        const rendered = ExpressView.#viewEngine.render(rawHtml, this.#data);
         return rendered;
     }
 

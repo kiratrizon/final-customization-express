@@ -1,13 +1,11 @@
 import JWTMiddleware from "../main/express/defaults/middleware/jwt-middleware.mjs";
 import Hello from "./Middlewares/Hello.mjs";
-import Test from "./Middlewares/Test.mjs";
 
 
 class MiddlewareHandler {
 
     middlewareAliases() {
         return {
-            "test": Test,
             "hello": Hello
         };
     }

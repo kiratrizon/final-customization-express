@@ -1,4 +1,3 @@
-require('dotenv').config();
 const dbType = await config('app.database.database');
 
 class Blueprint {

@@ -1,4 +1,4 @@
-const Controller = require("../../main/base/Controller");
+import Controller from "../../main/base/Controller.mjs";
 
 class UserDashboard extends Controller {
     // get

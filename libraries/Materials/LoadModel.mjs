@@ -1,9 +1,11 @@
 import path from 'path';
+import { pathToFileURL } from 'url';
 
 class LoadModel {
-    static init(model) {
-        const Model = require(path.join(base_path(), 'models', model));
-        return Model;
+    static async init(model) {
+        const filePath = path.join(base_path('models'), `${model}.mjs`);
+        const Model = await import(pathToFileURL(filePath).href);
+        return Model.default;
     }
 }
 

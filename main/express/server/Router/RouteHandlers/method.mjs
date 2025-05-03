@@ -50,15 +50,6 @@ class RouteMethod {
                                 res.sendFile(file);
                             } else if (returnType === 'download') {
                                 res.download(...download);
-                            } else if (returnType === 'streamDownload') {
-                                const [callback, fileName] = streamDownload;
-                                const STREAM = use('STREAM');
-                                const stream = new STREAM();
-                                callback(stream);
-                                res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-                                const text = stream.get();
-                                res.write(text);
-                                res.end();
                             }
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {

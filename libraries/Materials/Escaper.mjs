@@ -1,4 +1,4 @@
-const Database = require("../../main/database/Manager/DatabaseManager");
+import Database from "../../main/database/Manager/DatabaseManager.mjs";
 
 const database = new Database();
 

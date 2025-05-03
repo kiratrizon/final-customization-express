@@ -1,12 +1,12 @@
-const Carbon = require("../../../libraries/Materials/Carbon");
-const path = require("path");
-const fs = require("fs");
+import path from "path";
+import fs from "fs";
+
 
 class Logger {
     static log(value, destination, text = "") {
         const dirPath = path.join(tmp_path(), "logs");
         const logPath = path.join(dirPath, `${destination}.log`);
-        const timestamp = Carbon.getDateTime();
+        const timestamp = date();
 
         const logMessage = `${timestamp} ${text}\n${typeof value === "object" ? JSON.stringify(value, null, 2) : value
             }\n\n`;

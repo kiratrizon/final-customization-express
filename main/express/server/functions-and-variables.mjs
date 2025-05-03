@@ -1,19 +1,5 @@
-import fs from 'fs';
-import path from 'path';
-import Configure from '../../../libraries/Materials/Configure.mjs';
-import Carbon from '../../../libraries/Materials/Carbon.mjs';
-import ExpressView from '../http/ExpressView.mjs';
-import AppProviders from '../../../app/Providers/AppProviders.mjs';
-import dotenv from 'dotenv';
-
 // Load environment variables
 dotenv.config();
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
-/**************
- * @functions *
-***************/
-
 Object.defineProperty(global, 'functionDesigner', {
     value: (key, value) => {
         if (key in global) {
@@ -40,6 +26,44 @@ functionDesigner('env', (ENV_NAME, defaultValue = null) => {
     }
 });
 
+import Configure from '../../../libraries/Materials/Configure.mjs';
+
+functionDesigner('config', async function () {
+    const args = arguments;
+    if (args.length === 0) {
+        throw new Error('No arguments provided');
+    }
+    if (typeof args[0] !== 'string') {
+        throw new Error('First argument must be a string');
+    }
+    if (args.length === 1) {
+        return await Configure.read(args[0]);
+    } else if (args.length === 2) {
+        const pathString = args[0];
+        const data = args[1];
+        await Configure.write(pathString, data);
+        return data;
+    } else {
+        throw new Error('Invalid number of arguments');
+    }
+});
+
+import fs from 'fs';
+import path from 'path';
+import ExpressView from '../http/ExpressView.mjs';
+import AppProviders from '../../../app/Providers/AppProviders.mjs';
+import dotenv from 'dotenv';
+import { DateTime } from 'luxon';
+import axios from 'axios';
+
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**************
+ * @functions *
+***************/
 functionDesigner('only', (obj, keys) => {
     let newObj = {};
     keys.forEach(key => {
@@ -64,37 +88,10 @@ functionDesigner('ucFirst', (string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
 });
 
-functionDesigner('getFutureDate', (addTime = 60) => {
-    if (addTime == 'never') {
-        return '9999-12-31 23:59:59';
-    } else {
-        return Carbon.addDays(addTime).getDateTime();
-    }
-});
+import Logger from '../http/ExpressLogger.mjs';
 
 functionDesigner('log', (value, destination, text = "") => {
-    const Logger = require('../http/ExpressLogger.mjs');
     Logger.log(value, destination, text);
-});
-
-functionDesigner('config', function () {
-    const args = arguments;
-    if (args.length === 0) {
-        throw new Error('No arguments provided');
-    }
-    if (typeof args[0] !== 'string') {
-        throw new Error('First argument must be a string');
-    }
-    if (args.length === 1) {
-        return Configure.read(args[0]);
-    } else if (args.length === 2) {
-        const pathString = args[0];
-        const data = args[1];
-        Configure.write(pathString, data);
-        return data;
-    } else {
-        throw new Error('Invalid number of arguments');
-    }
 });
 
 functionDesigner('base_path', (concatenation = '') => {
@@ -102,35 +99,36 @@ functionDesigner('base_path', (concatenation = '') => {
 });
 
 functionDesigner('resources_path', (concatenation = '') => {
-    return path.join(base_path(), 'resources', concatenation);
+    return path.join(base_path('resources'), concatenation);
 });
 
 functionDesigner('view_path', (concatenation = '') => {
-    return path.join(resources_path(), 'views', concatenation);
+    return path.join(resources_path('views'), concatenation);
 });
 
 functionDesigner('public_path', (concatenation = '') => {
-    return path.join(base_path(), 'public', concatenation);
+    return path.join(base_path('public'), concatenation);
 });
 
 functionDesigner('database_path', (concatenation = '') => {
-    return path.join(base_path(), 'main', 'database', concatenation);
+    return path.join(base_path('main/database'), concatenation);
 });
 
 functionDesigner('app_path', (concatenation = '') => {
-    return path.join(base_path(), 'app', concatenation);
+    return path.join(base_path('app'), concatenation);
 });
 
 functionDesigner('stub_path', () => {
-    return `${base_path()}/main/express/stubs`;
+    return base_path('main/express/stubs');
 });
 
 functionDesigner('tmp_path', () => {
-    return `${base_path()}/tmp`;
+    return base_path('tmp');
 });
 
+const irregularPlurals = await config('irregular_words');
+
 functionDesigner('generateTableNames', (entity) => {
-    const irregularPlurals = config('irregular_words');
     const splitWords = entity.split(/(?=[A-Z])/);
     const lastWord = splitWords.pop().toLowerCase();
 
@@ -169,9 +167,8 @@ functionDesigner('base64_url_decode', function (str) {
     return Buffer.from(base64, 'base64').toString('utf8');
 });
 
-functionDesigner('strtotime', function (time, now) {
-    const { DateTime } = require("luxon");
 
+functionDesigner('strtotime', function (time, now) {
     const getRelativeTime = (expression, direction, now) => {
         const daysOfWeek = [
             "sunday", "monday", "tuesday", "wednesday",
@@ -236,6 +233,159 @@ functionDesigner('strtotime', function (time, now) {
     return null;
 });
 
+const configApp = await config('app') || 'Y-m-d H:i:s';
+
+class Carbon {
+    static #formatMapping = {
+        'Y': 'yyyy', // Full year, 4 digits
+        'y': 'yy', // Short year, 2 digits
+        'm': 'MM', // Month number, 2 digits
+        'n': 'M', // Month number, without leading zero
+        'd': 'dd', // Day of the month, 2 digits
+        'j': 'd', // Day of the month, without leading zero
+        'H': 'HH', // Hour (24-hour format)
+        'h': 'hh', // Hour (12-hour format)
+        'i': 'mm', // Minutes
+        's': 'ss', // Seconds
+        'A': 'a', // AM/PM
+        'T': 'z', // Timezone abbreviation
+        'e': 'ZZ', // Full timezone name (if available)
+        'o': 'yyyy', // ISO-8601 year
+        'P': 'ZZ', // ISO-8601 timezone offset
+        'c': "yyyy-MM-dd'T'HH:mm:ssZZ", // ISO-8601 full date/time
+        'r': 'EEE, dd MMM yyyy HH:mm:ss Z', // RFC 2822
+        'u': 'yyyy-MM-dd HH:mm:ss.SSS', // Microseconds
+        'W': 'W', // ISO week number
+        'N': 'E', // ISO day of the week (1 = Monday, 7 = Sunday)
+        'z': 'o', // Day of the year
+    };
+
+    static #timeAlters = {
+        "weeks": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "years": 0,
+    };
+    static addDays(days = 0) {
+        Carbon.#timeAlters['days'] += days;
+        return Carbon;
+    }
+
+    static addHours(hours = 0) {
+        Carbon.#timeAlters['hours'] += hours;
+        return Carbon;
+    }
+
+    static addMinutes(minutes = 0) {
+        Carbon.#timeAlters['minutes'] += minutes;
+        return Carbon;
+    }
+
+    static addSeconds(seconds = 0) {
+        Carbon.#timeAlters['seconds'] += seconds;
+        return Carbon;
+    }
+
+    static addYears(years = 0) {
+        Carbon.#timeAlters['years'] += years;
+        return Carbon;
+    }
+
+    static addMonths(months = 0) {
+        Carbon.#timeAlters['months'] += months;
+        return Carbon;
+    }
+
+    static addWeeks(weeks = 0) {
+        Carbon.#timeAlters['weeks'] += weeks;
+        return Carbon;
+    }
+
+    static #generateDateTime() {
+        // return DateTime.now().setZone(Configure.read('app.timezone'));
+        // add the #timeAlters if there is value before returning DateTime.now().setZone(Configure.read('app.timezone'))
+        const getDateTime = DateTime.now().plus({
+            years: Carbon.#timeAlters.years,
+            months: Carbon.#timeAlters.months,
+            weeks: Carbon.#timeAlters.weeks,
+            days: Carbon.#timeAlters.days,
+            hours: Carbon.#timeAlters.hours,
+            minutes: Carbon.#timeAlters.minutes,
+            seconds: Carbon.#timeAlters.seconds,
+        }).setZone(configApp.timezone || 'GMT +08');
+        Carbon.#reset();
+        return getDateTime;
+    }
+
+    static getDateTime() {
+        return Carbon.#getByFormat(configApp.datetime_format || 'Y-m-d H:i:s');
+    }
+
+    static getDate() {
+        return Carbon.#getByFormat(configApp.date_format || 'Y-m-d');
+    }
+
+    static getTime() {
+        return Carbon.#getByFormat(configApp.time_format || 'H:i:s');
+    }
+    static #getByFormat(format) {
+        if (typeof format != 'string') {
+            throw new Error(`Invalid format`);
+        }
+        const time = Carbon.#generateDateTime();
+        const formattings = Object.keys(Carbon.#formatMapping);
+        let newFormat = '';
+        for (let i = 0; i < format.length; i++) {
+            if (formattings.includes(format[i])) {
+                newFormat += Carbon.#formatMapping[format[i]];
+            } else {
+                newFormat += format[i];
+            }
+        }
+        return time.toFormat(newFormat);
+    }
+
+    static getByFormat(format) {
+        return Carbon.#getByFormat(format);
+    }
+
+    static #reset() {
+        Carbon.#timeAlters = {
+            "weeks": 0,
+            "months": 0,
+            "days": 0,
+            "hours": 0,
+            "minutes": 0,
+            "seconds": 0,
+            "years": 0,
+        };
+    }
+
+    static getByUnixTimestamp(unixTimestamp, format) {
+        if (typeof unixTimestamp !== 'number') {
+            throw new Error(`Invalid Unix timestamp: ${unixTimestamp}`);
+        }
+        if (typeof format !== 'string') {
+            throw new Error(`Invalid format: ${format}`);
+        }
+
+        const time = DateTime.fromSeconds(unixTimestamp).setZone(configApp.timezone || 'GMT +08');
+        const formattings = Object.keys(Carbon.#formatMapping);
+        let newFormat = '';
+        for (let i = 0; i < format.length; i++) {
+            if (formattings.includes(format[i])) {
+                newFormat += Carbon.#formatMapping[format[i]];
+            } else {
+                newFormat += format[i];
+            }
+        }
+        return time.toFormat(newFormat);
+    }
+}
+
 /**
  * This function returns the current date and time 
  * in the specified format (e.g., "Y-m-d H:i:s"). If no timestamp is provided, 
@@ -284,15 +434,13 @@ functionDesigner('view', (viewName, data = {}) => {
 
 // import path from 'path';
 
-const versionPath = path.join(base_path(), 'version.mjs');
-const version = await import(versionPath);
-
-define('FRAMEWORK_VERSION', version);
-
+const versionPath = base_path('version.mjs');
+const version = await import(pathToFileURL(versionPath).href);
+define('FRAMEWORK_VERSION', version.default);
 
 
+import ExpressResponse from '../http/ExpressResponse.mjs';
 functionDesigner('response', function (html = null) {
-    const ExpressResponse = require('../http/ExpressResponse.mjs');
     const EResponse = new ExpressResponse(html);
     return EResponse;
 });
@@ -343,7 +491,6 @@ functionDesigner('fetchData', async (url, data = {
     onUploadProgress: null,    // Optional: Function to handle upload progress
     onDownloadProgress: null,  // Optional: Function to handle download progress
 }) => {
-    const { default: axios } = require('axios');
     let { timeout, method, headers, body, params, responseType, onDownloadProgress, onUploadProgress } = data;
 
     const methodLower = method.toLowerCase();
@@ -455,8 +602,8 @@ functionDesigner('method_exist', (object, method) => {
     return typeof object[method] === 'function';
 });
 
+const appProviders = await AppProviders.register();
 functionDesigner('use', (className) => {
-    const appProviders = AppProviders.register();
     if (className in appProviders) {
         return appProviders[className];
     }

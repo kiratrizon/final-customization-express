@@ -1,7 +1,7 @@
-const nodemailer = require('nodemailer');
-const { translate } = require('@vitalets/google-translate-api');
-const Configure = require('../libraries/Materials/Configure');
-require('dotenv').config();
+import nodemailer from 'nodemailer';
+import { translate } from '@vitalets/google-translate-api';
+import Configure from '../libraries/Materials/Configure.mjs';
+
 
 class NodeMailer {
     constructor() {

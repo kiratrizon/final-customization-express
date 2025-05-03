@@ -1,26 +1,31 @@
 import fs from 'fs';
+import { pathToFileURL } from 'url';
 import path from 'path';
 import DatabaseConnection from './Manager/DatabaseManager.mjs';
 const dbType = await config('app.database.database');
+// Simulate __dirname in ES modules
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+// On Windows, remove the leading slash from the pathname (if it exists)
+const cleanDirname = __dirname.startsWith('/') ? __dirname.slice(1) : __dirname;
 class MigrationRunner {
     #db;
     constructor() {
-        this.migrationsPath = path.join(__dirname, '..', 'database', 'migrations');
+        this.migrationsPath = path.join(cleanDirname, '..', 'database', 'migrations');
         console.log(this.migrationsPath);
         this.#db = new DatabaseConnection();
     }
 
     async run() {
         const migrationFiles = this.getMigrationFiles();
-
+        console.log(migrationFiles);
         let count = 0;
         // Use Promise.all to wait for all migrations to complete
         for (let i = 0; i < migrationFiles.length; i++) {
             const file = migrationFiles[i];
             const migrationName = file.replace('.mjs', '');
-            const migrationModule = require(path.join(this.migrationsPath, file));
-            const instantiatedMigrationModule = new migrationModule();
+            const migrationModule = await import(pathToFileURL(path.join(this.migrationsPath, file)).href);
+            const instantiatedMigrationModule = new migrationModule.default();
             if (!is_function(instantiatedMigrationModule.up)) continue;
             const query = instantiatedMigrationModule.up();
 
@@ -75,8 +80,8 @@ class MigrationRunner {
 
         for (const file of migrationFiles) {
             const migrationName = file.replace('.mjs', '');
-            const migrationModule = require(path.join(this.migrationsPath, file));
-            const instantiatedMigrationModule = new migrationModule();
+            const migrationModule = await import(pathToFileURL(path.join(this.migrationsPath, file)).href);
+            const instantiatedMigrationModule = new migrationModule.default();
             const query = instantiatedMigrationModule.down();
 
             await this.#db.makeMigration(query, migrationName, true);

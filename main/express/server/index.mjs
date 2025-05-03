@@ -30,6 +30,8 @@ class Server {
 	static router = Server.express.Router();
 
 	static async boot() {
+		await Boot.init();
+
 		Server.app.use(morgan('dev'));
 		Server.app.use(Server.express.json());
 		Server.app.use(Server.express.urlencoded({ extended: true }));
@@ -47,9 +49,10 @@ class Server {
 		appEssentials.forEach(key => {
 			Server.app.use(handleBoot[key]);
 		});
+		const viewEngine = await config('view.defaultViewEngine');
 		Server.app.use(FileHandler.getFileHandler());
 		Server.app.use(FileHandler.handleFiles);
-		Server.app.set('view engine', config('view.defaultViewEngine'));
+		Server.app.set('view engine', viewEngine);
 		Server.app.set('views', view_path());
 
 		// Global request/response handlers
@@ -234,9 +237,9 @@ class Server {
 
 	static async #handle() {
 		let store;
-
+		const redisConf = await config('app.redis');
 		if (env('USE_MEMORY_CACHE') !== 'true' && env('NODE_ENV') === 'production') {
-			let redisClient = createClient(config('app.redis'));
+			let redisClient = createClient(redisConf);
 
 			try {
 				await redisClient.connect();  // Await Redis connection
@@ -266,8 +269,8 @@ class Server {
 				maxAge: 300000, // 30 seconds
 			},
 		};
-
-		const origins = config('origins.origins').length ? config('origins.origins') : '*';
+		const originsConf = (await config('origins.origins')) || [];
+		const origins = originsConf.length ? originsConf : '*';
 
 		const corsOptions = {
 			origin: origins,
@@ -331,7 +334,8 @@ class Server {
 			const fileName = file.replace('.mjs', '');
 			const routePrefix = fileName === 'web' ? '' : `/${fileName}`;
 			const filePath = path.join(routesDir, file);
-			const RouteClass = await import(filePath); // Use dynamic import
+			const fileUrl = new URL(`file:///${filePath.replace(/\\/g, '/')}`);
+			const RouteClass = await import(fileUrl.href);
 			const instance = new RouteClass.default(); // Access the default export
 			let data = await instance.reveal(); // If reveal is async, await it
 			if (data) {
