@@ -1,12 +1,17 @@
 {
   "version": 2,
-  "functions": {
-    "index.mjs": {
-      "runtime": "@vercel/node",
+  "builds": [
+    {
+      "src": "index.mjs",
+      "use": "@vercel/node",
       "includeFiles": "resources/views/**"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
     }
-  },
-  "routes": [
-    { "src": "/(.*)", "dest": "index.mjs" }
+  ],
+  "routes":[
+    {"src":"/(.*)", "dest":"index.mjs"}
   ]
 }
