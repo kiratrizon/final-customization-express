@@ -117,6 +117,9 @@ functionDesigner('log', (value, destination, text = "") => {
 });
 
 functionDesigner('base_path', (concatenation = '') => {
+    if (isProduction) {
+        return path.resolve(process.cwd(), concatenation);
+    }
     return path.resolve(__dirname, '..', '..', '..', concatenation);
 });
 
