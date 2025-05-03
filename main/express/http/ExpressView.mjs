@@ -1,11 +1,7 @@
 import fs from 'fs';
+import path from 'path';
 import ejs from 'ejs';
 import pug from 'pug';
-import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 class ExpressView {
     static #viewEngine;
@@ -34,8 +30,7 @@ class ExpressView {
             ...this.#data
         };
 
-        const fileName = `${viewName.split('.').join('/')}.${ExpressView.#engine}`;
-        const templatePath = path.join(__dirname, '..', '..', '..', 'resources', 'views', fileName);
+        const templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
         if (!fs.existsSync(templatePath)) {
             return `View file not found: ${templatePath}`;
         }
