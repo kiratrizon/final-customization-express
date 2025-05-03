@@ -3,8 +3,7 @@
   "builds": [
     {
       "src": "index.mjs",
-      "use": "@vercel/node",
-      "includeFiles": "resources/views/**"
+      "use": "@vercel/node"
     },
     {
       "src": "public/**/*",
