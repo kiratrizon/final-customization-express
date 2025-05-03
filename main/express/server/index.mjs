@@ -291,29 +291,29 @@ class Server {
 
 	static #finishBoot() {
 		if (typeof Boot['notFound'] === 'function') {
-			Server.app.use(async (req, res) => {
-				const expressResponse = await Boot['notFound']();
-				if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
-					if (expressResponse instanceof ExpressResponse) {
-						const { html, statusCode, json, headers, returnType } = expressResponse.accessData();
-						if (returnType === 'json') {
-							res.status(statusCode).set(headers).json(json);
-						} else if (returnType === 'html') {
-							res.status(statusCode).set(headers).send(html);
-						}
-					} else if (expressResponse instanceof ExpressView) {
-						const htmlResponse = expressResponse.getRendered();
-						res.status(404).set({
-							'Content-Type': 'text/html',
-						}).send(htmlResponse);
-					}
-				} else if (expressResponse !== undefined) {
-					res.status(404).set({
-						'Content-Type': 'text/html',
-					}).send(expressResponse);
-				}
-				return;
-			});
+			// Server.app.use(async (req, res) => {
+			// 	const expressResponse = await Boot['notFound']();
+			// 	if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
+			// 		if (expressResponse instanceof ExpressResponse) {
+			// 			const { html, statusCode, json, headers, returnType } = expressResponse.accessData();
+			// 			if (returnType === 'json') {
+			// 				res.status(statusCode).set(headers).json(json);
+			// 			} else if (returnType === 'html') {
+			// 				res.status(statusCode).set(headers).send(html);
+			// 			}
+			// 		} else if (expressResponse instanceof ExpressView) {
+			// 			const htmlResponse = expressResponse.getRendered();
+			// 			res.status(404).set({
+			// 				'Content-Type': 'text/html',
+			// 			}).send(htmlResponse);
+			// 		}
+			// 	} else if (expressResponse !== undefined) {
+			// 		res.status(404).set({
+			// 			'Content-Type': 'text/html',
+			// 		}).send(expressResponse);
+			// 	}
+			// 	return;
+			// });
 		}
 	}
 
