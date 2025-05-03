@@ -35,8 +35,8 @@ class ExpressView {
             ...this.#data
         };
 
-        let templatePath = path.join(view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`));
-        // let dynamic = path.join(__dirname, '..', '..', '..', 'resources', 'views', `${viewName.split('.').join('/')}.${ExpressView.#engine}`);
+        let templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
+        let dynamic = path.join(__dirname);
         // return templatePath === dynamic ? 'true' : 'false'
         if (!fs.existsSync(templatePath)) {
             return `View file not found: ${templatePath}`;
