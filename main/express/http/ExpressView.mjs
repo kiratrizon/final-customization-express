@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 class ExpressView {
     static #viewEngine;
@@ -11,10 +12,13 @@ class ExpressView {
     }
 
     static async init() {
-        const engine = (await config('view.defaultViewEngine')) || 'ejs';
-        ExpressView.#engine = engine;
-        const viewEngine = await import(ExpressView.#engine);
-        ExpressView.#viewEngine = viewEngine.default;
+        const enginePath = path.resolve(fileURLToPath(import.meta.url), 'node_modules', ExpressView.#engine);
+
+        // Dynamically import the engine module
+        const viewEngineModule = await import(enginePath);
+
+        // Assign the default export of the module to #viewEngine
+        ExpressView.#viewEngine = viewEngineModule.default || viewEngineModule;
     }
 
     element(viewName, data = {}) {
