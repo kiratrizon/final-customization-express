@@ -10,11 +10,9 @@ const databases = {
 
 if (!IN_PRODUCTION) {
     const sqlite = (await import('./SQLite.mjs')).default;
-    console.log('sqlite loaded')
     databases.sqlite = sqlite;
 }
 const dbType = await config('app.database.database') || 'sqlite';
-console.log(dbType)
 class DatabaseManager {
     static #databaseServer; // <-- now static
     #selectedDB;

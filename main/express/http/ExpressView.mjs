@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import ejs from 'ejs';
+import pug from 'pug';
 
 class ExpressView {
     static #viewEngine;
@@ -12,13 +13,15 @@ class ExpressView {
     }
 
     static async init() {
-        const enginePath = path.resolve(fileURLToPath(import.meta.url), 'node_modules', ExpressView.#engine);
-
-        // Dynamically import the engine module
-        const viewEngineModule = await import(enginePath);
-
-        // Assign the default export of the module to #viewEngine
-        ExpressView.#viewEngine = viewEngineModule.default || viewEngineModule;
+        const engine = await config('view.defaultViewEngine') || 'ejs';
+        ExpressView.#engine = engine;
+        if (engine === 'ejs') {
+            ExpressView.#viewEngine = ejs;
+        } else if (engine === 'pug') {
+            ExpressView.#viewEngine = pug;
+        } else {
+            throw `View engine not supported: ${engine}`;
+        }
     }
 
     element(viewName, data = {}) {
