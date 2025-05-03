@@ -140,7 +140,7 @@ class Route {
                     }
                 }
 
-                throw new Error(`${constantPart} is not a valid parameter name`);
+                throw new Error(`${JSON.stringify(constantPart)} is not a valid parameter name`);
             } else {
                 if (regex.digit.test(part)) {
                     return `${part}`;
@@ -178,6 +178,9 @@ class Route {
     }
 
     static group(config = {}, callback) {
+        if (!is_object(config)) {
+            throw new Error('Config must be an object');
+        }
         Route.#groupId++;
         const groupId = Route.#groupId;
         const currentGroup = Route.#currentGroup;
