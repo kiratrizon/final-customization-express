@@ -318,7 +318,7 @@ class Server {
 	}
 
 	static async #loadAndValidateRoutes() {
-		const routesDir = path.join(base_path(), 'routes');
+		const routesDir = path.join(base_path('routes'));
 		const jsFiles = ['api.mjs', 'web.mjs'];
 		// remove web.js
 		let webjs = null;
@@ -335,7 +335,7 @@ class Server {
 			const filePath = path.join(routesDir, file); // Still okay
 			const fileUrl = pathToFileURL(filePath);     // ✅ safer than manually building URLs
 
-			const RouteClass = await import(fileUrl.href); // Works cross-platform
+			const RouteClass = await import(fileUrl.href);
 			const instance = new RouteClass.default(); // Access the default export
 			let data = await instance.reveal(); // If reveal is async, await it
 			if (data) {
