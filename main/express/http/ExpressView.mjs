@@ -30,10 +30,10 @@ class ExpressView {
             ...this.#data
         };
 
-        const templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
-        // if (!fs.existsSync(templatePath)) {
-        //     throw `View file not found: ${templatePath}`;
-        // }
+        const templatePath = dynamic_import(view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`));
+        if (!fs.existsSync(templatePath)) {
+            throw `View file not found: ${templatePath}`;
+        }
         const rawHtml = fs.readFileSync(templatePath, "utf-8")
         const rendered = ExpressView.#viewEngine.render(rawHtml, this.#data);
         return rendered;

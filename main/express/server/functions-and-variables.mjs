@@ -27,7 +27,10 @@ functionDesigner('env', (ENV_NAME, defaultValue = null) => {
 });
 
 functionDesigner('dynamic_import', (concatenation = '') => {
-    return pathToFileURL(path.join(process.cwd(), concatenation)).href;
+    if (isProduction) {
+        return pathToFileURL(concatenation).href;
+    }
+    return concatenation;
 });
 
 import Configure from '../../../libraries/Materials/Configure.mjs';
