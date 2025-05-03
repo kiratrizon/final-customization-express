@@ -439,9 +439,8 @@ functionDesigner('view', (viewName, data = {}) => {
 
 // import path from 'path';
 
-const versionPath = base_path('version.mjs');
-const version = await import(pathToFileURL(versionPath).href);
-define('FRAMEWORK_VERSION', version.default);
+import version from '../../../version.mjs';
+define('FRAMEWORK_VERSION', version);
 
 
 import ExpressResponse from '../http/ExpressResponse.mjs';
