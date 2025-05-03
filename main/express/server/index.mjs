@@ -1,6 +1,5 @@
 import './functions-and-variables.mjs';
 import path from 'path';
-import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import flash from 'connect-flash';
@@ -19,6 +18,7 @@ import util from 'util';
 import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
 import Auth from './Auth.mjs';
 import ExpressRequest from '../http/ExpressRequest.mjs';
+import { pathToFileURL } from 'url';
 
 
 const myLink = `https://github.com/kiratrizon/final-customization-express`;
@@ -332,9 +332,10 @@ class Server {
 			// set prefix
 			const fileName = file.replace('.mjs', '');
 			const routePrefix = fileName === 'web' ? '' : `/${fileName}`;
-			const filePath = path.join(routesDir, file);
-			const fileUrl = new URL(`file:///${filePath.replace(/\\/g, '/')}`);
-			const RouteClass = await import(fileUrl.href);
+			const filePath = path.join(routesDir, file); // Still okay
+			const fileUrl = pathToFileURL(filePath);     // ✅ safer than manually building URLs
+
+			const RouteClass = await import(fileUrl.href); // Works cross-platform
 			const instance = new RouteClass.default(); // Access the default export
 			let data = await instance.reveal(); // If reveal is async, await it
 			if (data) {
