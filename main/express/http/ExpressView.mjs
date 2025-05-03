@@ -31,9 +31,9 @@ class ExpressView {
         };
 
         const templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
-        if (!fs.existsSync(templatePath)) {
-            return `View file not found: ${templatePath}`;
-        }
+        // if (!fs.existsSync(templatePath)) {
+        //     return `View file not found: ${templatePath}`;
+        // }
         const rawHtml = fs.readFileSync(templatePath, "utf-8")
         const rendered = ExpressView.#viewEngine.render(rawHtml, this.#data);
         return rendered;
