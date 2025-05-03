@@ -74,7 +74,6 @@ import axios from 'axios';
 import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**************
  * @functions *
@@ -110,32 +109,40 @@ functionDesigner('log', (value, destination, text = "") => {
 });
 
 functionDesigner('base_path', (concatenation = '') => {
-    return path.join(process.cwd(), concatenation);
+    if (isProduction) {
+        return pathToFileURL(path.join(process.cwd(), concatenation)).href;
+    } else {
+        return path.join(process.cwd(), concatenation);
+    }
 });
 
 functionDesigner('resources_path', (concatenation = '') => {
-    return path.join(base_path('resources'), concatenation);
+    return base_path(path.join('resources', concatenation));
 });
 
 functionDesigner('view_path', (concatenation = '') => {
-    return path.join(resources_path('views'), concatenation);
+    return resources_path(path.join('views', concatenation));
 });
 
 functionDesigner('public_path', (concatenation = '') => {
-    return path.join(base_path('public'), concatenation);
+    return base_path(path.join('public', concatenation));
 });
 
 functionDesigner('database_path', (concatenation = '') => {
-    return path.join(base_path('main/database'), concatenation);
+    return base_path(path.join('main', 'database', concatenation));
 });
 
 functionDesigner('app_path', (concatenation = '') => {
-    return path.join(base_path('app'), concatenation);
+    return base_path(path.join('app', concatenation));
 });
 
 functionDesigner('stub_path', () => {
     return base_path('main/express/stubs');
 });
+
+functionDesigner('controller_path', () => {
+    return app_path('Controllers');
+})
 
 functionDesigner('tmp_path', () => {
     return base_path('tmp');
