@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "index.mjs": {
-      "runtime": "@vercel/node",
+      "runtime": "vercel-node@22.x",
       "includeFiles": "resources/views/**"
     },
     "public/**/*": {
