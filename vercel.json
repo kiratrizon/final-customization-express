@@ -4,7 +4,6 @@
     {
       "src": "index.mjs",
       "use": "@vercel/node",
-      "runtime":"Node.js",
       "includeFiles":[
         "resources/**/*"
       ]
