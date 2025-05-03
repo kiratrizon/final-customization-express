@@ -39,28 +39,35 @@ class RouteMethod {
                         res.set(headers).status(statusCode);
                         if (isset(error)) {
                             res.send(error);
+                            return;
                         } else {
                             if (returnType === 'html') {
                                 html_dump.push(html);
                                 res.send(html_dump.join(''));
+                                return;
                             } else if (returnType === 'json') {
                                 json_dump.push(json);
                                 res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
+                                return;
                             } else if (returnType === 'file') {
                                 res.sendFile(file);
+                                return;
                             } else if (returnType === 'download') {
                                 res.download(...download);
+                                return;
                             }
                         }
                     } else if (expressResponse instanceof ExpressRedirect) {
                         const { url, statusCode } = expressResponse;
                         res.redirect(statusCode, url);
+                        return;
                     } else if (expressResponse instanceof ExpressView) {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
                         const rendered = expressResponse.getRendered();
                         html_dump.push(rendered);
                         res.send(html_dump.join(''));
+                        return;
                     }
                 } else {
                     res.status(200);
@@ -69,9 +76,11 @@ class RouteMethod {
                     html_dump.push(JSON.stringify(expressResponse));
                     if (isRequest()) {
                         res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
+                        return;
                     }
                     else {
                         res.send(html_dump.join(''));
+                        return;
                     }
                 }
                 return;
