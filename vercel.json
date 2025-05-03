@@ -3,7 +3,9 @@
   "builds": [
     {
       "src": "index.mjs",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "includeFiles": "resources/views/**",
+      "runtime":"nodejs22.x"
     },
     {
       "src": "public/**/*",
