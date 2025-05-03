@@ -1,12 +1,17 @@
+import fs from 'fs';
 import ejs from 'ejs';
 import pug from 'pug';
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ExpressView {
     static #viewEngine;
     #data;
-    static #engine;
+    static #engine = 'ejs';
     #rendered;
-    #viewName;
     constructor(data = {}) {
         this.#data = data;
     }
@@ -28,14 +33,27 @@ class ExpressView {
             ...data,
             ...this.#data
         };
-        this.#viewName = viewName;
+
+        const fileName = `${viewName.split('.').join('/')}.${ExpressView.#engine}`;
+        const templatePath = path.join(__dirname, '..', '..', '..', 'resources', 'views', fileName);
+        if (!fs.existsSync(templatePath)) {
+            return `View file not found: ${templatePath}`;
+        }
+        const rawHtml = fs.readFileSync(templatePath, "utf-8")
+        const rendered = ExpressView.#viewEngine.render(rawHtml, this.#data);
+        return rendered;
+    }
+
+    view(rendered) {
+        this.#rendered = rendered;
+        return this;
     }
 
     getRendered() {
-        return {
-            html_data: this.#viewName,
-            object_data: this.#data
+        if (this.#rendered) {
+            return this.#rendered;
         }
+        return null;
     }
 }
 
