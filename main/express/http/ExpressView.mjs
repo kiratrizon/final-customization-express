@@ -3,7 +3,7 @@ import path from 'path';
 import ejs from 'ejs';
 import pug from 'pug';
 
-// import { fileURLToPath, pathToFileURL } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = path.dirname(__filename);
