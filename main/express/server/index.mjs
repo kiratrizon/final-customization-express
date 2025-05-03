@@ -319,8 +319,7 @@ class Server {
 
 	static async #loadAndValidateRoutes() {
 		const routesDir = path.join(base_path(), 'routes');
-		const routeFiles = fs.readdirSync(routesDir);
-		const jsFiles = routeFiles.filter(file => file.endsWith('.mjs'));
+		const jsFiles = ['api.mjs', 'web.mjs'];
 		// remove web.js
 		let webjs = null;
 		if (jsFiles.includes('web.mjs')) {
