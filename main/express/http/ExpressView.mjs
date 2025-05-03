@@ -3,11 +3,6 @@ import path from 'path';
 import ejs from 'ejs';
 import pug from 'pug';
 
-import { fileURLToPath, pathToFileURL } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 class ExpressView {
     static #viewEngine;
     #data;
@@ -36,7 +31,6 @@ class ExpressView {
         };
 
         let templatePath = path.resolve(view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`));
-        let dynamic = path.join(__dirname, '..', '..', '..', 'resources', 'views', `${viewName.split('.').join('/')}.${ExpressView.#engine}`);
         // return templatePath === dynamic ? 'true' : 'false'
         if (!fs.existsSync(templatePath)) {
             return `View file not found: ${templatePath}`;

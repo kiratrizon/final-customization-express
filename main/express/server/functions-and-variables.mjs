@@ -117,6 +117,7 @@ functionDesigner('log', (value, destination, text = "") => {
 });
 
 functionDesigner('base_path', (concatenation = '') => {
+    __dirname;
     return path.resolve(__dirname, '..', '..', '..', concatenation);
 });
 
