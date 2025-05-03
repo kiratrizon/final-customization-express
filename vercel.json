@@ -1,15 +1,11 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "index.mjs",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "public/**/*",
-      "use": "@vercel/static"
+  "functions": {
+    "index.mjs": {
+      "runtime": "nodejs18.x",
+      "includeFiles": "resources/views/**"
     }
-  ],
+  },
   "routes":[
     {"src":"/(.*)", "dest":"index.mjs"}
   ]
