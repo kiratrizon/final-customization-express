@@ -26,6 +26,10 @@ functionDesigner('env', (ENV_NAME, defaultValue = null) => {
     }
 });
 
+functionDesigner('dynamic_import', (concatenation = '') => {
+    return pathToFileURL(path.join(process.cwd(), concatenation)).href;
+});
+
 import Configure from '../../../libraries/Materials/Configure.mjs';
 
 // This function is use to define GLOBAL variable
@@ -109,11 +113,7 @@ functionDesigner('log', (value, destination, text = "") => {
 });
 
 functionDesigner('base_path', (concatenation = '') => {
-    if (isProduction) {
-        return pathToFileURL(path.join(process.cwd(), concatenation)).href;
-    } else {
-        return path.join(process.cwd(), concatenation);
-    }
+    return path.join(process.cwd(), concatenation);
 });
 
 functionDesigner('resources_path', (concatenation = '') => {
