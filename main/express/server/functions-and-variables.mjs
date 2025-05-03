@@ -78,6 +78,7 @@ import axios from 'axios';
 import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**************
  * @functions *
@@ -113,7 +114,7 @@ functionDesigner('log', (value, destination, text = "") => {
 });
 
 functionDesigner('base_path', (concatenation = '') => {
-    return path.join(process.cwd(), concatenation);
+    return path.resolve(__dirname, '..', '..', '..', concatenation);
 });
 
 functionDesigner('resources_path', (concatenation = '') => {
