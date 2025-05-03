@@ -1,4 +1,4 @@
-import Server from './index.js';
+import Server from './index.mjs';
 
 // boot
 

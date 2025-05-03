@@ -1,4 +1,4 @@
-const Controller = require("../../main/base/Controller");
+import Controller from "../../main/base/Controller.mjs";
 
 class {{ ControllerName }} extends Controller {
     // get
@@ -31,4 +31,4 @@ class {{ ControllerName }} extends Controller {
     }
 }
 
-module.exports = {{ ControllerName }};
+export default {{ ControllerName }};

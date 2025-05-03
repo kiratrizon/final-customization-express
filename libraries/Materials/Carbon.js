@@ -1,5 +1,6 @@
-const Configure = require("./Configure");
-const { DateTime } = require('luxon');
+import Configure from './Configure.mjs';
+import { DateTime } from 'luxon';
+
 
 class Carbon {
     static #formatMapping = {
@@ -152,4 +153,4 @@ class Carbon {
     }
 }
 
-module.exports = Carbon;
+export default Carbon;

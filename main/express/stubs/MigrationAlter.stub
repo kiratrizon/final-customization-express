@@ -1,4 +1,5 @@
-const Blueprint = require('../Blueprint');
+import Blueprint from '../Blueprint.mjs';
+
 
 class Migrate {
     tableName = '{{ tableName }}';
@@ -17,4 +18,4 @@ class Migrate {
     }
 }
 
-module.exports = Migrate;
+export default Migrate;

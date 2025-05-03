@@ -58,17 +58,6 @@ declare global {
   var ucFirst: (str: string) => string;
 
   /**
-   * Calculates a future date by adding a specified number of hours to the current date.
-   *
-   * Usage:
-   *   const futureDate = getFutureDate(5); // Returns the date 5 hours from now
-   *
-   * @param {number} hours - The number of hours to add to the current date.
-   * @returns {string} The future date in the format `Y-m-d H:i:s`.
-   */
-  var getFutureDate: (hours: number) => string;
-
-  /**
    * The base path of the application, typically the root directory.
    * This is used as the starting point for resolving all other paths.
    */
@@ -116,14 +105,14 @@ declare global {
    * Supports dot notation for nested configuration keys.
    *
    * Usage:
-   *   const value = config('app.name'); // Retrieves the value of `app.name`
-   *   const value = config('database.connections.mysql.host'); // Retrieves the value of a nested key
+   *   const value = await config('app.name'); // Retrieves the value of `app.name`
+   *   const value = await config('database.connections.mysql.host'); // Retrieves the value of a nested key
    *
    * @param {string} key - The configuration key, which can use dot notation for nested values.
    * @returns {any} The value of the configuration option, or `undefined` if the key does not exist.
    * @returns {void} Sets the value of the configuration option if an object is passed as the argument.
    */
-  var config: (key: string, value?: any) => any;
+  var config: (key: string, value?: any) => Promise<any>;
 
   /**
    * Writes the serialized content of a variable to a log file.
@@ -309,4 +298,4 @@ declare global {
   var QUERY_URL: string;
 }
 
-export {};
+export { };
