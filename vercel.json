@@ -4,9 +4,6 @@
     "index.mjs": {
       "runtime": "@vercel/node",
       "includeFiles": "resources/views/**"
-    },
-    "public/**/*": {
-      "runtime": "@vercel/static"
     }
   },
   "routes": [
