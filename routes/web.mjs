@@ -1,6 +1,8 @@
 import Route from '../main/express/server/Router/Route.mjs';
 
 
-Route.view('/', 'index');
+Route.get('/', async () => {
+    return response().json({ message: 'Hello World' });
+});
 
 export default Route;
