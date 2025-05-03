@@ -12,6 +12,5 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "index.mjs" }
-  ],
-  "includeFiles": ["routes/*.mjs"]
+  ]
 }
