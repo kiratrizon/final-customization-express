@@ -53,7 +53,7 @@ class Server {
 		Server.app.use(FileHandler.getFileHandler());
 		Server.app.use(FileHandler.handleFiles);
 		Server.app.set('view engine', viewEngine);
-		Server.app.set('views', view_path());
+		Server.app.set('views', '../../../resources/views');
 
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
