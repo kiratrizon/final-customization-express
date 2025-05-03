@@ -2,27 +2,12 @@ import sqlite3 from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-// Simulate __dirname in ES modules
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
-// On Windows, remove the leading slash from the pathname (if it exists)
-const cleanDirname = __dirname.startsWith('/') ? __dirname.slice(1) : __dirname;
-
-// Define the path for the database file
-const dbPath = path.join(cleanDirname, '..', 'database.sqlite');
-
-// Ensure the directory exists
-const dirPath = path.dirname(dbPath);
-if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true }); // Create directory if it doesn't exist
-}
-
 class SQLite {
     static db = null;
-
+    static dbPath;
     constructor() {
         if (!SQLite.db) {
-            SQLite.db = sqlite3(dbPath);
+            SQLite.db = sqlite3(SQLite.dbPath);
         }
     }
 
@@ -84,6 +69,24 @@ class SQLite {
             SQLite.db.close();
             SQLite.db = null;
         }
+    }
+
+    static async init() {
+        // Simulate __dirname in ES modules
+        const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+        // On Windows, remove the leading slash from the pathname (if it exists)
+        const cleanDirname = __dirname.startsWith('/') ? __dirname.slice(1) : __dirname;
+
+        // Define the path for the database file
+        const dbPath = path.join(cleanDirname, '..', 'database.sqlite');
+
+        // Ensure the directory exists
+        const dirPath = path.dirname(dbPath);
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true }); // Create directory if it doesn't exist
+        }
+        SQLite.dbPath = dbPath;
     }
 }
 

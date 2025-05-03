@@ -28,6 +28,18 @@ functionDesigner('env', (ENV_NAME, defaultValue = null) => {
 
 import Configure from '../../../libraries/Materials/Configure.mjs';
 
+// This function is use to define GLOBAL variable
+functionDesigner('define', (key, value) => {
+    if (key in global) {
+        return;
+    }
+    Object.defineProperty(global, key, {
+        value: value,
+        writable: true,
+        configurable: false,
+    });
+});
+
 functionDesigner('config', async function () {
     const args = arguments;
     if (args.length === 0) {
@@ -47,6 +59,9 @@ functionDesigner('config', async function () {
         throw new Error('Invalid number of arguments');
     }
 });
+
+const isProduction = env('NODE_ENV') === 'production' || env('NODE_ENV') === 'prod';
+define('IN_PRODUCTION', isProduction);
 
 import fs from 'fs';
 import path from 'path';
@@ -125,6 +140,8 @@ functionDesigner('stub_path', () => {
 functionDesigner('tmp_path', () => {
     return base_path('tmp');
 });
+
+console.log(tmp_path())
 
 const irregularPlurals = await config('irregular_words');
 
@@ -407,18 +424,6 @@ functionDesigner('date', DATE);
 functionDesigner('is_function', (variable) => {
     if (typeof variable === 'undefined') return false;
     return typeof variable === 'function';
-});
-
-// This function is use to define GLOBAL variable
-functionDesigner('define', (key, value) => {
-    if (key in global) {
-        return;
-    }
-    Object.defineProperty(global, key, {
-        value: value,
-        writable: true,
-        configurable: false,
-    });
 });
 
 /** Placeholder for a function that will render views or templates. */

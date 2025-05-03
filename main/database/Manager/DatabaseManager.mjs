@@ -1,17 +1,20 @@
 import mysql from 'mysql2';
 
-
 import MySQL from './MySQL.mjs';
-import SQLite from './SQLite.mjs';
 import Postgresql from './Postgresql.mjs';
 
 const databases = {
     mysql: MySQL,
-    sqlite: SQLite,
     postgresql: Postgresql,
 };
-const dbType = await config('app.database.database') || 'sqlite';
 
+if (!IN_PRODUCTION) {
+    const sqlite = (await import('./SQLite.mjs')).default;
+    console.log('sqlite loaded')
+    databases.sqlite = sqlite;
+}
+const dbType = await config('app.database.database') || 'sqlite';
+console.log(dbType)
 class DatabaseManager {
     static #databaseServer; // <-- now static
     #selectedDB;
