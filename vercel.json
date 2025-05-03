@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "index.mjs",
-      "use": "@vercel/node",
-      "includeFiles":[
-        "resources/**/*"
-      ]
+      "use": "@vercel/node"
     },
     {
       "src": "public/**/*",
@@ -15,5 +12,8 @@
   ],
   "routes":[
     {"src":"/(.*)", "dest":"index.mjs"}
+  ],
+  "includeFiles":[
+    "resources/**/*"
   ]
 }
