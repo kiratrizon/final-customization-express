@@ -1,15 +1,16 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.mjs": {
-      "includeFiles": "resources/views/**",
-      "runtime":"vercel-deno@1.0.0"
-    }
-  },
-  "routes": [
+  "builds": [
     {
-      "src": "/(.*)",
-      "dest": "api/index.mjs"
+      "src": "index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
     }
+  ],
+  "routes":[
+    {"src":"/(.*)", "dest":"index.js"}
   ]
 }
