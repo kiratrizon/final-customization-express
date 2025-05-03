@@ -150,6 +150,4 @@ class FileHandler {
   }
 }
 
-FileHandler.filePath = tmp_path();
-
 export default FileHandler;
