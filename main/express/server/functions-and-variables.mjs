@@ -175,6 +175,11 @@ functionDesigner('generateTableNames', (entity) => {
     return [...splitWords, pluralizedLastWord].join('').toLowerCase()
 });
 
+functionDesigner('dynamicImport', (path) => {
+    if (typeof path !== 'string') return null;
+    return pathToFileURL(path).href;
+});
+
 functionDesigner('base64_encode', (str) => Buffer.from(str, 'utf-8').toString('base64'));
 
 functionDesigner('base64_decode', (str) => Buffer.from(str, 'base64').toString('utf-8'));

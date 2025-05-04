@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.mjs",
   "scripts": {
-    "dev": "nodemon ./main/express/server/run-server.js"
+    "dev": "nodemon ./main/express/server/run-server.mjs"
   },
   "type": "module",
   "keywords": [],

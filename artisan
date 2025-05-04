@@ -11,9 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// You can define defaultStubPath here
 const defaultStubPath = stub_path();
-// console.log(defaultStubPath);
 
 const program = new Command();
 
@@ -21,8 +19,8 @@ class Generator {
     constructor() {
         this.controllersPath = controller_path();
         console.log(this.controllersPath);
-        this.modelsPath = path.join(__dirname, 'models');
-        this.migrationsPath = path.join(__dirname, 'main', 'database', 'migrations');
+        this.modelsPath = base_path('models');
+        this.migrationsPath = database_path('migrations');
         config('query_trace', 0);
 
     }
