@@ -6,12 +6,9 @@ class Redis {
     #client = null;
     #isConnected = false;
     // 30 mins
-    #expiration = 1800; // seconds
+    #expiration = 1800;
 
-    constructor(expiration) {
-        if (!isNaN(expiration)) {
-            this.#expiration = expiration; // seconds
-        }
+    constructor() {
     }
 
     // Initialize Redis client

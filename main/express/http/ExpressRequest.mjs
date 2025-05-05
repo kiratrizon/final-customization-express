@@ -1,4 +1,5 @@
 import Validator from "../../../libraries/Services/Validator.mjs";
+import Auth from "../server/Auth.mjs";
 import ExpressHeader from "./ExpressHeader.mjs";
 
 
@@ -84,6 +85,10 @@ class ExpressRequest {
             response_error(validator.getErrors());
         }
         return data;
+    }
+    async user() {
+        const user = await Auth.user();
+        return user;
     }
 }
 

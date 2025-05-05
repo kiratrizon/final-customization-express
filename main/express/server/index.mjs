@@ -17,6 +17,7 @@ import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
 import Auth from './Auth.mjs';
 import ExpressRequest from '../http/ExpressRequest.mjs';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 // Create __dirname using import.meta.url
 const __filename = fileURLToPath(import.meta.url);
@@ -320,21 +321,27 @@ class Server {
 	}
 
 	static async #loadAndValidateRoutes() {
-		const apiRoute = await import('../../../routes/api.mjs');
-		const apiInstance = new apiRoute.default();
-		const apiData = apiInstance.reveal();
-
-		const webRoute = await import('../../../routes/web.mjs');
-		const webInstance = new webRoute.default();
-		const webData = webInstance.reveal();
-		const dataOfRoutes = {
-			api: apiData,
-			web: webData,
+		const routeDir = '../../../routes';
+		const routePath = path.join(__dirname, routeDir);
+		const routeFiles = fs.readdirSync(routePath).filter(file => file.endsWith('.mjs'));
+		// if web.mjs exists, remove it from the array
+		const webIndex = routeFiles.indexOf('web.mjs');
+		let webmjs = false;
+		if (webIndex !== -1) {
+			routeFiles.splice(webIndex, 1);
+			webmjs = true;
 		}
-		const keys = Object.keys(dataOfRoutes);
-		for (const key of keys) {
+		if (webmjs) {
+			// push it to the end of the array
+			routeFiles.push('web.mjs');
+		}
+
+		for (const file of routeFiles) {
+			const key = file.replace('.mjs', '');
 			const routePrefix = key === 'web' ? '' : `/${key}`;
-			const data = dataOfRoutes[key];
+			const route = await dynamicImport(path.join('routes', file));
+			const instance = new route.default();
+			const data = instance.reveal();
 			if (data) {
 				const { default_route, group, routes } = data;
 

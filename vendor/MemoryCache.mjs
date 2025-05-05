@@ -2,13 +2,16 @@ import Redis from './Redis.mjs';
 
 
 class MemoryCache {
+    static #instance;
     #cache = new Map();
     #expiration = 1800;
 
     constructor(expiration) {
+        if (MemoryCache.#instance) return MemoryCache.#instance;
         if (!isNaN(expiration)) {
             this.#expiration = expiration;
         }
+        MemoryCache.#instance = this;
     }
 
     setExpiration(time) {
@@ -53,7 +56,7 @@ class MemoryCache {
 }
 
 let cache;
-if (env('USE_MEMORY_CACHE') === 'true') {
+if (env('USE_MEMORY_CACHE') === 'true' && env('NODE_ENV') !== 'production') {
     cache = MemoryCache;
 } else {
     cache = Redis;

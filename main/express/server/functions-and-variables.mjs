@@ -26,13 +26,6 @@ functionDesigner('env', (ENV_NAME, defaultValue = null) => {
     }
 });
 
-functionDesigner('dynamic_import', (concatenation = '') => {
-    if (isProduction) {
-        return pathToFileURL(concatenation).href;
-    }
-    return concatenation;
-});
-
 import Configure from '../../../libraries/Materials/Configure.mjs';
 
 // This function is use to define GLOBAL variable
@@ -175,9 +168,10 @@ functionDesigner('generateTableNames', (entity) => {
     return [...splitWords, pluralizedLastWord].join('').toLowerCase()
 });
 
-functionDesigner('dynamicImport', (path) => {
-    if (typeof path !== 'string') return null;
-    return pathToFileURL(path).href;
+functionDesigner('dynamicImport', async (file) => {
+    const basePath = '../../../';
+    const data = await import(pathToFileURL(path.join(__dirname, basePath, file)).href);
+    return data;
 });
 
 functionDesigner('base64_encode', (str) => Buffer.from(str, 'utf-8').toString('base64'));

@@ -12,6 +12,7 @@ class Migrate {
             table.string('email', { unique: true });
             table.string('password');
             table.timestamp();
+            table.softDeletes();
         });
 
         return createTableSQL;

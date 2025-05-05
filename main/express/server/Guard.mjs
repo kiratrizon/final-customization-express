@@ -58,6 +58,7 @@ class Guard {
                         let filtered = user.getJWTCustomClaims();
                         const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${user.id}`;
                         const cache = new MemoryCache();
+                        cache.setExpiration(null);
                         // save to cache
                         await cache.set(keyName, user.makeVisible('password').toJson());
                         return JWT.generateToken(filtered, jwtObj.secret_key, jwtObj.expiration.default * 60, jwtObj.algorithm);
@@ -99,7 +100,7 @@ class Guard {
         if (check) {
             if (this.#driver === 'jwt') {
                 const cache = new MemoryCache();
-                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${check.sub}`;;
+                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${check.sub}`;
                 const user = await cache.get(keyName);
                 if (user) {
                     console.log('user from cache', user);
@@ -110,11 +111,22 @@ class Guard {
                     const userFromDB = await model.find(check.sub);
                     if (userFromDB) {
                         // Store in cache for future use
+                        cache.setExpiration(null);
                         await cache.set(keyName, userFromDB.makeVisible('password').toArray());
                         userFromDB.makeHidden('password');
                         return userFromDB;
                     }
                 }
+            }
+        }
+        return null;
+    }
+
+    id() {
+        const check = this.check();
+        if (check) {
+            if (this.#driver === 'jwt') {
+                return check.sub;
             }
         }
         return null;
