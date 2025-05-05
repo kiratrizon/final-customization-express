@@ -3,24 +3,18 @@ import { pathToFileURL } from 'url';
 import path from 'path';
 import DatabaseConnection from './Manager/DatabaseManager.mjs';
 const dbType = await config('app.database.database');
-// Simulate __dirname in ES modules
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
-// On Windows, remove the leading slash from the pathname (if it exists)
-const cleanDirname = __dirname.startsWith('/') ? __dirname.slice(1) : __dirname;
 class MigrationRunner {
     #db;
     constructor() {
-        this.migrationsPath = path.join(cleanDirname, '..', 'database', 'migrations');
-        console.log(this.migrationsPath);
+        this.migrationsPath = database_path('migrations');
         this.#db = new DatabaseConnection();
     }
 
     async run() {
         const migrationFiles = this.getMigrationFiles();
-        console.log(migrationFiles);
         let count = 0;
-        // Use Promise.all to wait for all migrations to complete
+
         for (let i = 0; i < migrationFiles.length; i++) {
             const file = migrationFiles[i];
             const migrationName = file.replace('.mjs', '');
