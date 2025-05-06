@@ -16,7 +16,7 @@ import util from 'util';
 import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
 import Auth from './Auth.mjs';
 import ExpressRequest from '../http/ExpressRequest.mjs';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import fs from 'fs';
 
 // Create __dirname using import.meta.url
@@ -364,7 +364,7 @@ class Server {
 		for (const file of routeFiles) {
 			const key = file.replace('.mjs', '');
 			const routePrefix = key === 'web' ? '' : `/${key}`;
-			const route = await import(path.join(routePath, file));
+			const route = await import(pathToFileURL(path.join(routePath, file)).href);
 			const instance = new route.default();
 			const data = instance.reveal();
 			if (data) {
