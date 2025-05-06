@@ -165,8 +165,7 @@ functionDesigner('pathExist', (fileString = '') => {
         return false;
     }
     const basePath = path.join('..', '..', '..');
-    const returndata = fs.existsSync(path.join(__dirname, basePath, fileString));
-    console.log(`Path: ${fileString} exists: ${returndata}`);
+    const returndata = fs.existsSync(path.resolve(__dirname, basePath, fileString));
     return returndata;
 });
 

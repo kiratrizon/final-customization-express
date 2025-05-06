@@ -30,7 +30,9 @@ class ExpressView {
 
         let templatePath = viewPath(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
         if (!pathExist(templatePath)) {
-            return `View not found: ${templatePath}`;
+            const error = `View not found: ${templatePath}`;
+            this.rendered = error;
+            return error;
         }
         console.log(`Rendering view: ${templatePath}`);
         const rawHtml = getFileContents(templatePath)
