@@ -63,7 +63,7 @@ class Route {
         return callback;
     }
 
-    static #processRoute(url, handler, method, hasMatch = false) {
+    static #processRoute(url, handler, method, hasMatch = []) {
         const urlProps = Route.#processString(url);
         let callback = Route.#handlerProcessor(handler, method);
         const config = {

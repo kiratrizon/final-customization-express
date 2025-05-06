@@ -517,6 +517,7 @@ functionDesigner('view', (viewName, data = {}, mergeData = {}) => {
 
     const newView = new ExpressView(newData);
     newView.element(viewName);
+    console.log('View:', viewName);
     return newView;
 });
 
