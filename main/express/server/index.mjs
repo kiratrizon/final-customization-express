@@ -364,7 +364,7 @@ class Server {
 		for (const file of routeFiles) {
 			const key = file.replace('.mjs', '');
 			const routePrefix = key === 'web' ? '' : `/${key}`;
-			const route = await import(pathToFileURL(path.join(routePath, file)).href);
+			const route = await dynamicImport(path.join(routePath, file));
 			const instance = new route.default();
 			const data = instance.reveal();
 			if (data) {
