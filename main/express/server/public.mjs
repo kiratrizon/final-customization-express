@@ -56,9 +56,8 @@ functionDesigner('isDefined', (key = '') => {
 });
 
 functionDesigner('dynamicImport', async (file = '') => {
-    const basePath = '../../../';
     try {
-        const data = await import(pathToFileURL(path.join(__dirname, basePath, file)).href);
+        const data = await import(pathToFileURL(path.join(file)).href);
         return data;
     } catch (error) {
         console.error(`Error importing module: ${error}`);
@@ -211,7 +210,7 @@ functionDesigner('getFileContents', (fileString = '') => {
 
     try {
         // Read and return the file content as a UTF-8 string
-        return fs.readFileSync(path.join(__dirname, basePath, fileString), 'utf8');
+        return fs.readFileSync(fileString, 'utf8');
     } catch (err) {
         return '';  // Return empty string if there's an error
     }
