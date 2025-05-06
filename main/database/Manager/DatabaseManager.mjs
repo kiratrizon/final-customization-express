@@ -12,7 +12,7 @@ if (env('NODE_ENV') !== 'production') {
     const sqlite = (await import('./SQLite.mjs')).default;
     databases.sqlite = sqlite;
 }
-const dbType = dbUsed;
+const dbType = await config('app.database.database');
 class DatabaseManager {
     static #databaseServer; // <-- now static
     #selectedDB;
