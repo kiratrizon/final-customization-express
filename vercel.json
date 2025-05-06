@@ -15,7 +15,8 @@
           "libraries/**/*",
           "models/**/*",
           "vendor/**/*",
-          "version.mjs"
+          "version.mjs",
+          "tmp/**/*"
         ]
       }
     },

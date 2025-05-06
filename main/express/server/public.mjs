@@ -171,19 +171,16 @@ functionDesigner('writeFile', (fileString = '', content = '') => {
     if (fileString === '') {
         throw new Error('Filename is required.');
     }
-    const basePath = path.join('..', '..', '..');
-    fs.writeFileSync(path.join(__dirname, basePath, fileString), content, 'utf8');
+    fs.writeFileSync(fileString, content, 'utf8');
 });
 
 functionDesigner('makeDir', (dirString = '') => {
     if (dirString === '') {
         throw new Error('Directory path is required.');
     }
-    const basePath = path.join('..', '..', '..');
-
     // Check if the directory exists, and create it if it doesn't
-    if (!fs.existsSync(path.join(__dirname, basePath, dirString))) {
-        fs.mkdirSync(path.join(__dirname, basePath, dirString), { recursive: true });
+    if (!fs.existsSync(dirString)) {
+        fs.mkdirSync(dirString, { recursive: true });
     }
 });
 
@@ -496,10 +493,7 @@ functionDesigner('is_function', (variable) => {
 functionDesigner('transferFile', (oldPath = '', newPath = '') => {
     try {
         if (!oldPath || !newPath) return;
-        const basePath = path.join('..', '..', '..');
-        const fullOldPath = path.join(__dirname, basePath, oldPath);
-        const fullNewPath = path.join(__dirname, basePath, newPath);
-        fs.renameSync(fullOldPath, fullNewPath);
+        fs.renameSync(oldPath, newPath);
     } catch (err) {
         return;
     }
