@@ -165,7 +165,9 @@ functionDesigner('pathExist', (fileString = '') => {
         return false;
     }
     const basePath = path.join('..', '..', '..');
-    return fs.existsSync(path.join(__dirname, basePath, fileString));
+    const returndata = fs.existsSync(path.join(__dirname, basePath, fileString));
+    console.log(`Path: ${fileString} exists: ${returndata}`);
+    return returndata;
 });
 
 functionDesigner('writeFile', (fileString = '', content = '') => {
