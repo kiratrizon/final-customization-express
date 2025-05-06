@@ -46,7 +46,7 @@ declare global {
    * If the request is an AJAX request, it will return a JSON response.
    * Otherwise, it will redirect to the referrer.
    */
-  var $custom_error: (data: Record<string, any>) => void;
+  var custom_error: (data: Record<string, any>) => void;
 
   /**
    * Renders a view template with data and returns the rendered HTML.

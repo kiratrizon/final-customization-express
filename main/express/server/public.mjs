@@ -660,4 +660,5 @@ functionDesigner('json_decode', (data) => {
     return data;
 });
 
-define('$dbUsed', (await config('app.database.database')) || 'sqlite');
+const dbType = await config('app.database.database') || 'sqlite';
+define('$dbUsed', dbType);
