@@ -6,7 +6,10 @@
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "resources/**/*"
+          "resources/**/*",
+          "routes/**/*",
+          "public/**/*",
+          "main/express/**/*"
         ]
       }
     },
