@@ -92,4 +92,4 @@ declare class ExpressRequest {
   file(key?: string): any;
 }
 
-export = ExpressRequest;
+export default ExpressRequest;

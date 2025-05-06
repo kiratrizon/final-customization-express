@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import './main/express/server/functions-and-variables.mjs';
+import './main/express/server/public.mjs';
 import MigrationRunner from './main/database/MigrationRunner.mjs';
 import fs from 'fs';
 import path from 'path';
@@ -11,16 +11,15 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const defaultStubPath = stub_path();
+const defaultStubPath = stubPath();
 
 const program = new Command();
 
 class Generator {
     constructor() {
-        this.controllersPath = controller_path();
-        console.log(this.controllersPath);
-        this.modelsPath = base_path('models');
-        this.migrationsPath = database_path('migrations');
+        this.controllersPath = controllerPath();
+        this.modelsPath = basePath('models');
+        this.migrationsPath = databasePath('migrations');
         config('query_trace', 0);
 
     }

@@ -1,7 +1,18 @@
 // Load environment variables
+import fs from 'fs';
+import path from 'path';
+import ExpressView from '../http/ExpressView.mjs';
+import dotenv from 'dotenv';
+import { DateTime } from 'luxon';
+import axios from 'axios';
+
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 dotenv.config();
 Object.defineProperty(global, 'functionDesigner', {
-    value: (key, value) => {
+    value: (key = '', value = null) => {
         if (key in global) {
             return;
         }
@@ -18,7 +29,7 @@ Object.defineProperty(global, 'functionDesigner', {
     configurable: false,
 });
 
-functionDesigner('env', (ENV_NAME, defaultValue = null) => {
+functionDesigner('env', (ENV_NAME = '', defaultValue = null) => {
     if (typeof ENV_NAME === 'string' && ENV_NAME !== '') {
         return process.env[ENV_NAME] || defaultValue;
     } else {
@@ -26,22 +37,39 @@ functionDesigner('env', (ENV_NAME, defaultValue = null) => {
     }
 });
 
-import Configure from '../../../libraries/Materials/Configure.mjs';
-
-// This function is use to define GLOBAL variable
-functionDesigner('define', (key, value) => {
+functionDesigner('define', (key = '', value = null, configurable = true) => {
     if (key in global) {
         return;
     }
     Object.defineProperty(global, key, {
         value: value,
         writable: true,
-        configurable: false,
+        configurable,
     });
+});
+
+functionDesigner('isDefined', (key = '') => {
+    if (key in global) {
+        return true;
+    }
+    return false;
+});
+
+functionDesigner('dynamicImport', async (file = '') => {
+    const basePath = '../../../';
+    try {
+        const data = await import(pathToFileURL(path.join(__dirname, basePath, file)).href);
+        return data;
+    } catch (error) {
+        console.error(`Error importing module: ${error}`);
+        return null;
+    }
 });
 
 functionDesigner('config', async function () {
     const args = arguments;
+    const Configure = (await import('../../../libraries/Materials/Configure.mjs')).default;
+
     if (args.length === 0) {
         throw new Error('No arguments provided');
     }
@@ -63,23 +91,10 @@ functionDesigner('config', async function () {
 const isProduction = env('NODE_ENV') === 'production' || env('NODE_ENV') === 'prod';
 define('IN_PRODUCTION', isProduction);
 
-import fs from 'fs';
-import path from 'path';
-import ExpressView from '../http/ExpressView.mjs';
-import AppProviders from '../../../app/Providers/AppProviders.mjs';
-import dotenv from 'dotenv';
-import { DateTime } from 'luxon';
-import axios from 'axios';
-
-import { fileURLToPath, pathToFileURL } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 /**************
  * @functions *
 ***************/
-functionDesigner('only', (obj, keys) => {
+functionDesigner('only', (obj = {}, keys = []) => {
     let newObj = {};
     keys.forEach(key => {
         if (obj[key] !== undefined) {
@@ -89,7 +104,7 @@ functionDesigner('only', (obj, keys) => {
     return newObj;
 });
 
-functionDesigner('except', (obj, keys) => {
+functionDesigner('except', (obj = {}, keys = []) => {
     let newObj = {};
     for (let key in obj) {
         if (!keys.includes(key)) {
@@ -99,56 +114,115 @@ functionDesigner('except', (obj, keys) => {
     return newObj;
 })
 
-functionDesigner('ucFirst', (string) => {
+functionDesigner('ucFirst', (string = '') => {
     return string.charAt(0).toUpperCase() + string.slice(1);
 });
 
 import Logger from '../http/ExpressLogger.mjs';
-
-functionDesigner('log', (value, destination, text = "") => {
+functionDesigner('log', (value = '', destination = '', text = "") => {
     Logger.log(value, destination, text);
 });
 
-functionDesigner('base_path', (concatenation = '') => {
-    __dirname;
-    return path.resolve(__dirname, '..', '..', '..', concatenation);
+functionDesigner('basePath', (concatenation = '') => {
+    return path.join(concatenation);
 });
 
-functionDesigner('resources_path', (concatenation = '') => {
-    return base_path(path.join('resources', concatenation));
+functionDesigner('resourcesPath', (concatenation = '') => {
+    return basePath(path.join('resources', concatenation));
 });
 
-functionDesigner('view_path', (concatenation = '') => {
-    return resources_path(path.join('views', concatenation));
+functionDesigner('viewPath', (concatenation = '') => {
+    return resourcesPath(path.join('views', concatenation));
 });
 
-functionDesigner('public_path', (concatenation = '') => {
-    return base_path(path.join('public', concatenation));
+functionDesigner('publicPath', (concatenation = '') => {
+    return basePath(path.join('public', concatenation));
 });
 
-functionDesigner('database_path', (concatenation = '') => {
-    return base_path(path.join('main', 'database', concatenation));
+functionDesigner('databasePath', (concatenation = '') => {
+    return basePath(path.join('main', 'database', concatenation));
 });
 
-functionDesigner('app_path', (concatenation = '') => {
-    return base_path(path.join('app', concatenation));
+functionDesigner('appPath', (concatenation = '') => {
+    return basePath(path.join('app', concatenation));
 });
 
-functionDesigner('stub_path', () => {
-    return base_path('main/express/stubs');
+functionDesigner('stubPath', () => {
+    return basePath('main/express/stubs');
 });
 
-functionDesigner('controller_path', () => {
-    return app_path('Controllers');
+functionDesigner('controllerPath', () => {
+    return appPath('Controllers');
 })
 
-functionDesigner('tmp_path', () => {
-    return base_path('tmp');
+functionDesigner('tmpPath', () => {
+    return basePath('tmp');
+});
+
+functionDesigner('pathExist', (fileString = '') => {
+    if (fileString === '') {
+        return false;
+    }
+    const basePath = path.join('..', '..', '..');
+    return fs.existsSync(path.join(__dirname, basePath, fileString));
+});
+
+functionDesigner('writeFile', (fileString = '', content = '') => {
+    if (fileString === '') {
+        throw new Error('Filename is required.');
+    }
+    const basePath = path.join('..', '..', '..');
+    const fullPath = path.join(__dirname, basePath, fileString);
+    fs.writeFileSync(fullPath, content, 'utf8');
+});
+
+functionDesigner('makeDir', (dirString = '') => {
+    if (dirString === '') {
+        throw new Error('Directory path is required.');
+    }
+    const basePath = path.join('..', '..', '..');
+    const fullPath = path.join(__dirname, basePath, dirString);
+
+    // Check if the directory exists, and create it if it doesn't
+    if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+    }
+});
+
+functionDesigner('appendFile', (fileString = '', content = '') => {
+    if (fileString === '') {
+        return;  // Return early if no filename is provided
+    }
+    const basePath = path.join('..', '..', '..');
+    const fullPath = path.join(__dirname, basePath, fileString);
+
+    try {
+        // Append content to the file, creating it if it doesn't exist
+        fs.appendFileSync(fullPath, content, 'utf8');
+    } catch (err) {
+        return;  // Return if there's an error, no exception thrown
+    }
+});
+
+functionDesigner('getFileContents', (fileString = '') => {
+    if (fileString === '') {
+        return '';  // Return empty string if no filename is provided
+    }
+
+    const basePath = path.join('..', '..', '..');
+    const fullPath = path.join(__dirname, basePath, fileString);
+
+    try {
+        // Read and return the file content as a UTF-8 string
+        return fs.readFileSync(fullPath, 'utf8');
+    } catch (err) {
+        return '';  // Return empty string if there's an error
+    }
 });
 
 const irregularPlurals = await config('irregular_words');
 
-functionDesigner('generateTableNames', (entity) => {
+functionDesigner('generateTableNames', (entity = '') => {
     const splitWords = entity.split(/(?=[A-Z])/);
     const lastWord = splitWords.pop().toLowerCase();
 
@@ -168,62 +242,57 @@ functionDesigner('generateTableNames', (entity) => {
     return [...splitWords, pluralizedLastWord].join('').toLowerCase()
 });
 
-functionDesigner('dynamicImport', async (file) => {
-    const basePath = '../../../';
-    const data = await import(pathToFileURL(path.join(__dirname, basePath, file)).href);
-    return data;
+functionDesigner('base64encode', (str = '', safe = false) => {
+    if (safe) {
+        return Buffer.from(str)
+            .toString('base64')        // Standard Base64 encode
+            .replace(/\+/g, '-')       // Replace `+` with `-`
+            .replace(/\//g, '_')       // Replace `/` with `_`
+            .replace(/=+$/, '');       // Remove any trailing `=` padding
+    }
+    return Buffer.from(str).toString('base64');
 });
 
-functionDesigner('base64_encode', (str) => Buffer.from(str, 'utf-8').toString('base64'));
-
-functionDesigner('base64_decode', (str) => Buffer.from(str, 'base64').toString('utf-8'));
-
-functionDesigner('base64_url_encode', function (str) {
-    return Buffer.from(str)
-        .toString('base64')        // Standard Base64 encode
-        .replace(/\+/g, '-')       // Replace `+` with `-`
-        .replace(/\//g, '_')       // Replace `/` with `_`
-        .replace(/=+$/, '');       // Remove any trailing `=` padding
+functionDesigner('base64decode', (str = '', safe = false) => {
+    if (safe) {
+        // Add necessary padding if missing
+        const padding = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
+        const base64 = str.replace(/-/g, '+').replace(/_/g, '/') + padding;
+        return Buffer.from(base64, 'base64').toString('utf8');
+    }
+    return Buffer.from(str, 'base64').toString('utf8');
 });
 
-functionDesigner('base64_url_decode', function (str) {
-    // Add necessary padding if missing
-    const padding = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
-    const base64 = str.replace(/-/g, '+').replace(/_/g, '/') + padding;
-    return Buffer.from(base64, 'base64').toString('utf8');
-});
+const getRelativeTime = (expression, direction, now) => {
+    const daysOfWeek = [
+        "sunday", "monday", "tuesday", "wednesday",
+        "thursday", "friday", "saturday"
+    ];
 
+    const lowerExpression = expression.toLowerCase();
+    const dayIndex = daysOfWeek.indexOf(lowerExpression);
 
-functionDesigner('strtotime', function (time, now) {
-    const getRelativeTime = (expression, direction, now) => {
-        const daysOfWeek = [
-            "sunday", "monday", "tuesday", "wednesday",
-            "thursday", "friday", "saturday"
-        ];
+    if (dayIndex !== -1) {
+        let daysDifference = dayIndex - now.weekday;
 
-        const lowerExpression = expression.toLowerCase();
-        const dayIndex = daysOfWeek.indexOf(lowerExpression);
-
-        if (dayIndex !== -1) {
-            let daysDifference = dayIndex - now.weekday;
-
-            if (direction === "next" && daysDifference <= 0) {
-                daysDifference += 7;
-            } else if (direction === "last" && daysDifference >= 0) {
-                daysDifference -= 7;
-            }
-
-            return now.plus({ days: daysDifference }).toSeconds();
+        if (direction === "next" && daysDifference <= 0) {
+            daysDifference += 7;
+        } else if (direction === "last" && daysDifference >= 0) {
+            daysDifference -= 7;
         }
 
-        return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
-    };
+        return now.plus({ days: daysDifference }).toSeconds();
+    }
 
+    return now[direction === "next" ? "plus" : "minus"]({ days: 7 }).toSeconds();
+};
+const timeZone = (typeof config === "function" && (await config("app.timezone"))) ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
+functionDesigner('strtotime', function (time, now) {
+    if (typeof time !== 'string') {
+        return null;
+    }
     now = now || Date.now() / 1000;
-
-    const timeZone = (typeof config === "function" && config("app.timezone")) ||
-        Intl.DateTimeFormat().resolvedOptions().timeZone;
-
     const adjustedNow = DateTime.fromSeconds(now).setZone(timeZone);
 
     time = time.trim().toLowerCase();
@@ -259,7 +328,7 @@ functionDesigner('strtotime', function (time, now) {
     return null;
 });
 
-const configApp = await config('app') || 'Y-m-d H:i:s';
+const configApp = await config('app');
 
 class Carbon {
     static #formatMapping = {
@@ -331,8 +400,6 @@ class Carbon {
     }
 
     static #generateDateTime() {
-        // return DateTime.now().setZone(Configure.read('app.timezone'));
-        // add the #timeAlters if there is value before returning DateTime.now().setZone(Configure.read('app.timezone'))
         const getDateTime = DateTime.now().plus({
             years: Carbon.#timeAlters.years,
             months: Carbon.#timeAlters.months,
@@ -341,7 +408,7 @@ class Carbon {
             hours: Carbon.#timeAlters.hours,
             minutes: Carbon.#timeAlters.minutes,
             seconds: Carbon.#timeAlters.seconds,
-        }).setZone(configApp.timezone || 'GMT +08');
+        }).setZone(configApp.default.timezone || 'UTC');
         Carbon.#reset();
         return getDateTime;
     }
@@ -412,11 +479,6 @@ class Carbon {
     }
 }
 
-/**
- * This function returns the current date and time 
- * in the specified format (e.g., "Y-m-d H:i:s"). If no timestamp is provided, 
- * it returns the current system time formatted accordingly.
-*/
 functionDesigner('DATE', (format = 'Y-m-d H:i:s', unixTimestamp = null) => {
     if (unixTimestamp !== null) {
         return Carbon.getByUnixTimestamp(unixTimestamp, format);
@@ -435,64 +497,36 @@ functionDesigner('is_function', (variable) => {
     return typeof variable === 'function';
 });
 
-/** Placeholder for a function that will render views or templates. */
-functionDesigner('view', (viewName, data = {}) => {
-
-    data.old = function (key) {
-        return 'test';
+functionDesigner('transferFile', (oldPath = '', newPath = '') => {
+    try {
+        if (!oldPath || !newPath) return;
+        const basePath = path.join('..', '..', '..');
+        const fullOldPath = path.join(__dirname, basePath, oldPath);
+        const fullNewPath = path.join(__dirname, basePath, newPath);
+        fs.renameSync(fullOldPath, fullNewPath);
+    } catch (err) {
+        return;
     }
-    const newView = new ExpressView(data);
-    const rendered = newView.element(viewName);
-    return newView.view(rendered);
+});
+
+/** Placeholder for a function that will render views or templates. */
+functionDesigner('view', (viewName, data = {}, mergeData = {}) => {
+    const newData = { ...data, ...mergeData };
+    // Add old() helper to data
+    newData['old'] = function (key) {
+        // Here you can return old input from session or fallback
+        return 'test'; // Stubbed for now
+    };
+
+    const newView = new ExpressView(newData);
+    newView.element(viewName);
+    return newView;
 });
 
 // import path from 'path';
 
 import version from '../../../version.mjs';
-define('FRAMEWORK_VERSION', version);
-
-
-import ExpressResponse from '../http/ExpressResponse.mjs';
-functionDesigner('response', function (html = null) {
-    const EResponse = new ExpressResponse(html);
-    return EResponse;
-});
-
-functionDesigner('transferFile', (filePath, destination) => {
-    if (typeof filePath !== 'string' || typeof destination !== 'string') {
-        console.warn(new Error('Both filePath and destination must be strings'));
-        return false;
-    }
-
-    const ensureDirectoryExistence = (filePath) => {
-        const dir = path.dirname(filePath);
-        if (fs.existsSync(dir)) {
-            return true;
-        }
-        fs.mkdirSync(dir, { recursive: true });
-        return true;
-    };
-    // Ensure the target directory exists
-    ensureDirectoryExistence(destination);
-
-    let done = false;
-    let forReturn = false;
-
-    // Use fs.rename to move the file
-    fs.rename(filePath, destination, (err) => {
-        if (err) {
-            forReturn = false;
-            done = true;
-        } else {
-            forReturn = true;
-            done = true;
-        }
-    });
-
-    // Loop until the operation is complete
-    loopWhile(() => !done);
-    return forReturn;
-});
+define('FRAMEWORK_VERSION', version, false);
 
 functionDesigner('fetchData', async (url, data = {
     timeout: 5000,
@@ -615,14 +649,6 @@ functionDesigner('method_exist', (object, method) => {
     return typeof object[method] === 'function';
 });
 
-const appProviders = await AppProviders.register();
-functionDesigner('use', (className) => {
-    if (className in appProviders) {
-        return appProviders[className];
-    }
-    return null;
-});
-
 functionDesigner('json_encode', (data) => {
     return JSON.stringify(data);
 });
@@ -634,37 +660,4 @@ functionDesigner('json_decode', (data) => {
     return data;
 });
 
-
-/**************
- * @variables *
-***************/
-
-/** Placeholder for a function that will navigate back to the previous page. */
-define('back', () => { })
-
-/** Placeholder for a function that will define application routes. */
-define('route', () => { })
-
-define('$_SERVER', {})
-define('setcookie', () => { })
-
-define('request', () => { });
-
-/** Placeholder for a function that will dump variable contents for debugging. */
-define('dump', () => { });
-
-/** Placeholder for a function that will dump variable contents and terminate execution. */
-define('dd', () => { });
-define('response_error', () => { })
-
-define('BASE_URL', '');
-define('PATH_URL', '');
-define('QUERY_URL', '');
-define('ORIGINAL_URL', '');
-define('$_POST', {});
-define('$_GET', {});
-define('$_FILES', {});
-define('$_SESSION', {});
-define('$_COOKIE', {});
-
-define('isRequest', null);
+define('$dbUsed', (await config('app.database.database')) || 'sqlite');

@@ -1,28 +1,27 @@
 import path from "path";
-import fs from "fs";
 
 
 class Logger {
     static log(value, destination, text = "") {
-        const dirPath = path.join(tmp_path(), "logs");
+        const dirPath = path.join(tmpPath(), "logs");
         const logPath = path.join(dirPath, `${destination}.log`);
-        const timestamp = date();
+        const timestamp = date('Y-m-d H:i:s');
 
         const logMessage = `${timestamp} ${text}\n${typeof value === "object" ? JSON.stringify(value, null, 2) : value
             }\n\n`;
-        if (env("NODE_ENV") === "production") {
+        if (!pathExist(dirPath)) {
+            makeDir(dirPath);
+        }
+
+        if (!pathExist(logPath)) {
+            // init write
+            writeFile(logPath, "");
+        }
+        if (IN_PRODUCTION) {
             console.log(logMessage);
-            return;
-        }
-        if (!fs.existsSync(dirPath)) {
-            fs.mkdirSync(dirPath, { recursive: true });
         }
 
-        if (!fs.existsSync(logPath)) {
-            fs.writeFileSync(logPath, "", "utf8");
-        }
-
-        fs.appendFileSync(logPath, logMessage, "utf8");
+        appendFile(logPath, logMessage);
     }
 }
 

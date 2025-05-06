@@ -12,7 +12,7 @@ if (!IN_PRODUCTION) {
     const sqlite = (await import('./SQLite.mjs')).default;
     databases.sqlite = sqlite;
 }
-const dbType = await config('app.database.database') || 'sqlite';
+const dbType = $dbUsed;
 class DatabaseManager {
     static #databaseServer; // <-- now static
     #selectedDB;
@@ -86,7 +86,25 @@ class DatabaseManager {
     }
 
     getQueryTrace(query, params = []) {
-        return mysql.format(query, params);
+        if (dbType !== 'postgresql') {
+            return mysql.format(query, params);
+        }
+        return query.replace(/\$(\d+)/g, (_, index) => {
+            const param = params[index - 1];
+
+            if (param === null || param === undefined) return 'NULL';
+
+            if (typeof param === 'string') {
+                // escape single quotes
+                return `'${param.replace(/'/g, "''")}'`;
+            }
+
+            if (param instanceof Date) {
+                return `'${param.toISOString()}'`;
+            }
+
+            return param;
+        });
     }
 
     async close() {

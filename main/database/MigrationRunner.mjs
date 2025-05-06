@@ -2,12 +2,12 @@ import fs from 'fs';
 import { pathToFileURL } from 'url';
 import path from 'path';
 import DatabaseConnection from './Manager/DatabaseManager.mjs';
-const dbType = await config('app.database.database');
+const dbType = $dbUsed;
 
 class MigrationRunner {
     #db;
     constructor() {
-        this.migrationsPath = database_path('migrations');
+        this.migrationsPath = databasePath('migrations');
         this.#db = new DatabaseConnection();
     }
 

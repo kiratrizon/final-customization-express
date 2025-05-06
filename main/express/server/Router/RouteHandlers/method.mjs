@@ -35,7 +35,7 @@ class RouteMethod {
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressView)) {
                     if (expressResponse instanceof ExpressResponse) {
-                        const { html, json, file, download, streamDownload, error, headers, statusCode, returnType } = expressResponse.accessData();
+                        const { html, json, file, download, error, headers, statusCode, returnType } = expressResponse.accessData();
                         res.set(headers).status(statusCode);
                         if (isset(error)) {
                             res.send(error);
@@ -64,7 +64,7 @@ class RouteMethod {
                     } else if (expressResponse instanceof ExpressView) {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
-                        const rendered = expressResponse.getRendered();
+                        const rendered = expressResponse.rendered;
                         html_dump.push(rendered);
                         res.send(html_dump.join(''));
                         return;
@@ -110,7 +110,8 @@ class RouteMethod {
 
     middleware(middleware) {
         const middlewareResult = new RouteMiddleware(middleware)
-        this.#routeData['internal_middlewares'].push(...middlewareResult);
+        const result = middlewareResult.getMiddlewares();
+        this.#routeData['internal_middlewares'].push(...result);
         return this;
     }
     name(name) {

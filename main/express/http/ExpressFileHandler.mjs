@@ -5,7 +5,7 @@ import fs from "fs";
 
 class FileHandler {
   static filePath = "/tmp";
-
+  static _useBusboy = false;
   static multer() {
     FileHandler.validatePath();
     const storage = multer.diskStorage({

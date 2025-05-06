@@ -28,7 +28,8 @@ class RouteGroup {
 
     #middleware(handler) {
         let generateMiddleware = new RouteMiddleware(handler);
-        this.#middlewares = [...this.#middlewares, ...generateMiddleware];
+        let result = generateMiddleware.getMiddlewares();
+        this.#middlewares = [...this.#middlewares, ...result];
     }
 
     getGroup() {

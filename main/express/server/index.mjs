@@ -1,4 +1,4 @@
-import './functions-and-variables.mjs';
+import './express-declare.mjs';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
@@ -38,8 +38,8 @@ class Server {
 		Server.app.use(morgan('dev'));
 		Server.app.use(Server.express.json());
 		Server.app.use(Server.express.urlencoded({ extended: true }));
-		Server.app.use(Server.express.static(public_path()));
-		Server.app.use('/favicon.ico', Server.express.static(public_path('favicon.ico')));
+		Server.app.use(Server.express.static(publicPath()));
+		Server.app.use('/favicon.ico', Server.express.static(publicPath('favicon.ico')));
 		const handleBoot = await Server.#handle();
 
 		const appEssentials = [
@@ -56,12 +56,11 @@ class Server {
 		Server.app.use(FileHandler.getFileHandler());
 		Server.app.use(FileHandler.handleFiles);
 		Server.app.set('view engine', viewEngine);
-		Server.app.set('views', view_path());
+		Server.app.set('views', viewPath());
 
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
 
-			console.log(req.sessionID);
 			$_POST = req.body || {};
 			$_GET = req.query || {};
 			$_FILES = req.files || {};
@@ -80,9 +79,6 @@ class Server {
 				files: $_FILES,
 			};
 			const rq = new ExpressRequest(REQUEST);
-			PATH_URL = REQUEST.path;
-			QUERY_URL = REQUEST.originalUrl;
-			ORIGINAL_URL = `${BASE_URL}${QUERY_URL}`;
 			request = (getInput) => {
 				if (!is_string(getInput)) {
 					return rq;
@@ -90,9 +86,38 @@ class Server {
 					return rq.input(getInput);
 				}
 			}
-			if (env('NODE_ENV') !== 'production') {
-				res.setHeader('X-Developer', 'Throy Tower');
-			}
+
+			const toStr = (val) =>
+				Array.isArray(val) ? val.join(', ') : (val || 'unknown').toString();
+
+			const forServer = {
+				SERVER_NAME: req.hostname,
+				SERVER_ADDR: req.socket.localAddress || 'unknown',
+				SERVER_PORT: req.socket.localPort?.toString() || 'unknown',
+				SERVER_PROTOCOL: req.protocol || 'http',
+				REQUEST_METHOD: methodType,
+				QUERY_STRING: req.originalUrl.split('?')[1] || '',
+				REQUEST_URI: req.originalUrl,
+				DOCUMENT_ROOT: basePath(),
+				HTTP_USER_AGENT: toStr(req.headers['user-agent']),
+				HTTP_REFERER: toStr(req.headers['referer']),
+				REMOTE_ADDR: req.ip || 'unknown',
+				REMOTE_PORT: req.socket.remotePort?.toString() || 'unknown',
+				SCRIPT_NAME: req.path,
+				HTTPS: req.secure ? 'on' : 'off',
+				HTTP_X_FORWARDED_PROTO: toStr(req.headers['x-forwarded-proto']),
+				HTTP_X_FORWARDED_FOR: toStr(req.headers['x-forwarded-for']),
+				REQUEST_TIME: date('Y-m-d H:i:s'),
+				REQUEST_TIME_FLOAT: Date.now(),
+				GATEWAY_INTERFACE: 'CGI/1.1',
+				SERVER_SIGNATURE: 'X-Powered-By: Throy Tower',
+				PATH_INFO: req.path,
+				HTTP_ACCEPT: toStr(req.headers['accept']),
+				'X-Request-ID': toStr(req.headers['x-request-id'] || Server.#generateRequestId()),
+			};
+
+			$_SERVER = forServer;
+
 			Boot.register();
 
 			// determine if it's an API request or AJAX request
@@ -154,11 +179,11 @@ class Server {
 			};
 
 			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-			if (!res.responses) {
-				res.responses = {};
-				res.responses.html_dump = [];
-				res.responses.json_dump = [];
-			}
+
+			// always refresh every request
+			res.responses = {};
+			res.responses.html_dump = [];
+			res.responses.json_dump = [];
 
 			dump = (data) => renderData(data, res, true);
 			dd = (data) => {
@@ -177,7 +202,7 @@ class Server {
 						}
 					});
 
-					let url;
+					let url = '';
 					const allparams = [...required, ...optional];
 					allparams.forEach((key) => {
 						if (key in args) {
@@ -186,8 +211,6 @@ class Server {
 							url = full_path.replace(`:${key}/`, '/');
 						}
 					})
-
-
 
 					// Remove trailing slash if present
 					if (url.endsWith('/')) {
@@ -203,7 +226,7 @@ class Server {
 			};
 
 			// req.flash('hello', 'world');
-			functionDesigner('redirect', (url = null) => {
+			redirect = (url = null) => {
 				const instance = new ExpressRedirect(url);
 
 				instance.back = () => {
@@ -217,25 +240,28 @@ class Server {
 				};
 
 				return instance;
-			});
-			back = () => {
+			}
+			const back = () => {
 				return req.get('Referrer') || '/';
 			};
 
-			response_error = (error, data) => {
-				if (isRequest) {
-					res.status(422).json({ error });
+			$custom_error = (errors = {}) => {
+				if (isRequest()) {
+					res.status(422).json({ errors });
 				} else {
+					req.flash('errors', errors);
 					res.redirect(422, back());
 				}
 			}
 
-
-			BASE_URL = Server.#baseUrl;
 			next();
 		});
 
 		await Server.#loadAndValidateRoutes();
+	}
+
+	static #generateRequestId() {
+		return 'req-' + Math.random().toString(36).substring(2, 15);
 	}
 
 	static async #handle() {

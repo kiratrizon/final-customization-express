@@ -147,6 +147,14 @@ class RawSQL {
         if (isset(offset)) {
             sql += ` OFFSET ${offset}`;
         }
+
+        if (db === 'postgresql') {
+            // replace all question marks with $1, $2, $3, etc.
+            let i = 1;
+            sql = sql.replace(/\?/g, () => {
+                return `$${i++}`;
+            });
+        }
         return sql;
     }
 }

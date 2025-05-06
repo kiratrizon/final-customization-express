@@ -1,18 +1,11 @@
-import fs from 'fs';
-import path from 'path';
 import ejs from 'ejs';
 import pug from 'pug';
-
-import { fileURLToPath, pathToFileURL } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 class ExpressView {
     static #viewEngine;
     #data;
     static #engine = 'ejs';
-    #rendered;
+    rendered = '';
     constructor(data = {}) {
         this.#data = data;
     }
@@ -35,27 +28,14 @@ class ExpressView {
             ...this.#data
         };
 
-        let templatePath = view_path(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
-        let dynamic = path.join(__dirname, '..', '..', '..', 'resources', 'views', `${viewName.split('.').join('/')}.${ExpressView.#engine}`);
-        // return templatePath === dynamic ? 'true' : 'false'
-        if (!fs.existsSync(templatePath)) {
-            return `View file not found: ${templatePath}`;
+        let templatePath = viewPath(`${viewName.split('.').join('/')}.${ExpressView.#engine}`);
+        if (!pathExist(templatePath)) {
+            return `View not found: ${templatePath}`;
         }
-        const rawHtml = fs.readFileSync(templatePath, "utf-8")
+        const rawHtml = getFileContents(templatePath)
         const rendered = ExpressView.#viewEngine.render(rawHtml, this.#data);
+        this.rendered = rendered;
         return rendered;
-    }
-
-    view(rendered) {
-        this.#rendered = rendered;
-        return this;
-    }
-
-    getRendered() {
-        if (this.#rendered) {
-            return this.#rendered;
-        }
-        return null;
     }
 }
 

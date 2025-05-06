@@ -9,7 +9,6 @@ class RouteMiddleware {
     #middlewares = [];
     constructor(handler) {
         this.#middlewareCreate(handler);
-        return this.#middlewares;
     }
 
     #middlewareCreate(handler) {
@@ -70,7 +69,7 @@ class RouteMiddleware {
                     } else if (expressResponse instanceof ExpressView) {
                         res.status(200);
                         res.set('Content-Type', 'text/html');
-                        const rendered = expressResponse.getRendered();
+                        const rendered = expressResponse.rendered;
                         html_dump.push(rendered);
                         res.send(html_dump.join(''));
                     } else if (expressResponse instanceof ExpressClosure) {
@@ -94,6 +93,10 @@ class RouteMiddleware {
             }
             this.#middlewares.push(newCallback);
         }
+    }
+
+    getMiddlewares() {
+        return this.#middlewares;
     }
 }
 

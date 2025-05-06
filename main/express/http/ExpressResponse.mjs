@@ -4,16 +4,25 @@ class ExpressResponse {
     #defaultStatusCode = 200;
     #returnStatusCode;
     #headers = {};
-    #returnData = {};
+    #returnData = {
+        'html': null,
+        'json': null,
+        'file': null,
+        'download': null,
+        'error': null,
+    };
+    #returnType;
     constructor(html = null) {
         if (isset(html) && html) {
             this.#returnData['html'] = html;
+            this.#returnType = 'html';
         }
     }
     json(data, statusCode = this.#defaultStatusCode) {
         try {
             this.#responseValidator('json');
             this.#returnData['json'] = data;
+            this.#returnType = 'json';
             this.#returnStatusCode = statusCode;
             return this;
         } catch (error) {
@@ -34,6 +43,7 @@ class ExpressResponse {
         try {
             this.#responseValidator('html');
             this.#returnData['html'] = content;
+            this.#returnType = 'html';
             this.#returnStatusCode = statusCode;
             return this;
         } catch (error) {
@@ -51,22 +61,11 @@ class ExpressResponse {
         return this;
     }
     accessData() {
-        let returnType;
-
-        const keys = Object.keys(this.#returnData);
-        keys.forEach((key) => {
-            if (key_exist(this.#returnData, key) && !isset(returnType)) {
-                returnType = key;
-            }
-        });
-        if (!isset(returnType)) {
-            throw new Error('No response type set');
-        }
         return {
             ...this.#returnData,
             headers: this.#headers,
             statusCode: this.#returnStatusCode,
-            returnType: returnType
+            returnType: this.#returnType,
         }
     }
 
@@ -74,6 +73,7 @@ class ExpressResponse {
         try {
             this.#responseValidator('file');
             this.#returnData['file'] = filePath;
+            this.#returnType = 'file';
             this.#returnStatusCode = statusCode;
             return this;
         } catch (error) {
@@ -90,7 +90,7 @@ class ExpressResponse {
         returnTypes.splice(returnTypes.indexOf(insertType), 1);
         let countErrors = 0;
         returnTypes.forEach((type) => {
-            if (key_exist(this.#returnData, type)) {
+            if (key_exist(this.#returnData, type) && !empty(this.#returnData[type])) {
                 countErrors++;
             }
         });
@@ -124,6 +124,7 @@ class ExpressResponse {
             }
 
             this.#returnData['download'] = downloadPayload;
+            this.#returnType = 'download';
             this.#returnStatusCode = statusCode;
             return this;
         } catch (error) {
@@ -135,46 +136,47 @@ class ExpressResponse {
     }
 
     #filePathValidator(filePath) {
-        if (typeof filePath !== 'string') {
-            throw new Error('File path must be a string');
-        }
-        if (!fs.existsSync(filePath)) {
-            throw new Error('File does not exist');
-        }
-        if (!fs.statSync(filePath).isFile()) {
-            throw new Error('File is not a regular file');
-        }
-        if (fs.statSync(filePath).isDirectory()) {
-            throw new Error('File is a directory');
-        }
-        if (fs.statSync(filePath).isSymbolicLink()) {
-            throw new Error('File is a symbolic link');
-        }
-        if (fs.statSync(filePath).isBlockDevice()) {
-            throw new Error('File is a block device');
-        }
-        return false;
+        // if (typeof filePath !== 'string') {
+        //     throw new Error('File path must be a string');
+        // }
+        // if (!fs.existsSync(filePath)) {
+        //     throw new Error('File does not exist');
+        // }
+        // if (!fs.statSync(filePath).isFile()) {
+        //     throw new Error('File is not a regular file');
+        // }
+        // if (fs.statSync(filePath).isDirectory()) {
+        //     throw new Error('File is a directory');
+        // }
+        // if (fs.statSync(filePath).isSymbolicLink()) {
+        //     throw new Error('File is a symbolic link');
+        // }
+        // if (fs.statSync(filePath).isBlockDevice()) {
+        //     throw new Error('File is a block device');
+        // }
+        // return false;
+        return true;
     }
 
-    streamDownload(callback, fileName, statusCode = this.#defaultStatusCode) {
-        try {
-            this.#responseValidator('streamDownload');
-            if (!is_function(callback)) {
-                throw new Error('Callback must be a function');
-            }
-            if (!is_string(fileName)) {
-                throw new Error('File name must be a string');
-            }
-            this.#returnData['streamDownload'] = [callback, fileName];
-            this.#returnStatusCode = statusCode;
-            return this;
-        } catch (error) {
-            // Handle errors by returning a generic response
-            this.#returnData['error'] = error.message;
-            this.#returnStatusCode = 400; // You can adjust the status code as needed
-            return this;
-        }
-    }
+    // streamDownload(callback, fileName, statusCode = this.#defaultStatusCode) {
+    //     try {
+    //         this.#responseValidator('streamDownload');
+    //         if (!is_function(callback)) {
+    //             throw new Error('Callback must be a function');
+    //         }
+    //         if (!is_string(fileName)) {
+    //             throw new Error('File name must be a string');
+    //         }
+    //         this.#returnData['streamDownload'] = [callback, fileName];
+    //         this.#returnStatusCode = statusCode;
+    //         return this;
+    //     } catch (error) {
+    //         // Handle errors by returning a generic response
+    //         this.#returnData['error'] = error.message;
+    //         this.#returnStatusCode = 400; // You can adjust the status code as needed
+    //         return this;
+    //     }
+    // }
 }
 
 export default ExpressResponse;
