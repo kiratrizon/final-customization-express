@@ -346,36 +346,32 @@ class QueryBuilder {
         }
         else if (conditions.length === 2) {
             const [column1, column2] = conditions;
-            if (is_array(values)) {
-                this.#join.push({
-                    table,
-                    type,
-                    on: [{
-                        column: column1,
-                        operator: '=',
-                        args: column2
-                    }],
-                    useIndex: [],
-                })
-            }
+            this.#join.push({
+                table,
+                type,
+                on: [{
+                    column: column1,
+                    operator: '=',
+                    args: column2
+                }],
+                useIndex: [],
+            });
         } else if (conditions.length === 3) {
             const [column1, operator, column2] = conditions;
             const allowedOperators = ['=', '!=', '<', '>', '<=', '>=', 'LIKE', 'NOT LIKE'];
             if (!allowedOperators.includes(operator.toUpperCase())) {
                 throw new Error(`Invalid operator: ${operator}`);
             }
-            if (is_array(values)) {
-                this.#join.push({
-                    table,
-                    type,
-                    on: [{
-                        column: column1,
-                        operator,
-                        args: column2
-                    }],
-                    useIndex: [],
-                })
-            }
+            this.#join.push({
+                table,
+                type,
+                on: [{
+                    column: column1,
+                    operator,
+                    args: column2
+                }],
+                useIndex: [],
+            })
         }
         else {
             throw new Error('Invalid number of join conditions');

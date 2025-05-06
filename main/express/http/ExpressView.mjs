@@ -32,7 +32,9 @@ class ExpressView {
         if (!pathExist(templatePath)) {
             return `View not found: ${templatePath}`;
         }
+        console.log(`Rendering view: ${templatePath}`);
         const rawHtml = getFileContents(templatePath)
+        console.log(`Raw HTML: ${rawHtml}`);
         const rendered = ExpressView.#viewEngine.render(rawHtml, this.#data);
         this.rendered = rendered;
         return rendered;

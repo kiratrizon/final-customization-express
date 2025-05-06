@@ -173,8 +173,7 @@ functionDesigner('writeFile', (fileString = '', content = '') => {
         throw new Error('Filename is required.');
     }
     const basePath = path.join('..', '..', '..');
-    const fullPath = path.join(__dirname, basePath, fileString);
-    fs.writeFileSync(fullPath, content, 'utf8');
+    fs.writeFileSync(path.join(__dirname, basePath, fileString), content, 'utf8');
 });
 
 functionDesigner('makeDir', (dirString = '') => {
@@ -182,11 +181,10 @@ functionDesigner('makeDir', (dirString = '') => {
         throw new Error('Directory path is required.');
     }
     const basePath = path.join('..', '..', '..');
-    const fullPath = path.join(__dirname, basePath, dirString);
 
     // Check if the directory exists, and create it if it doesn't
-    if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
+    if (!fs.existsSync(path.join(__dirname, basePath, dirString))) {
+        fs.mkdirSync(path.join(__dirname, basePath, dirString), { recursive: true });
     }
 });
 
@@ -195,11 +193,10 @@ functionDesigner('appendFile', (fileString = '', content = '') => {
         return;  // Return early if no filename is provided
     }
     const basePath = path.join('..', '..', '..');
-    const fullPath = path.join(__dirname, basePath, fileString);
 
     try {
         // Append content to the file, creating it if it doesn't exist
-        fs.appendFileSync(fullPath, content, 'utf8');
+        fs.appendFileSync(path.join(__dirname, basePath, fileString), content, 'utf8');
     } catch (err) {
         return;  // Return if there's an error, no exception thrown
     }
@@ -211,11 +208,10 @@ functionDesigner('getFileContents', (fileString = '') => {
     }
 
     const basePath = path.join('..', '..', '..');
-    const fullPath = path.join(__dirname, basePath, fileString);
 
     try {
         // Read and return the file content as a UTF-8 string
-        return fs.readFileSync(fullPath, 'utf8');
+        return fs.readFileSync(path.join(__dirname, basePath, fileString), 'utf8');
     } catch (err) {
         return '';  // Return empty string if there's an error
     }
