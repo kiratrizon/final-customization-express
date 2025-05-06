@@ -87,7 +87,8 @@ functionDesigner('config', async function () {
         throw new Error('Invalid number of arguments');
     }
 });
-
+const dbType = await config('app.database.database') || 'sqlite';
+define('dbUsed', dbType, false);
 const isProduction = env('NODE_ENV') === 'production' || env('NODE_ENV') === 'prod';
 define('IN_PRODUCTION', isProduction);
 
@@ -659,6 +660,3 @@ functionDesigner('json_decode', (data) => {
     }
     return data;
 });
-
-const dbType = await config('app.database.database') || 'sqlite';
-define('$dbUsed', dbType);

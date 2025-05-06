@@ -4,8 +4,6 @@ import DBManager from './DatabaseManager.mjs';
 import Collection from './Collection.mjs';
 import QueryInsert from './QueryInsert.mjs';
 
-const dbUsed = $dbUsed;
-
 class QueryBuilder {
     // for query builder
     #fields = [];

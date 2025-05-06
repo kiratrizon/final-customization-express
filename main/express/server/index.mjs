@@ -245,7 +245,7 @@ class Server {
 				return req.get('Referrer') || '/';
 			};
 
-			$custom_error = (errors = {}) => {
+			custom_error = (errors = {}) => {
 				if (isRequest()) {
 					res.status(422).json({ errors });
 				} else {

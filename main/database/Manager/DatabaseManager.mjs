@@ -12,7 +12,7 @@ if (!IN_PRODUCTION) {
     const sqlite = (await import('./SQLite.mjs')).default;
     databases.sqlite = sqlite;
 }
-const dbType = $dbUsed;
+const dbType = dbUsed;
 class DatabaseManager {
     static #databaseServer; // <-- now static
     #selectedDB;

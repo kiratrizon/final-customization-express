@@ -2,7 +2,7 @@ import fs from 'fs';
 import { pathToFileURL } from 'url';
 import path from 'path';
 import DatabaseConnection from './Manager/DatabaseManager.mjs';
-const dbType = $dbUsed;
+const dbType = dbUsed;
 
 class MigrationRunner {
     #db;

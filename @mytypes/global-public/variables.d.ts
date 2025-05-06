@@ -13,5 +13,5 @@ declare global {
    * The database type used in the application.
    * This value is fetched from the application's configuration or defaults to 'sqlite' if not set.
    */
-  var $dbUsed: string;
+  var dbUsed: string;
 }

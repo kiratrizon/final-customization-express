@@ -1,5 +1,5 @@
 const allowedDatabase = ['sqlite', 'mysql', 'postgresql'];
-const dbType = $dbUsed;
+const dbType = dbUsed;
 
 if (!allowedDatabase.includes(dbType)) {
     throw new Error(`Database type "${dbType}" is not supported.`);

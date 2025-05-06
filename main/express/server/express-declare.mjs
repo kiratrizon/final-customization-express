@@ -20,7 +20,7 @@ define('request', dfunc);
 define('dump', dfunc);
 
 define('dd', dfunc);
-define('$custom_error', dfunc)
+define('custom_error', dfunc)
 
 define('$_SERVER', {})
 define('$_POST', {});
