@@ -9,7 +9,12 @@
           "resources/**/*",
           "routes/**/*",
           "public/**/*",
-          "main/express/**/*"
+          "main/**/*",
+          "app/**/*",
+          "config/**/*",
+          "libraries/**/*",
+          "models/**/*",
+          "vendor/**/*"
         ]
       }
     },
