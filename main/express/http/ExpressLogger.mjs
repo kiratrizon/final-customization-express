@@ -17,7 +17,7 @@ class Logger {
             // init write
             writeFile(logPath, "");
         }
-        if (IN_PRODUCTION) {
+        if (env('NODE_ENV') === 'production') {
             console.log(logMessage);
         }
 

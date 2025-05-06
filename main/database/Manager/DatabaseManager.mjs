@@ -8,7 +8,7 @@ const databases = {
     postgresql: Postgresql,
 };
 
-if (!IN_PRODUCTION) {
+if (env('NODE_ENV') !== 'production') {
     const sqlite = (await import('./SQLite.mjs')).default;
     databases.sqlite = sqlite;
 }

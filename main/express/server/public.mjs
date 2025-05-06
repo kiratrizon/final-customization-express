@@ -38,7 +38,7 @@ functionDesigner('env', (ENV_NAME = '', defaultValue = null) => {
 });
 
 functionDesigner('define', (key = '', value = null, configurable = true) => {
-    if (key in global && configurable) {
+    if (key in global) {
         return;
     }
     Object.defineProperty(global, key, {
