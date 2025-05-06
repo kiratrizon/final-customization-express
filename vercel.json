@@ -14,7 +14,8 @@
           "config/**/*",
           "libraries/**/*",
           "models/**/*",
-          "vendor/**/*"
+          "vendor/**/*",
+          "version.mjs"
         ]
       }
     },
