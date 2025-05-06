@@ -70,9 +70,9 @@ functionDesigner('basePath', (concatenation = '') => {
     return path.join(__dirname, '..', '..', '..', concatenation);
 });
 
+import Configure from '../../../libraries/Materials/Configure.mjs';
 functionDesigner('config', async function () {
     const args = arguments;
-    const Configure = (await import('../../../libraries/Materials/Configure.mjs')).default;
 
     if (args.length === 0) {
         throw new Error('No arguments provided');

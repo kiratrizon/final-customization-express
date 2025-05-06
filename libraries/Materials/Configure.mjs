@@ -1,11 +1,15 @@
 import path from 'path';
 import fs from 'fs';
-import { pathToFileURL } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 
 class Configure {
   static storedData = {};
-  static basePath = basePath('config');
+  static basePath = path.join(__dirname, '..', '..', 'config');
 
   static async read(pathString) {
     let keys = pathString.split(".").map((key) => {

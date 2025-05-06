@@ -4,7 +4,8 @@ import DatabaseManager from '../database/Manager/DatabaseManager.mjs';
 
 class Factory {
     faker = faker;
-
+    model;
+    definition;
     static async create(c = 1) {
         const factory = new this();
         const model = factory.model;
