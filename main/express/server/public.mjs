@@ -66,6 +66,10 @@ functionDesigner('dynamicImport', async (file = '') => {
     }
 });
 
+functionDesigner('basePath', (concatenation = '') => {
+    return path.join(__dirname, '..', '..', '..', concatenation);
+});
+
 functionDesigner('config', async function () {
     const args = arguments;
     const Configure = (await import('../../../libraries/Materials/Configure.mjs')).default;
@@ -124,10 +128,6 @@ functionDesigner('log', (value = '', destination = '', text = "") => {
     Logger.log(value, destination, text);
 });
 
-functionDesigner('basePath', (concatenation = '') => {
-    return path.join(concatenation);
-});
-
 functionDesigner('resourcesPath', (concatenation = '') => {
     return basePath(path.join('resources', concatenation));
 });
@@ -164,8 +164,7 @@ functionDesigner('pathExist', (fileString = '') => {
     if (fileString === '') {
         return false;
     }
-    const basePath = path.join('..', '..', '..');
-    const returndata = fs.existsSync(path.resolve(__dirname, basePath, fileString));
+    const returndata = fs.existsSync(fileString);
     return returndata;
 });
 

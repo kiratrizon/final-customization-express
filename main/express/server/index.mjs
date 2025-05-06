@@ -347,8 +347,7 @@ class Server {
 	}
 
 	static async #loadAndValidateRoutes() {
-		const routeDir = '../../../routes';
-		const routePath = path.join(__dirname, routeDir);
+		const routePath = basePath('routes');
 		const routeFiles = fs.readdirSync(routePath).filter(file => file.endsWith('.mjs'));
 		// if web.mjs exists, remove it from the array
 		const webIndex = routeFiles.indexOf('web.mjs');
