@@ -11,9 +11,11 @@ import { createClient } from 'redis';
 import { RedisStore } from 'connect-redis';
 import FileHandler from '../http/ExpressFileHandler.mjs';
 import ExpressRedirect from '../http/ExpressRedirect.mjs';
+import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
+import ExpressResponse from '../http/ExpressResponse.mjs';
+import ExpressView from '../http/ExpressView.mjs';
 import express from 'express';
 import util from 'util';
-import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
 import Auth from './Auth.mjs';
 import ExpressRequest from '../http/ExpressRequest.mjs';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -320,29 +322,29 @@ class Server {
 
 	static #finishBoot() {
 		if (typeof Boot['notFound'] === 'function') {
-			// Server.app.use(async (req, res) => {
-			// 	const expressResponse = await Boot['notFound']();
-			// 	if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
-			// 		if (expressResponse instanceof ExpressResponse) {
-			// 			const { html, statusCode, json, headers, returnType } = expressResponse.accessData();
-			// 			if (returnType === 'json') {
-			// 				res.status(statusCode).set(headers).json(json);
-			// 			} else if (returnType === 'html') {
-			// 				res.status(statusCode).set(headers).send(html);
-			// 			}
-			// 		} else if (expressResponse instanceof ExpressView) {
-			// 			const htmlResponse = expressResponse.getRendered();
-			// 			res.status(404).set({
-			// 				'Content-Type': 'text/html',
-			// 			}).send(htmlResponse);
-			// 		}
-			// 	} else if (expressResponse !== undefined) {
-			// 		res.status(404).set({
-			// 			'Content-Type': 'text/html',
-			// 		}).send(expressResponse);
-			// 	}
-			// 	return;
-			// });
+			Server.app.use(async (req, res) => {
+				const expressResponse = await Boot['notFound']();
+				if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
+					if (expressResponse instanceof ExpressResponse) {
+						const { html, statusCode, json, headers, returnType } = expressResponse.accessData();
+						if (returnType === 'json') {
+							res.status(statusCode).set(headers).json(json);
+						} else if (returnType === 'html') {
+							res.status(statusCode).set(headers).send(html);
+						}
+					} else if (expressResponse instanceof ExpressView) {
+						const htmlResponse = expressResponse.rendered;
+						res.status(404).set({
+							'Content-Type': 'text/html',
+						}).send(htmlResponse);
+					}
+				} else if (expressResponse !== undefined) {
+					res.status(404).set({
+						'Content-Type': 'text/html',
+					}).send(expressResponse);
+				}
+				return;
+			});
 		}
 	}
 
