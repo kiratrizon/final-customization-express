@@ -38,7 +38,7 @@ functionDesigner('env', (ENV_NAME = '', defaultValue = null) => {
 });
 
 functionDesigner('define', (key = '', value = null, configurable = true) => {
-    if (key in global) {
+    if (key in global && configurable) {
         return;
     }
     Object.defineProperty(global, key, {
@@ -94,7 +94,7 @@ functionDesigner('config', async function () {
 const dbType = await config('app.database.database') || 'sqlite';
 define('dbUsed', dbType, false);
 const isProduction = env('NODE_ENV') === 'production' || env('NODE_ENV') === 'prod';
-define('IN_PRODUCTION', isProduction);
+define('IN_PRODUCTION', isProduction, false);
 
 /**************
  * @functions *
