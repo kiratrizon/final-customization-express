@@ -7,7 +7,7 @@ declare class Boot {
   /**
    * Define your global variables here
    */
-  static async register(): void;
+  static register(): Promise<void>;
 
 
   /**
@@ -18,7 +18,7 @@ declare class Boot {
    *
    * @returns The appropriate 404 response, either JSON or a rendered view.
    */
-  static async notFound(): any;
+  static notFound(): Promise<any>;
 
   /**
    * Returns the configured password hasher algorithm.
@@ -29,6 +29,12 @@ declare class Boot {
    * @returns A string representing the selected hasher.
    */
   static hasher(): string;
+
+  /**
+   * Initializes the application with default settings.
+   */
+
+  static init(): Promise<void>;
 }
 
-export = Boot;
+export default Boot;

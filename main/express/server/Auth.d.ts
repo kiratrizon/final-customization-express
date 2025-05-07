@@ -1,9 +1,9 @@
 // Auth.d.ts
 
-import Guard from "./Guard";
+import Guard from "./GuardInitiator";
 
 // Type alias for the Guard instance
-type GuardInstance = Guard;
+type GuardInstance = ReturnType<InstanceType<typeof Guard>['init']>;
 
 /**
  * Auth class is responsible for handling user authentication logic,
@@ -11,9 +11,6 @@ type GuardInstance = Guard;
  * It provides various methods for interacting with guards and validating user credentials.
  */
 declare class Auth {
-  // The default guard to be used for authentication.
-  private static defaultGuard: string;
-
   /**
    * Attempts to authenticate a user based on the provided credentials.
    * @param credentials - The user credentials (e.g., username and password).
@@ -117,4 +114,4 @@ declare class Auth {
   static guard(name?: string | null): GuardInstance;
 }
 
-export = Auth;
+export default Auth;

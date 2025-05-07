@@ -52,4 +52,4 @@ declare class FileHandler {
   static date(fmt: string): string;
 }
 
-export = FileHandler;
+export default FileHandler;

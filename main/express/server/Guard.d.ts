@@ -23,5 +23,4 @@ declare class Guard {
    */
   check(): object | false;
 }
-
-export = Guard;
+export default Guard;

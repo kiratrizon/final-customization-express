@@ -29,4 +29,4 @@ declare class Argon {
   static check(password: string, hash: string): Promise<boolean>;
 }
 
-export = Argon;
+export default Argon;

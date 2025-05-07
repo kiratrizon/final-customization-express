@@ -30,4 +30,4 @@ declare class RouteMiddleware {
   getMiddlewares(): Function[];
 }
 
-export = RouteMiddleware;
+export default RouteMiddleware;

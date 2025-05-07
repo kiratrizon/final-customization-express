@@ -340,14 +340,14 @@ declare class QueryBuilder {
    * This method runs the query and returns the data as an array, optionally mapped to model instances.
    * @returns A promise that resolves to the result set, either as raw data or model instances.
    */
-  async get(): Promise<any[]>;
+  get(): Promise<any[]>;
 
   /**
    * Executes the query and retrieves the first result.
    * This method runs the query and returns the first matching result, or null if no result is found.
    * @returns A promise that resolves to the first result, or null if no result is found.
    */
-  async first(): Promise<any | null>;
+  first(): Promise<any | null>;
 
   /**
    * Inserts data into the table.
@@ -356,7 +356,7 @@ declare class QueryBuilder {
    * @throws Error if the data is invalid.
    * @returns A promise that resolves to the result of the insert operation.
    */
-  async insert(data: object | object[]): Promise<any>;
+  insert(data: object | object[]): Promise<any>;
 }
 
-export = QueryBuilder;
+export default QueryBuilder;

@@ -85,4 +85,4 @@ declare class RouteMethod {
   };
 }
 
-export = RouteMethod;
+export default RouteMethod;

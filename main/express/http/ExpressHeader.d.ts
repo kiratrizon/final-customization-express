@@ -5,10 +5,6 @@
  * It provides an easy interface to retrieve all headers.
  */
 declare class ExpressHeader {
-  /**
-   * Stores the headers in an object.
-   */
-  private header: Record<string, any>;
 
   /**
    * Constructs the ExpressHeader instance.
@@ -23,4 +19,4 @@ declare class ExpressHeader {
   all(): Record<string, any>;
 }
 
-export = ExpressHeader;
+export default ExpressHeader;

@@ -68,4 +68,4 @@ declare class ExpressResponse {
   };
 }
 
-export = ExpressResponse;
+export default ExpressResponse;

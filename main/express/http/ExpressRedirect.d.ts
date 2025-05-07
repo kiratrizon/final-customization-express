@@ -28,4 +28,4 @@ declare class ExpressRedirect {
   setStatusCode(code: number): this;
 }
 
-export = ExpressRedirect;
+export default ExpressRedirect;
