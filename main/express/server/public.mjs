@@ -400,7 +400,7 @@ class Carbon {
             hours: Carbon.#timeAlters.hours,
             minutes: Carbon.#timeAlters.minutes,
             seconds: Carbon.#timeAlters.seconds,
-        }).setZone(configApp.default.timezone || 'UTC');
+        }).setZone(configApp.timezone || 'UTC');
         Carbon.#reset();
         return getDateTime;
     }

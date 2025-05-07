@@ -82,6 +82,10 @@ class BlueprintAlter {
     getQueries() {
         return this.#alterQueries;
     }
+
+    toSql() {
+        return this.#alterQueries.join('; ');
+    }
 }
 
 export default BlueprintAlter;

@@ -31,7 +31,8 @@ class DatabaseManager {
             sql = sql.replace(/\?/g, () => `$${paramIndex++}`);
         }
 
-        if (await config('query_trace')) {
+        const queryTrace = await config('query_trace');
+        if (queryTrace) {
             console.log('Query Trace:', this.getQueryTrace(sql, params));
         }
 

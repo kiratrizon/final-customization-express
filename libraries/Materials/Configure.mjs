@@ -30,8 +30,8 @@ class Configure {
       // Dynamically import the JS file instead of require
       if (fs.existsSync(pathJs + '.mjs')) {
         const module = await import(pathToFileURL(pathJs + '.mjs').href);  // Use dynamic import
-        Configure.#storedData[firstKey] = module;
-        configData = Configure.#storedData[firstKey].default;
+        Configure.#storedData[firstKey] = module.default;
+        configData = Configure.#storedData[firstKey];
       }
 
       keys.forEach((key) => {
@@ -69,6 +69,12 @@ class Configure {
     }
 
     let current = Configure.#storedData[firstKey];
+
+    if (keys.length === 0) {
+      // If no keys left, assign the data directly
+      Configure.#storedData[firstKey] = data;
+      return;
+    }
 
     // Traverse the keys
     keys.forEach((key, index) => {

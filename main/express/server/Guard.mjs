@@ -22,7 +22,7 @@ class Guard {
         }
     }
 
-    async attempt(data = {}) {
+    async attempt(data = {}, remember = false) {
         if (!is_object(data)) {
             return null;
         }
@@ -56,12 +56,17 @@ class Guard {
                 if (Hash.check(data.password, user.password)) {
                     if (this.#driver === 'jwt') {
                         let filtered = user.getJWTCustomClaims();
-                        const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${user.id}`;
+                        const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}`;
+                        filtered.role = keyName;
                         const cache = new MemoryCache();
-                        cache.setExpiration(null);
+                        let expiration = jwtObj.expiration.default * 60;
+                        if (remember) {
+                            expiration = expiration * 30;
+                        }
+                        cache.setExpiration(expiration);
                         // save to cache
-                        await cache.set(keyName, user.makeVisible('password').toJson());
-                        return JWT.generateToken(filtered, jwtObj.secret_key, jwtObj.expiration.default * 60, jwtObj.algorithm);
+                        await cache.set(`${keyName}__${user.id}`, user.makeVisible('password').toJson());
+                        return JWT.generateToken(filtered, jwtObj.secret_key, expiration, jwtObj.algorithm);
                     } else if (this.#driver === 'session') {
                         return user;
                     }
@@ -81,7 +86,7 @@ class Guard {
             }
 
             // Remove the 'Bearer ' part from the token string
-            const cleanedToken = token.replace('Bearer ', '');
+            const cleanedToken = String(token).replace('Bearer ', '');
 
             try {
                 // Verify the token using JWT and your secret key
@@ -100,8 +105,8 @@ class Guard {
         if (check) {
             if (this.#driver === 'jwt') {
                 const cache = new MemoryCache();
-                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}_${check.sub}`;
-                const user = await cache.get(keyName);
+                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}`;
+                const user = await cache.get(`${keyName}_${check.sub}`);
                 if (user) {
                     console.log('user from cache', user);
                     return new Collection(this.#model).one([user]);
@@ -112,7 +117,7 @@ class Guard {
                     if (userFromDB) {
                         // Store in cache for future use
                         cache.setExpiration(null);
-                        await cache.set(keyName, userFromDB.makeVisible('password').toArray());
+                        await cache.set(`${keyName}_${check.sub}`, userFromDB.makeVisible('password').toArray());
                         userFromDB.makeHidden('password');
                         return userFromDB;
                     }
@@ -127,6 +132,19 @@ class Guard {
         if (check) {
             if (this.#driver === 'jwt') {
                 return check.sub;
+            }
+        }
+        return null;
+    }
+
+    logout() {
+        const check = this.check();
+        if (check) {
+            if (this.#driver === 'jwt') {
+                const cache = new MemoryCache();
+                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}`;
+                cache.delete(`${keyName}_${check.sub}`);
+                return true;
             }
         }
         return null;

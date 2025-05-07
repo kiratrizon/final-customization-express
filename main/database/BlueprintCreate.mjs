@@ -142,7 +142,7 @@ class BlueprintCreateTable {
 
     toSql() {
         let sql = `CREATE TABLE ${this.#tableName} (`;
-        const columnDefinitions = this.#columns.map(col => `${col.column} ${col.datatype}`);
+        const columnDefinitions = this.#columns.map(col => `${this.#escapeIdentifier(col.column)} ${col.datatype}`);
         sql += columnDefinitions.join(', ');
         sql += ');';
 
@@ -152,6 +152,19 @@ class BlueprintCreateTable {
         });
 
         return sql;
+    }
+    #escapeIdentifier(column) {
+        switch (dbUsed) {
+            case 'mysql':
+                return `\`${column}\``; // backticks for MySQL
+            case 'pgsql':
+            case 'postgres':
+            case 'postgresql':
+            case 'sqlite':
+                return `"${column.replace(/"/g, '""')}"`; // double quotes, escaped if needed
+            default:
+                return column; // fallback (no escaping)
+        }
     }
 }
 
