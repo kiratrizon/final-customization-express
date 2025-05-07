@@ -128,7 +128,7 @@ class FileHandler {
   }
 
   static validatePath() {
-    if (env('NODE_ENV') !== 'production') {
+    if (!IN_PRODUCTION) {
       if (!fs.existsSync(FileHandler.filePath)) {
         fs.mkdirSync(FileHandler.filePath, { recursive: true });
       }

@@ -4,8 +4,6 @@ import { Request, Response, NextFunction } from "express";
 
 declare class FileHandler {
   static filePath: string;
-  private static _useBusboy: boolean;
-
   /**
    * Returns a Multer middleware handler
    */

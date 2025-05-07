@@ -1,21 +1,30 @@
-import QueryBuilder from "../../../main/database/Manager/QueryBuilder.mjs";
-import ConstructorModel from "./ConstructorModel.mjs";
+import EloquentBuilder from "../../../main/database/Manager/EloquentBuilder.mjs";
 
+
+/** @type {typeof import('../../../main/database/Manager/QueryBuilder').default} */
+const QueryBuilder = (await import("../../../main/database/Manager/QueryBuilder.mjs")).default;
+
+/** @type {typeof import("../../../main/base/core/ConstructorModel.mjs").default} */
+const ConstructorModel = (await import("../../../main/base/core/ConstructorModel.mjs")).default;
 
 class BaseModel extends ConstructorModel {
     fillable = [];
     timestamp = true;
     guarded = [];
     hidden = [];
-    static create(data) {
-        const builder = new QueryBuilder(this);
-        return builder.create(data);
+    static async create(data) {
+        const eloquentBuilder = new EloquentBuilder(this);
+        return await eloquentBuilder.create(data);
     }
 
     static async find(id) {
-        const builder = new QueryBuilder(this);
-        builder.where('id', id);
-        return await builder.first();
+        const eloquentBuilder = new EloquentBuilder(this);
+        return await eloquentBuilder.find(id);
+    }
+
+    static async findOrFail(id) {
+        const eloquentBuilder = new EloquentBuilder(this);
+        return await eloquentBuilder.findOrFail(id);
     }
 
     static async all() {
@@ -36,36 +45,31 @@ class BaseModel extends ConstructorModel {
 
     static whereIn(...args) {
         const builder = new QueryBuilder(this);
-        return builder.whereIn(...args);
+        return builder.whereIn(args[0], args[1]);
     }
 
     static whereNotIn(...args) {
         const builder = new QueryBuilder(this);
-        return builder.whereNotIn(...args);
+        return builder.whereNotIn(args[0], args[1]);
     }
 
-    static whereNull(...args) {
+    static whereNull(column) {
         const builder = new QueryBuilder(this);
-        return builder.whereNull(...args);
+        return builder.whereNull(column);
     }
 
-    static whereNotNull(...args) {
+    static whereNotNull(column) {
         const builder = new QueryBuilder(this);
-        return builder.whereNotNull(...args);
+        return builder.whereNotNull(column);
     }
 
-    static whereBetween(...args) {
+    static whereBetween(column, values = []) {
         const builder = new QueryBuilder(this);
-        return builder.whereBetween(...args);
+        return builder.whereBetween(column, values);
     }
-    static whereNotBetween(...args) {
+    static whereNotBetween(column, values = []) {
         const builder = new QueryBuilder(this);
-        return builder.whereNotBetween(...args);
-    }
-
-    static async delete(id) {
-        const builder = new QueryBuilder(this);
-        return await builder.delete(id);
+        return builder.whereNotBetween(column, values);
     }
 
     save(data = {}) {
@@ -73,7 +77,8 @@ class BaseModel extends ConstructorModel {
     }
 
     static query() {
-        return new QueryBuilder(this);
+        const builder = new QueryBuilder(this);
+        return builder;
     }
 
     static select(...args) {
@@ -81,19 +86,28 @@ class BaseModel extends ConstructorModel {
         return builder.select(...args);
     }
 
-    static insert(data = []) {
+    static async insert(data = []) {
         const builder = new QueryBuilder(this);
-        return builder.insert(data);
+        return await builder.insert(data);
     }
 
-    static first() {
+    static async first() {
         const builder = new QueryBuilder(this);
-        return builder.first();
+        return await builder.first();
     }
 
     static orderBy(key, direction = 'ASC') {
         const builder = new QueryBuilder(this);
         return builder.orderBy(key, direction);
+    }
+
+    static async update(id = null, data = {}) {
+        if (empty(id)) {
+            return null;
+        }
+        const builder = new QueryBuilder(this);
+        builder.where('id', id);
+        return await builder.update(data);
     }
 }
 

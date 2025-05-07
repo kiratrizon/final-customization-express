@@ -8,7 +8,7 @@ const databases = {
     postgresql: Postgresql,
 };
 
-if (env('NODE_ENV') !== 'production') {
+if (!IN_PRODUCTION) {
     const sqlite = (await import('./SQLite.mjs')).default;
     databases.sqlite = sqlite;
 }
@@ -32,8 +32,7 @@ class DatabaseManager {
         }
 
         if (await config('query_trace')) {
-            const tracing = new Error().stack.split('\n').slice(2).map(line => line.trim()).join('\n');
-            log(tracing + this.getQueryTrace(sql, params), 'query_trace', 'Query Trace:');
+            console.log('Query Trace:', this.getQueryTrace(sql, params));
         }
 
         return await DatabaseManager.#databaseServer.query(sql, params);

@@ -56,7 +56,7 @@ class MemoryCache {
 }
 
 let cache;
-if (env('USE_MEMORY_CACHE') === 'true' && env('NODE_ENV') !== 'production') {
+if (env('USE_MEMORY_CACHE') === 'true' && !IN_PRODUCTION) {
     cache = MemoryCache;
 } else {
     cache = Redis;

@@ -48,7 +48,7 @@ class SQLite {
             } catch (err) {
                 console.error('SQLite Query Error:', err);
                 console.log(query);
-                resolve(null);
+                reject('SQLite Query Error:' + err);
             }
         });
     }

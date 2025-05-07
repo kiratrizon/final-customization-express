@@ -1,71 +1,66 @@
 // ExpressResponse.d.ts
 
-/**
- * ExpressResponse provides a structured way to build and manage HTTP responses,
- * mimicking Laravel's fluent response syntax. Supports HTML and JSON responses,
- * with header control and status code customization.
- */
 declare class ExpressResponse {
   /**
-   * Creates an instance of ExpressResponse.
-   *
-   * @param html - Optional initial HTML content to set.
+   * Create a new ExpressResponse instance.
+   * @param html Optional initial HTML content to respond with.
    */
   constructor(html?: string | null);
 
   /**
-   * Sets a JSON response body with an optional status code.
-   * Throws an error if HTML response is already set.
-   *
-   * @param data - The data to be returned as JSON.
-   * @param statusCode - Optional HTTP status code (default: 200).
-   * @returns The current instance for method chaining.
+   * Set a JSON response with optional status code.
+   * @param data The JSON-serializable data.
+   * @param statusCode Optional HTTP status code.
    */
   json(data: any, statusCode?: number): this;
 
   /**
-   * Sets a response header.
-   * Throws an error if HTML response is already set.
-   *
-   * @param key - Header name.
-   * @param value - Header value.
-   * @returns The current instance for method chaining.
+   * Set a single header key-value pair.
+   * @param key Header name.
+   * @param value Header value.
    */
   header(key: string, value: string): this;
 
   /**
-   * Sets an HTML response body with an optional status code.
-   * Throws an error if a JSON response is already set.
-   *
-   * @param content - The HTML content to return.
-   * @param statusCode - Optional HTTP status code (default: 200).
-   * @returns The current instance for method chaining.
+   * Set HTML content to be returned with optional status code.
+   * @param content HTML string.
+   * @param statusCode Optional HTTP status code.
    */
   html(content: string, statusCode?: number): this;
 
   /**
-   * Merges additional headers into the response.
-   * Throws an error if headers are invalid.
-   *
-   * @param headers - A key-value map of headers.
-   * @returns The current instance for method chaining.
+   * Set multiple headers at once.
+   * @param headers Key-value pairs of headers.
    */
   withHeaders(headers: Record<string, string>): this;
 
   /**
-   * Returns the final response data in a structured format,
-   * including the content type, status code, and headers.
-   * Throws an error if no response content was set.
-   *
-   * @returns An object containing the response details.
+   * Returns all internal response data for processing by the server layer.
    */
   accessData(): {
     html: string | null;
     json: any;
-    headers: Record<string, string>;
+    file: string | null;
+    download: [string] | [string, string] | null;
+    error: string | null;
+    headers: { [key: string]: string };
     statusCode: number;
-    returnType: "html" | "json";
+    returnType: "html" | "json" | "file" | "download" | undefined;
   };
+
+  /**
+   * Set a file to send as a response.
+   * @param filePath Path to the file.
+   * @param statusCode Optional HTTP status code.
+   */
+  file(filePath: string, statusCode?: number): this;
+
+  /**
+   * Set a file to download as a response.
+   * @param filePath A string path or a tuple of [filePath, downloadName].
+   * @param statusCode Optional HTTP status code.
+   */
+  download(filePath: string | [string, string], statusCode?: number): this;
 }
 
 export default ExpressResponse;

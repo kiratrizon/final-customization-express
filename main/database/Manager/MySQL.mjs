@@ -17,7 +17,7 @@ class MySQL {
             MySQL.pool.query(query, params, (err, results) => {
                 if (err) {
                     console.log('MySQL Query Error:', err);
-                    return resolve(null);
+                    return reject('MySQL Query Error:' + err);
                 }
 
                 let data;

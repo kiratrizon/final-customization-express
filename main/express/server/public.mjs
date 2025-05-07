@@ -188,11 +188,10 @@ functionDesigner('appendFile', (fileString = '', content = '') => {
     if (fileString === '') {
         return;  // Return early if no filename is provided
     }
-    const basePath = path.join('..', '..', '..');
 
     try {
         // Append content to the file, creating it if it doesn't exist
-        fs.appendFileSync(path.join(__dirname, basePath, fileString), content, 'utf8');
+        fs.appendFileSync(fileString, content, 'utf8');
     } catch (err) {
         return;  // Return if there's an error, no exception thrown
     }

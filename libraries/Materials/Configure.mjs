@@ -8,8 +8,8 @@ const __dirname = dirname(__filename);
 
 
 class Configure {
-  static storedData = {};
-  static basePath = path.join(__dirname, '..', '..', 'config');
+  static #storedData = {};
+  static #basePath = path.join(__dirname, '..', '..', 'config');
 
   static async read(pathString) {
     let keys = pathString.split(".").map((key) => {
@@ -17,21 +17,21 @@ class Configure {
       return Number.isInteger(parsed) ? parsed : key;
     });
 
-    let basePath = Configure.basePath;
+    let basePath = Configure.#basePath;
     let configData = null;
 
     if (keys.length) {
       const firstKey = String(keys.shift());
       const pathJs = path.join(basePath, firstKey);
-      if (!keys.length && Configure.storedData[firstKey]) {
-        return Configure.storedData[firstKey];
+      if (!keys.length && Configure.#storedData[firstKey]) {
+        return Configure.#storedData[firstKey];
       }
 
       // Dynamically import the JS file instead of require
       if (fs.existsSync(pathJs + '.mjs')) {
         const module = await import(pathToFileURL(pathJs + '.mjs').href);  // Use dynamic import
-        Configure.storedData[firstKey] = module;
-        configData = Configure.storedData[firstKey].default;
+        Configure.#storedData[firstKey] = module;
+        configData = Configure.#storedData[firstKey].default;
       }
 
       keys.forEach((key) => {
@@ -60,7 +60,7 @@ class Configure {
 
     const firstKey = String(keys.shift());
 
-    // If firstKey still doesn't exist in storedData after reading, throw an error
+    // If firstKey still doesn't exist in #storedData after reading, throw an error
     if (await (Configure.read(firstKey)) === undefined) {
       console.warn(
         `Warning: "${firstKey}" does not exist in config path.`
@@ -68,7 +68,7 @@ class Configure {
       return;
     }
 
-    let current = Configure.storedData[firstKey];
+    let current = Configure.#storedData[firstKey];
 
     // Traverse the keys
     keys.forEach((key, index) => {
@@ -87,6 +87,10 @@ class Configure {
         current = current[keyToUse]; // Move deeper
       }
     });
+  }
+
+  static reset() {
+    Configure.#storedData = {};
   }
 }
 
