@@ -1,5 +1,4 @@
 import { Client } from 'pg';
-import Configure from '../../../libraries/Materials/Configure.mjs';
 
 class Postgres {
     static client = null;
@@ -12,7 +11,7 @@ class Postgres {
     }
 
     static async init() {
-        const pgConfig = await Configure.read('app.database.postgresql');
+        const pgConfig = await config('app.database.postgresql');
         Postgres.#pgConfig = pgConfig;
     }
 

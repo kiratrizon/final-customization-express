@@ -1,23 +1,31 @@
 import mysql from 'mysql2';
-import Configure from '../../../libraries/Materials/Configure.mjs';
 
 class MySQL {
     static pool = null;
     static #mysqlProp;
+
     constructor() {
         if (!MySQL.pool) {
             MySQL.pool = mysql.createPool(MySQL.#mysqlProp);
         }
     }
 
-    query(query, params = []) {
-        return new Promise((resolve, reject) => {
-            const queryType = query.trim().split(' ')[0].toLowerCase();
+    async query(query, params = []) {
+        if (!MySQL.#mysqlProp) {
+            throw new Error('MySQL not initialized');
+        }
 
+        const queryType = query.trim().split(' ')[0].toLowerCase();
+        const startTime = Date.now();
+
+        return new Promise((resolve, reject) => {
             MySQL.pool.query(query, params, (err, results) => {
+                const duration = Date.now() - startTime;
+                console.log(`Query executed in ${duration}ms: ${query}`); // Log query duration
+
                 if (err) {
-                    console.log('MySQL Query:', query);
-                    return reject('MySQL Query Error:' + err);
+                    console.error('MySQL Query Error:', err.message, err.stack);
+                    return reject('MySQL Query Error: ' + err);
                 }
 
                 let data;
@@ -67,8 +75,9 @@ class MySQL {
             }
         });
     }
+
     static async init() {
-        const mysqlProp = await Configure.read('app.database.mysql');
+        const mysqlProp = await config('app.database.mysql');
         MySQL.#mysqlProp = mysqlProp;
     }
 }
