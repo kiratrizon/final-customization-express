@@ -10,6 +10,7 @@ class Migrate {
             table.id();
             table.string('token');
             table.string('origin');
+            table.string('role');
             table.timestamp();
         });
 
