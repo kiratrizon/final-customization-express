@@ -3,6 +3,7 @@ import Authenticatable from "../main/base/Authenticatable.mjs";
 
 class User extends Authenticatable {
     static factory = true;
+    static softDelete = true;
 
     fillable = [
         'name',

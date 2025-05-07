@@ -29,10 +29,12 @@ class UserController extends Controller {
     }
 
     async users(request) {
+        // delete
+        await config('query_trace', 1);
+        await User.where('id', 1).delete();
         const users = (await User.all()).map((user) => {
             return user.toArray();
         });
-        await config('query_trace', 1);
         return response().json({ users });
     }
 

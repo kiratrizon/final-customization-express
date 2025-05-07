@@ -67,6 +67,9 @@ class Collection {
         }
 
         const fillable = this.#fillable;
+        if (this.#staticModel.softDelete) {
+            fillable.push('deleted_at');
+        }
         const guarded = this.#guarded;
 
         for (const data of validateData) {

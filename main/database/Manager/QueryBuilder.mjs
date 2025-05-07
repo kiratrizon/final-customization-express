@@ -539,7 +539,7 @@ class QueryBuilder {
     }
 
     toSql() {
-        if (this.#isModel && this.#model.softDelete) {
+        if (this.#isModel && this.#staticModel.softDelete) {
             this.whereNull('deleted_at');
         }
         const rsql = new RawSQL(this.getAllProps());
@@ -618,32 +618,33 @@ class QueryBuilder {
         if (!is_object(data)) {
             throw new Error('Invalid data type for update');
         }
-        if (this.#isModel && this.#model.softDelete) {
+        if (this.#isModel && this.#staticModel.softDelete) {
             this.whereNull('deleted_at');
         }
         const newDB = new DBManager();
         if (this.#isModel) {
             const collection = new Collection(this.#staticModel);
+            data.deleted_at = date('Y-m-d H:i:s');
             if (!collection.validateFillableGuard([data])) return null;
         }
 
         const rsql = new RawSQL(this.getAllProps());
         let { sql, values } = rsql.buildUpdate(data);
-        return await newDB.runQuery(sql, this.#values.concat(values, this.#orValues, this.#havingValues, this.#orHavingValues));
+        return await newDB.runQuery(sql, values.concat(this.#values, this.#orValues, this.#havingValues, this.#orHavingValues));
     }
 
     async delete() {
-        if (this.#isModel && this.#model.softDelete) {
+        if (this.#isModel && this.#staticModel.softDelete) {
             return await this.update({ deleted_at: date('Y-m-d H:i:s') });
         }
         const newDB = new DBManager();
         const rsql = new RawSQL(this.getAllProps());
         let { sql, values } = rsql.buildDelete();
-        return await newDB.runQuery(sql, this.#values.concat(this.#orValues, this.#havingValues, this.#orHavingValues));
+        return await newDB.runQuery(sql, values.concat(this.#values, this.#orValues, this.#havingValues, this.#orHavingValues));
     }
 
     async count() {
-        if (this.#isModel && this.#model.softDelete) {
+        if (this.#isModel && this.#staticModel.softDelete) {
             this.whereNull('deleted_at');
         }
         const newDB = new DBManager();
