@@ -218,7 +218,9 @@ class Server {
 				renderData(data, res);
 			};
 
-			define('auth', () => Auth);
+			if (!isDefined('auth')) {
+				define('auth', () => Auth, false);
+			}
 
 			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
 			route = (name, args = {}) => {

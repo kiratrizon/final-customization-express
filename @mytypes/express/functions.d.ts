@@ -4,6 +4,7 @@ export {};
 import ExpressView from "main/express/http/ExpressView";
 import ExpressRedirect from "../../main/express/http/ExpressRedirect";
 import ExpressResponse from "../../main/express/http/ExpressResponse";
+import Auth from "main/express/server/Auth";
 
 declare global {
   /** Placeholder for a function that will dump variable contents for debugging. */
@@ -56,4 +57,6 @@ declare global {
     data?: Record<string, any>,
     options?: Record<string, any>
   ): ExpressView;
+
+  var auth: () => Auth;
 }
