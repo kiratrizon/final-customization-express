@@ -1,4 +1,7 @@
-import Route from '../main/express/server/Router/Route.mjs';
+/**
+ * @type {typeof import('../main/express/server/Router/Route').default}
+ */
+const Route = (await import('../main/express/server/Router/Route.mjs')).default;
 
 import UserController from '../app/Controllers/UserController.mjs';
 import AdminController from '../app/Controllers/AdminController.mjs';

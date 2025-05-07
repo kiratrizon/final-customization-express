@@ -1,167 +1,108 @@
-import RouteMethod from "./RouteHandlers/method";
+// Route.d.ts
+
 import RouteGroup from "./RouteHandlers/group";
+import RouteMethod from "./RouteHandlers/method";
+import Controller from "../../../base/Controller.mjs";
 
+/**
+ * Represents a route management system.
+ * Handles the registration and processing of HTTP routes, including methods such as GET, POST, PUT, DELETE, etc.
+ */
 declare class Route {
-  private static routeId: number;
-  private static groupId: number;
-  private static storedControllers: { [key: string]: any };
-  private static currentGroup: string[];
-  private static groupPreference: { [key: string]: RouteGroup };
-  private static methodPreference: { [key: string]: RouteMethod };
-  private static defaultRoute: {
-    get: number[];
-    post: number[];
-    put: number[];
-    delete: number[];
-    patch: number[];
-    options: number[];
-    head: number[];
-    all: number[];
-  };
+  /**
+   * Adds a view route with a specified path and data.
+   * @param path - The path for the view route.
+   * @param viewName - The name of the view.
+   * @param data - Data to be passed to the view.
+   * @returns The created route.
+   */
+  static view(path: string, viewName: string, data: any): RouteMethod;
 
   /**
-   * Registers a route with a view handler.
-   * @param {string} path The URL path for the route.
-   * @param {string} viewName The view name to render.
-   * @param {Object} data The data to pass to the view.
-   * @returns {RouteMethod} The route method instance.
+   * Registers a GET route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  static view(path: string, viewName: string, data: object): RouteMethod;
+  static get(url: string, handler: any): RouteMethod;
 
   /**
-   * Processes the route handler for a given method.
-   * @param {Function | string[]} handler The handler (controller or callback function).
-   * @param {string} method The HTTP method (GET, POST, etc.).
-   * @private
-   * @returns {Function} The processed route handler.
+   * Registers a POST route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  private static handlerProcessor(
-    handler: Function | string[],
-    method: string
-  ): Function;
+  static post(url: string, handler: any): RouteMethod;
 
   /**
-   * Processes and registers the route with method, URL, and handler.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @param {string} method The HTTP method (GET, POST, etc.).
-   * @param {string[]} hasMatch Optional regex match groups for the route.
-   * @private
-   * @returns {RouteMethod} The route method instance.
+   * Registers a PUT route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  private static processRoute(
-    url: string,
-    handler: Function | string[],
-    method: string,
-    hasMatch?: string[]
-  ): RouteMethod;
+  static put(url: string, handler: any): RouteMethod;
 
   /**
-   * Combines and returns the current route group prefix.
-   * @private
-   * @returns {string} The combined route group prefix.
+   * Registers a DELETE route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  private static groupCombiner(): string;
+  static delete(url: string, handler: any): RouteMethod;
 
   /**
-   * Registers a route group.
-   * @param {Object} config Configuration for the group (e.g., prefix).
-   * @param {Function} callback The callback to execute within the group context.
+   * Registers a PATCH route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  static group(config: { prefix?: string }, callback: Function): void;
+  static patch(url: string, handler: any): RouteMethod;
 
   /**
-   * Registers a GET route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
+   * Registers an OPTIONS route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  static get(url: string, handler: Function | string[]): RouteMethod;
+  static options(url: string, handler: any): RouteMethod;
 
   /**
-   * Registers a POST route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
+   * Registers a HEAD route with the specified URL and handler.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  static post(url: string, handler: Function | string[]): RouteMethod;
+  static head(url: string, handler: any): RouteMethod;
 
   /**
-   * Registers a PUT route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
+   * Registers an "all" route that listens for all HTTP methods.
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  static put(url: string, handler: Function | string[]): RouteMethod;
+  static all(url: string, handler: any): RouteMethod;
 
   /**
-   * Registers a DELETE route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
+   * Registers a route that listens for a specified set of HTTP methods.
+   * @param methods - An array of HTTP methods (GET, POST, etc.).
+   * @param url - The URL pattern for the route.
+   * @param handler - The handler function or controller-action pair.
+   * @returns The created route.
    */
-  static delete(url: string, handler: Function | string[]): RouteMethod;
+  static match(methods: string[], url: string, handler: any): RouteMethod;
 
   /**
-   * Registers a PATCH route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
+   * Defines a route group with specific configuration.
+   * @param config - The configuration object for the route group.
+   * @param callback - A callback function to define routes within the group.
    */
-  static patch(url: string, handler: Function | string[]): RouteMethod;
+  static group(config: { prefix?: string }, callback: () => void): void;
 
   /**
-   * Registers an OPTIONS route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
+   * Returns all the registered routes and their configurations.
+   * @returns An object containing all the routes, groups, and defaults.
    */
-  static options(url: string, handler: Function | string[]): RouteMethod;
-
-  /**
-   * Registers a HEAD route.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
-   */
-  static head(url: string, handler: Function | string[]): RouteMethod;
-
-  /**
-   * Registers a route for multiple methods.
-   * @param {string[]} methods The HTTP methods to register (e.g., ['get', 'post']).
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
-   */
-  static match(
-    methods: string[],
-    url: string,
-    handler: Function | string[]
-  ): RouteMethod;
-
-  /**
-   * Registers a route for all HTTP methods.
-   * @param {string} url The URL path for the route.
-   * @param {Function | string[]} handler The handler for the route.
-   * @returns {RouteMethod} The route method instance.
-   */
-  static all(url: string, handler: Function | string[]): RouteMethod;
-
-  /**
-   * Reveals the route data, including default routes, groups, and method preferences.
-   * @returns {Object} The route data.
-   */
-  reveal(): {
-    default_route: { [key: string]: number[] };
-    group: { [key: string]: RouteGroup };
-    routes: { [key: string]: RouteMethod };
-  };
-
-  /**
-   * Resets the route configuration.
-   * @private
-   */
-  private reset(): void;
+  reveal(): Record<string, any>;
 }
 
 export default Route;
