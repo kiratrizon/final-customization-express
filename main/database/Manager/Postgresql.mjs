@@ -28,34 +28,45 @@ class Postgres {
         return true;
     }
 
-    async query(query, params = []) {
-        const queryType = query.trim().split(' ')[0].toLowerCase();
+    query(query, params = []) {
+        return new Promise((resolve, reject) => {
+            const queryType = query.trim().split(' ')[0].toLowerCase();
 
-        const connected = await this.#ensureConnection();
-        if (!connected) return null;
+            this.#ensureConnection().then(connected => {
+                if (!connected) return resolve(null);
 
-        try {
-            const result = await Postgres.client.query(query, params);
+                Postgres.client.query(query, params, (err, result) => {
+                    if (err) {
+                        console.error('PostgreSQL Query Error:', err);
+                        return reject('PostgreSQL Query Error: ' + err);
+                    }
 
-            switch (queryType) {
-                case 'insert':
-                    return result.rows[0]?.id || null;
-                case 'update':
-                case 'delete':
-                    return result.rowCount > 0;
-                case 'create':
-                case 'alter':
-                case 'drop':
-                    return true;
-                case 'select':
-                    return result.rows.length > 0 ? result.rows : [];
-                default:
-                    return result;
-            }
-        } catch (err) {
-            console.error('PostgreSQL Query Error:', err);
-            return null;
-        }
+                    let data;
+                    switch (queryType) {
+                        case 'insert':
+                            data = result.rows[0]?.id || null;
+                            break;
+                        case 'update':
+                        case 'delete':
+                            data = result.rowCount > 0;
+                            break;
+                        case 'create':
+                        case 'alter':
+                        case 'drop':
+                            data = true;
+                            break;
+                        case 'select':
+                            data = result.rows.length > 0 ? result.rows : [];
+                            break;
+                        default:
+                            data = result;
+                            break;
+                    }
+
+                    return resolve(data);
+                });
+            });
+        });
     }
 
     escape(value) {

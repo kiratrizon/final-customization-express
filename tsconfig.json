@@ -8,7 +8,9 @@
     "checkJs": true,
     "allowJs": true,
     "noEmit": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "lib": ["es2022", "dom"],
+    "strict": false
   },
   "include": [
     "@mytypes/**/*.d.ts",

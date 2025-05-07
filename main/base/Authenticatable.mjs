@@ -1,7 +1,12 @@
-import Model from "./Model.mjs";
+/**
+ * @type {typeof import('./core/BaseModel.mjs').default}
+ */
+const Model = (await import('./core/BaseModel.mjs')).default;
 
 
 class Authenticatable extends Model {
+    password;
+
     getAuthIdentifierName() {
         return 'id';
     }
@@ -25,7 +30,6 @@ class Authenticatable extends Model {
     getRememberTokenName() {
         return 'remember_token';
     }
-
 }
 
 export default Authenticatable;

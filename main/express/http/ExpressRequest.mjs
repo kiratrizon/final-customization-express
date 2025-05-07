@@ -82,7 +82,7 @@ class ExpressRequest {
         const data = this.only(keys);
         const validator = await Validator.make(data, rules);
         if (validator.fails()) {
-            $custom_error(validator.getErrors());
+            custom_error(validator.getErrors());
         }
         return data;
     }

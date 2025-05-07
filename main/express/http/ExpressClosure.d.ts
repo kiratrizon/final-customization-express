@@ -3,4 +3,4 @@ declare class ExpressClosure {
   // This should be implemented to call the next middleware in the stack
   next(): boolean;
 }
-export = ExpressClosure;
+export default ExpressClosure;

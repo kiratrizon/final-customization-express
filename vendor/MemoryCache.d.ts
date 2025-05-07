@@ -6,4 +6,4 @@ declare class MemoryCache {
   delete(key: string): Promise<void>;
 }
 
-export = MemoryCache;
+export default MemoryCache;

@@ -32,6 +32,7 @@ class UserController extends Controller {
         const users = (await User.all()).map((user) => {
             return user.toArray();
         });
+        log($_SERVER, 'server', 'Info: ');
         return response().json({ users });
     }
 

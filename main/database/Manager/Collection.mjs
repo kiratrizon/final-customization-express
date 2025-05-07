@@ -1,6 +1,5 @@
 class Collection {
 
-    #isModel;
     #instancedModel = null;
     #guarded = [];
     #fillable = [];
@@ -60,6 +59,35 @@ class Collection {
         delete this.#instancedModel.factory;
 
         return this.#instancedModel;
+    }
+
+    validateFillableGuard(validateData = []) {
+        if (!Array.isArray(validateData)) {
+            return null;  // Ensure the input is an array.
+        }
+
+        const fillable = this.#fillable;
+        const guarded = this.#guarded;
+
+        for (const data of validateData) {
+            const keys = Object.keys(data);
+            keys.forEach((key) => {
+                // if key is in guarded, throw error
+                if (guarded.includes(key)) {
+                    throw new Error(`The ${key} field is guarded and cannot be mass assigned.`);
+                }
+                // if key is not in fillable, throw error
+                if (!fillable.includes(key)) {
+                    throw new Error(`The ${key} field is not fillable.`);
+                }
+                // if undefined, throw error
+                if (data[key] === undefined) {
+                    throw new Error(`The ${key} field is undefined.`);
+                }
+            });
+        }
+
+        return true;
     }
 }
 

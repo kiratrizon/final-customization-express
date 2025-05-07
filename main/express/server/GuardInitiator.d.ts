@@ -21,4 +21,4 @@ declare class GuardInitiator {
   init(): Guard;
 }
 
-export = GuardInitiator;
+export default GuardInitiator;

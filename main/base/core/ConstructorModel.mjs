@@ -1,4 +1,5 @@
 class ConstructorModel {
+    /** @type  {string[]} */
     #privates = [];
     makeVisible(key) {
         // splice the key from $this.#privates array
@@ -19,6 +20,7 @@ class ConstructorModel {
         return this;
     }
     toJson() {
+        /** @type {Record<string, any>} */
         const data = {};
         for (const key in this) {
             if (Object.hasOwn(this, key) && !this.#privates.includes(key)) {

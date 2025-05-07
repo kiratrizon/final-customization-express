@@ -72,4 +72,4 @@ declare class DatabaseManager {
   close(): Promise<boolean>;
 }
 
-export = DatabaseManager;
+export default DatabaseManager;

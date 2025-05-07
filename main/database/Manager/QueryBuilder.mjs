@@ -2,7 +2,6 @@ import JoinProcessor from './JoinBuilder.mjs';
 import RawSQL from './RawSQL.mjs';
 import DBManager from './DatabaseManager.mjs';
 import Collection from './Collection.mjs';
-import QueryInsert from './QueryInsert.mjs';
 
 class QueryBuilder {
     // for query builder
@@ -543,8 +542,8 @@ class QueryBuilder {
         if (this.#isModel && this.#model.softDelete) {
             this.whereNull('deleted_at');
         }
-        const rsql = new RawSQL(dbUsed, this.getAllProps());
-        let sql = rsql.build();
+        const rsql = new RawSQL(this.getAllProps());
+        let sql = rsql.buildSelect();
         return sql;
     }
     toSqlWithValues() {
@@ -578,9 +577,22 @@ class QueryBuilder {
         return data[0] || null;
     }
 
-    // for collection
-
-    async insert(data) {
+    async insert(data, validate = false) {
+        if (
+            !empty(this.#where)
+            || !empty(this.#having)
+            || !empty(this.#orWhere)
+            || !empty(this.#orHaving)
+            || !empty(this.#orderBy)
+            || !empty(this.#groupBy)
+            || !empty(this.#limit)
+            || !empty(this.#offset)
+            || !empty(this.#join)
+            || !empty(this.#useIndex)
+            || !empty(this.#fields)
+        ) {
+            throw new Error('Insert query cannot have conditions, joins, or other clauses.');
+        }
         const insertData = [];
 
         if (is_array(data) && data.length) {
@@ -592,27 +604,56 @@ class QueryBuilder {
         }
 
         const newDB = new DBManager();
-        const insertQuery = new QueryInsert(this.#table, insertData, dbUsed);
-        const { sql, values } = insertQuery.build();
-        const result = await newDB.runQuery(sql, values);
-        return result;
+        if (this.#isModel) {
+            const collection = new Collection(this.#staticModel);
+            // validate data
+            if (validate && !collection.validateFillableGuard(insertData)) return null;
+        }
+        const rsql = new RawSQL(this.getAllProps());
+        let { sql, values } = rsql.buildInsert(insertData);
+        return await newDB.runQuery(sql, values);
     }
 
-    async find(id) {
-        this.where('id', id);
-        return await this.first();
-    }
-    async delete(id) {
-        const newDB = new DBManager();
-        if (this.#isModel && this.#model.softDelete) {
-            const sql = `UPDATE ${this.#table} SET deleted_at = ? WHERE id = ?`;
-            const values = [date(), id];
-            return await newDB.runQuery(sql, values);
-        } else {
-            const sql = `DELETE FROM ${this.#table} WHERE id = ?`;
-            const values = [id];
-            return await newDB.runQuery(sql, values);
+    async update(data = {}) {
+        if (!is_object(data)) {
+            throw new Error('Invalid data type for update');
         }
+        if (this.#isModel && this.#model.softDelete) {
+            this.whereNull('deleted_at');
+        }
+        const newDB = new DBManager();
+        if (this.#isModel) {
+            const collection = new Collection(this.#staticModel);
+            if (!collection.validateFillableGuard([data])) return null;
+        }
+
+        const rsql = new RawSQL(this.getAllProps());
+        let { sql, values } = rsql.buildUpdate(data);
+        return await newDB.runQuery(sql, this.#values.concat(values, this.#orValues, this.#havingValues, this.#orHavingValues));
+    }
+
+    async delete() {
+        if (this.#isModel && this.#model.softDelete) {
+            return await this.update({ deleted_at: date('Y-m-d H:i:s') });
+        }
+        const newDB = new DBManager();
+        const rsql = new RawSQL(this.getAllProps());
+        let { sql, values } = rsql.buildDelete();
+        return await newDB.runQuery(sql, this.#values.concat(this.#orValues, this.#havingValues, this.#orHavingValues));
+    }
+
+    async count() {
+        if (this.#isModel && this.#model.softDelete) {
+            this.whereNull('deleted_at');
+        }
+        const newDB = new DBManager();
+        const rsql = new RawSQL(this.getAllProps());
+        let sql = rsql.buildCount();
+        const data = await newDB.runQuery(sql, this.#values.concat(this.#orValues, this.#havingValues, this.#orHavingValues));
+        if (data.length) {
+            return data[0].count;
+        }
+        return 0;
     }
 }
 

@@ -3,6 +3,7 @@ import fs from "fs";
 class ExpressResponse {
     #defaultStatusCode = 200;
     #returnStatusCode;
+    /** @type {{ [key: string]: string }} */
     #headers = {};
     #returnData = {
         'html': null,
@@ -11,6 +12,7 @@ class ExpressResponse {
         'download': null,
         'error': null,
     };
+    /** @type {'html' | 'json' | 'file' | 'download' | undefined} */
     #returnType;
     constructor(html = null) {
         if (isset(html) && html) {

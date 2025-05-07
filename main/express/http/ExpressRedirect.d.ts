@@ -26,6 +26,20 @@ declare class ExpressRedirect {
    * @returns The current ExpressRedirect instance.
    */
   setStatusCode(code: number): this;
+
+  /**
+   * Return to the referrer.
+   * @param url - The URL to set.
+   * @returns The current ExpressRedirect instance.
+   */
+  back(): this;
+
+  /**
+   * Redirect to a declared route names in class Route.
+   * @param url - The URL to redirect to.
+   * @returns The current ExpressRedirect instance.
+   */
+  route(url: string): this;
 }
 
-export = ExpressRedirect;
+export default ExpressRedirect;

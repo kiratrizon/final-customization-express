@@ -6,24 +6,46 @@ import flash from 'connect-flash';
 import morgan from 'morgan';
 import Boot from '../../../libraries/Services/Boot.mjs';
 import cors from 'cors';
-import helmet from 'helmet';  // Default import for helmet
+import helmet from 'helmet';
 import { createClient } from 'redis';
 import { RedisStore } from 'connect-redis';
-import FileHandler from '../http/ExpressFileHandler.mjs';
-import ExpressRedirect from '../http/ExpressRedirect.mjs';
-import ExpressRegexHandler from '../http/ExpressRegexHandler.mjs';
-import ExpressResponse from '../http/ExpressResponse.mjs';
-import ExpressView from '../http/ExpressView.mjs';
 import express from 'express';
 import util from 'util';
 import Auth from './Auth.mjs';
-import ExpressRequest from '../http/ExpressRequest.mjs';
-import { fileURLToPath, pathToFileURL } from 'url';
 import fs from 'fs';
+import Configure from '../../../libraries/Materials/Configure.mjs';
 
-// Create __dirname using import.meta.url
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// type
+/**
+ * @type {typeof import('../http/ExpressFileHandler').default}
+ */
+const FileHandler = (await import('../http/ExpressFileHandler.mjs')).default;
+
+/**
+ * @type {typeof import('../http/ExpressRedirect').default}
+ */
+const ExpressRedirect = (await import('../http/ExpressRedirect.mjs')).default;
+
+/**
+ * @type {typeof import('../http/ExpressRegexHandler').default}
+ */
+const ExpressRegexHandler = (await import('../http/ExpressRegexHandler.mjs')).default;
+
+/**
+ * @type {typeof import('../http/ExpressResponse').default}
+ */
+const ExpressResponse = (await import('../http/ExpressResponse.mjs')).default;
+
+/**
+ * @type {typeof import('../http/ExpressView').default}
+ */
+const ExpressView = (await import('../http/ExpressView.mjs')).default;
+
+/**
+ * @type {typeof import('../http/ExpressRequest').default}
+ */
+const ExpressRequest = (await import('../http/ExpressRequest.mjs')).default;
+
 
 
 const myLink = `https://github.com/kiratrizon/final-customization-express`;
@@ -59,10 +81,14 @@ class Server {
 		Server.app.use(FileHandler.handleFiles);
 		Server.app.set('view engine', viewEngine);
 		Server.app.set('views', viewPath());
+		Server.app.set('trust proxy', true);
+
 
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
 
+			// reset Configure always
+			Configure.reset();
 			$_POST = req.body || {};
 			$_GET = req.query || {};
 			$_FILES = req.files || {};
@@ -269,7 +295,7 @@ class Server {
 	static async #handle() {
 		let store;
 		const redisConf = await config('app.redis');
-		if (env('USE_MEMORY_CACHE') !== 'true' && env('NODE_ENV') === 'production') {
+		if (IN_PRODUCTION) {
 			let redisClient = createClient(redisConf);
 
 			try {
@@ -295,7 +321,7 @@ class Server {
 			resave: false,
 			saveUninitialized: false,
 			cookie: {
-				secure: env('NODE_ENV') === 'production',
+				secure: IN_PRODUCTION,
 				httpOnly: true,
 				maxAge: 300000, // 30 seconds
 			},

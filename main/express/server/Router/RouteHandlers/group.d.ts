@@ -105,4 +105,4 @@ declare class RouteGroup {
   ): void;
 }
 
-export = RouteGroup;
+export default RouteGroup;

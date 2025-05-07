@@ -164,4 +164,4 @@ declare class Route {
   private reset(): void;
 }
 
-export = Route;
+export default Route;

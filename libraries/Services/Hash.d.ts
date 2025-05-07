@@ -36,4 +36,4 @@ declare class Hash {
   static check(password: string, hash: string): boolean;
 }
 
-export = Hash;
+export default Hash;
