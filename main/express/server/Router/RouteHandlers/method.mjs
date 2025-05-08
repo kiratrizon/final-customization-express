@@ -3,6 +3,7 @@ import ExpressRedirect from '../../../http/ExpressRedirect.mjs';
 import ExpressView from '../../../http/ExpressView.mjs';
 import RouteMiddleware from './middleware.mjs';
 import Configure from '../../../../../libraries/Materials/Configure.mjs';
+import ExpressError from '../../../http/ExpressError.mjs';
 
 
 class RouteMethod {
@@ -29,9 +30,29 @@ class RouteMethod {
                 keys.forEach((key) => {
                     params[key] = rq.request.params[key] || null;
                 })
-                const expressResponse = await callback(rq, ...Object.values(params));
+                let expressResponse = null;
+                try {
+                    expressResponse = await callback(rq, ...Object.values(params));
+                } catch (error) {
+                    expressResponse = new ExpressError(error);
+                }
                 const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
+                    return;
+                }
+                if (expressResponse instanceof ExpressError) {
+                    let message;
+                    if (expressResponse.error instanceof Error) {
+                        message = expressResponse.error.message;
+                    } else {
+                        message = expressResponse.error;
+                    }
+                    if (isRequest()) {
+                        res.setHeader('Content-Type', 'text/html');
+                        res.status(500).send(expressResponse);
+                    } else {
+                        res.status(500).json({ message });
+                    }
                     return;
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressView)) {

@@ -1,5 +1,6 @@
 import MiddlewareHandler from "../../../../../app/MiddlewareHandler.mjs";
 import ExpressClosure from "../../../http/ExpressClosure.mjs";
+import ExpressError from "../../../http/ExpressError.mjs";
 import ExpressRedirect from "../../../http/ExpressRedirect.mjs";
 import ExpressResponse from "../../../http/ExpressResponse.mjs";
 import ExpressView from "../../../http/ExpressView.mjs";
@@ -39,9 +40,29 @@ class RouteMiddleware {
                 const middlewareInitiator = () => {
                     return new ExpressClosure();
                 }
-                const expressResponse = await middleware(rq, middlewareInitiator);
+                let expressResponse = null;
+                try {
+                    expressResponse = await middleware(rq, middlewareInitiator);
+                } catch (error) {
+                    expressResponse = new ExpressError(error);
+                }
                 const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
+                    return;
+                }
+                if (expressResponse instanceof ExpressError) {
+                    let message;
+                    if (expressResponse.error instanceof Error) {
+                        message = expressResponse.error.message;
+                    } else {
+                        message = expressResponse.error;
+                    }
+                    if (isRequest()) {
+                        res.setHeader('Content-Type', 'text/html');
+                        res.status(500).send(expressResponse);
+                    } else {
+                        res.status(500).json({ message });
+                    }
                     return;
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure || expressResponse instanceof ExpressView)) {
