@@ -7,9 +7,6 @@ import { DateTime } from 'luxon';
 import axios from 'axios';
 
 import { fileURLToPath, pathToFileURL } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 dotenv.config();
 Object.defineProperty(global, 'functionDesigner', {
     value: (key = '', value = null) => {
@@ -66,7 +63,7 @@ functionDesigner('dynamicImport', async (file = '') => {
 });
 
 functionDesigner('basePath', (concatenation = '') => {
-    return path.join(__dirname, '..', '..', '..', concatenation);
+    return path.join(process.cwd(), concatenation);
 });
 
 import Configure from '../../../libraries/Materials/Configure.mjs';

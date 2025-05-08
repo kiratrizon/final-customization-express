@@ -1,6 +1,4 @@
 /// <reference path="./index.d.ts" />
-
-export {};
 interface IFetchDataOption {
   method?: string;
   headers?: Record<string, string>;
@@ -181,7 +179,7 @@ declare global {
    * @param controller - The name of the controller (e.g., "UserController").
    * @returns The path to the controller file as a string.
    */
-  function controllerPath(controller: string): string;
+  function controllerPath(concatenation?: string): string;
 
   /**
    * tmp path
@@ -445,3 +443,4 @@ declare global {
    */
   function getFileContents(fileString?: string): string;
 }
+export {};

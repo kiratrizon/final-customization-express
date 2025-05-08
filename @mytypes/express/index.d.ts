@@ -1,5 +1,3 @@
-export {};
-
 import "express";
 declare module "express-serve-static-core" {
   interface Request {
@@ -27,3 +25,4 @@ declare module "express-serve-static-core" {
     };
   }
 }
+export {};

@@ -107,6 +107,29 @@ class DatabaseManager {
         });
     }
 
+    async isSchemaNotExist() {
+        if (dbType !== 'sqlite') {
+            const notExist = await DatabaseManager.#databaseServer.checkSchema();
+            if (notExist) {
+                return await config(`app.database.${dbType}.database`);
+            }
+        }
+        return false;
+    }
+
+    async createSchema() {
+        if (dbType !== 'sqlite') {
+            const notExist = await DatabaseManager.#databaseServer.checkSchema();
+            if (notExist) {
+                console.log('Creating schema...');
+                const schema = await config(`app.database.${dbType}.database`);
+                await DatabaseManager.#databaseServer.createSchema(schema);
+                return true;
+            }
+        }
+        return false;
+    }
+
     async close() {
         if (DatabaseManager.#databaseServer?.close) {
             await DatabaseManager.#databaseServer.close();

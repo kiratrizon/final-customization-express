@@ -7,10 +7,8 @@ import { Command } from 'commander';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import DatabaseSeeder from './main/database/seeders/DatabaseSeeder.mjs';
-import { fileURLToPath, pathToFileURL } from 'url';
+import inquirer from 'inquirer';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const defaultStubPath = stubPath();
 
 const program = new Command();
@@ -20,8 +18,6 @@ class Generator {
         this.controllersPath = controllerPath();
         this.modelsPath = basePath('models');
         this.migrationsPath = databasePath('migrations');
-        config('query_trace', 0);
-
     }
 
     // Create a controller
@@ -76,7 +72,7 @@ class Generator {
         const middlewareStub = path.join(defaultStubPath, 'Middleware.stub');
         const middlewareContent = fs.readFileSync(middlewareStub, 'utf-8').replace(/{{ MiddlewareName }}/g, middlename);
 
-        const middlewarePath = path.join(__dirname, 'app', 'Middlewares', `${middlename}.mjs`);
+        const middlewarePath = path.join(appPath('Middlewares'), `${middlename}.mjs`);
         this.#writeFile(middlewarePath, middlewareContent);
 
         console.log(`Middleware created at ${middlewarePath}`);
@@ -167,7 +163,26 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.migrateInit();
+            const notExist = await runner.isSchemaNotExist();
+            if (notExist) {
+                const { proceed } = await inquirer.prompt([
+                    {
+                        type: 'confirm',
+                        name: 'proceed',
+                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                        default: true,
+                    }
+                ]);
+
+                if (!proceed) {
+                    console.log('Migration cancelled.');
+                    process.exit(0);
+                } else {
+                    await runner.createSchema();
+                    console.log(`Database "${notExist}" created successfully.`);
+                    await runner.migrateInit();
+                }
+            }
             await runner.run();
         } catch (e) {
             console.error('Migration failed:', e);
@@ -190,7 +205,26 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.migrateInit();
+            const notExist = await runner.isSchemaNotExist();
+            if (notExist) {
+                const { proceed } = await inquirer.prompt([
+                    {
+                        type: 'confirm',
+                        name: 'proceed',
+                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                        default: true, // true means "Yes" is the default option
+                    }
+                ]);
+
+                if (!proceed) {
+                    console.log('Migration cancelled.');
+                    process.exit(0);
+                } else {
+                    await runner.createSchema();
+                    console.log(`Database "${notExist}" created successfully.`);
+                    await runner.migrateInit();
+                }
+            }
             await runner.dropAllTables();
         } catch (e) {
             console.error('Migration failed:', e);
@@ -213,7 +247,26 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            await runner.migrateInit();
+            const notExist = await runner.isSchemaNotExist();
+            if (notExist) {
+                const { proceed } = await inquirer.prompt([
+                    {
+                        type: 'confirm',
+                        name: 'proceed',
+                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                        default: true, // true means "Yes" is the default option
+                    }
+                ]);
+
+                if (!proceed) {
+                    console.log('Migration cancelled.');
+                    process.exit(0);
+                } else {
+                    await runner.createSchema();
+                    console.log(`Database "${notExist}" created successfully.`);
+                    await runner.migrateInit();
+                }
+            }
             await runner.rollback();
         } catch (e) {
             console.error('Migration refresh failed:', e);

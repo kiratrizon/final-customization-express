@@ -67,6 +67,7 @@ class MigrationRunner {
 
         await this.#db.runQuery(migrationsTableQuery);
         await this.#db.close();
+        return true;
     }
 
     async rollback() {
@@ -103,6 +104,13 @@ class MigrationRunner {
                     AND name NOT LIKE 'sqlite_%'
                     AND name != 'migrations'`;
 
+        } else if (dbType === 'postgresql') {
+            sql = `SELECT table_name AS name
+                FROM information_schema.tables
+                WHERE table_schema = ?
+                AND table_name != 'migrations'`;
+            let schema = await config('app.database.postgresql.schema');
+            params.push(schema);
         }
 
 
@@ -137,6 +145,20 @@ class MigrationRunner {
 
     getMigrationFiles() {
         return fs.readdirSync(this.migrationsPath).filter(file => file.endsWith('.mjs'));
+    }
+
+    async isSchemaNotExist() {
+        if (dbType !== 'sqlite') {
+            return await this.#db.isSchemaNotExist();
+        }
+        return false;
+    }
+
+    async createSchema() {
+        if (dbType !== 'sqlite') {
+            return await this.#db.createSchema();
+        }
+        return true;
     }
 }
 

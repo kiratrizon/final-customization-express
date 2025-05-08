@@ -8,12 +8,12 @@
     "checkJs": true,
     "allowJs": true,
     "noEmit": true,
-    "baseUrl": ".",
     "lib": ["es2022", "dom"],
     "strict": false
   },
   "include": [
     "@mytypes/**/*.d.ts",
-    "./**/*.mjs"
+    "./**/*.mjs",
+    "artisan"
   ]
 }

@@ -1,5 +1,4 @@
-/// <reference path="../express/index.d.ts" />
-export {};
+/// <reference path="./index.d.ts" />
 
 import ExpressRequest from "../../main/express/http/ExpressRequest";
 import { ServerInfo } from "./server";
@@ -73,3 +72,4 @@ declare global {
    */
   var $_SERVER: ServerInfo;
 }
+export {};

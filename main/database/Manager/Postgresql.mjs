@@ -68,6 +68,53 @@ class Postgres {
         });
     }
 
+    async checkSchema() {
+        const sql = "SELECT COUNT(*) FROM pg_database WHERE datname = $1";
+        const tempClient = new Client({ ...Postgres.#pgConfig, database: 'postgres' });
+
+        if (!isset(Postgres.#pgConfig.database)) {
+            throw new Error('PostgreSQL schema not set');
+        }
+        try {
+            await tempClient.connect();
+            const res = await tempClient.query(sql, [Postgres.#pgConfig.database]);
+            return res.rows[0].count === 0 ? Postgres.#pgConfig.database : false;
+        } catch (e) {
+            console.error('Error checking schema:', e.message, e.stack);
+            throw new Error('Error checking schema: ' + e);
+        } finally {
+            await tempClient.end();
+        }
+    }
+
+    async createSchema() {
+        const sql = `
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = $1) THEN
+            CREATE SCHEMA $1;
+          END IF;
+        END
+        $$;
+      `;
+
+        const tempClient = new Client({ ...Postgres.#pgConfig, database: 'postgres' });
+        if (!isset(Postgres.#pgConfig.database)) {
+            throw new Error('PostgreSQL schema not set');
+        }
+        try {
+            await tempClient.connect();
+            console.log('Creating schema...');
+            await tempClient.query(sql, [Postgres.#pgConfig.database]);
+            return true;
+        } catch (e) {
+            console.error('Error creating schema:', e.message, e.stack);
+            throw new Error('Error creating schema: ' + e);
+        } finally {
+            await tempClient.end();
+        }
+    }
+
     escape(value) {
         // Use with care – best to stick with parameterized queries
         if (value === null || value === undefined) return 'NULL';

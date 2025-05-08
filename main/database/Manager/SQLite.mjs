@@ -43,11 +43,10 @@ class SQLite {
                         data = stmt.run(params);
                         break;
                 }
-
                 resolve(data);
             } catch (err) {
-                console.error('SQLite Query Error:', err);
-                console.log(query);
+                console.log('bad', query);
+                console.log('params', params);
                 reject('SQLite Query Error:' + err);
             }
         });
@@ -72,15 +71,8 @@ class SQLite {
     }
 
     static async init() {
-        // Simulate __dirname in ES modules
-        const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
-        // On Windows, remove the leading slash from the pathname (if it exists)
-        const cleanDirname = __dirname.startsWith('/') ? __dirname.slice(1) : __dirname;
-
         // Define the path for the database file
-        const dbPath = path.join(cleanDirname, '..', 'database.sqlite');
-
+        const dbPath = databasePath('database.sqlite');
         // Ensure the directory exists
         const dirPath = path.dirname(dbPath);
         if (!fs.existsSync(dirPath)) {
@@ -89,5 +81,7 @@ class SQLite {
         SQLite.dbPath = dbPath;
     }
 }
+
+await SQLite.init();
 
 export default SQLite;

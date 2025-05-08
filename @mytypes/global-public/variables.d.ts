@@ -1,5 +1,4 @@
 /// <reference path="./index.d.ts" />
-export {};
 
 declare global {
   /**
@@ -15,3 +14,4 @@ declare global {
    */
   var dbUsed: string;
 }
+export {};
