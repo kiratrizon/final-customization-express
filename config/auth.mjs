@@ -1,4 +1,3 @@
-import Admin from "../models/Admin.mjs";
 import User from "../models/User.mjs";
 
 
@@ -27,7 +26,6 @@ const constant = {
         },
         admins: {
             driver: 'eloquent',
-            model: Admin,
         },
     },
 }

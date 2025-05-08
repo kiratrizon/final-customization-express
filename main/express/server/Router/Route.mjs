@@ -76,7 +76,7 @@ class Route {
         if (empty(Route.#groupCombiner().string) && empty(Route.#currentGroup)) {
             Route.#defaultRoute[method].push(routeId);
         } else if (!empty(Route.#groupCombiner().string) && !empty(Route.#currentGroup)) {
-            Route.#groupPreference[Route.#groupCombiner().string].pushRoute(method, routeId);
+            Route.#groupPreference[Route.#groupId].pushRoute(method, routeId);
         }
         return Route.#methodPreference[routeId];
     }
@@ -182,16 +182,17 @@ class Route {
             throw new Error('Config must be an object');
         }
         Route.#groupId++;
-        const groupId = Route.#groupId;
         const currentGroup = Route.#currentGroup;
-        const groupInstance = new RouteGroup(config);
         const { prefix = null } = config;
-        if (!isset(prefix)) {
-            Route.#currentGroup = [...currentGroup, `*${groupId}*`];
+        if (empty(prefix)) {
+            Route.#currentGroup = [...currentGroup, `*${Route.#groupId}*`];
         } else {
             Route.#currentGroup = [...currentGroup, prefix];
         }
-        Route.#groupPreference[Route.#groupCombiner().string] = groupInstance;
+        config.groupName = Route.#groupCombiner().string;
+        const groupInstance = new RouteGroup(config);
+
+        Route.#groupPreference[Route.#groupId] = groupInstance;
         if (is_function(callback)) {
             callback();
         }

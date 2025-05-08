@@ -2,15 +2,16 @@ import Blueprint from '../Blueprint.mjs';
 
 
 class Migrate {
-    tableName = 'jwt_blacklists';
+    tableName = 'users';
     up() {
         const blueprint = new Blueprint();
 
         const createTableSQL = blueprint.create(this.tableName, (table) => {
             table.id();
-            table.string('token');
-            table.string('origin');
-            table.string('role');
+            table.string('name');
+            table.string('email');
+            table.string('password');
+            table.softDeletes();
             table.timestamp();
         });
 

@@ -164,23 +164,25 @@ program
         try {
             const runner = new MigrationRunner();
             const notExist = await runner.isSchemaNotExist();
-            if (notExist) {
-                const { proceed } = await inquirer.prompt([
-                    {
-                        type: 'confirm',
-                        name: 'proceed',
-                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
-                        default: true,
-                    }
-                ]);
+            if (env('USING_FREE_TIER') !== 'true') {
+                if (notExist) {
+                    const { proceed } = await inquirer.prompt([
+                        {
+                            type: 'confirm',
+                            name: 'proceed',
+                            message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                            default: true,
+                        }
+                    ]);
 
-                if (!proceed) {
-                    console.log('Migration cancelled.');
-                    process.exit(0);
-                } else {
-                    await runner.createSchema();
-                    console.log(`Database "${notExist}" created successfully.`);
-                    await runner.migrateInit();
+                    if (!proceed) {
+                        console.log('Migration cancelled.');
+                        process.exit(0);
+                    } else {
+                        await runner.createSchema();
+                        console.log(`Database "${notExist}" created successfully.`);
+                        await runner.migrateInit();
+                    }
                 }
             }
             await runner.run();
@@ -205,24 +207,25 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            const notExist = await runner.isSchemaNotExist();
-            if (notExist) {
-                const { proceed } = await inquirer.prompt([
-                    {
-                        type: 'confirm',
-                        name: 'proceed',
-                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
-                        default: true, // true means "Yes" is the default option
-                    }
-                ]);
+            if (env('USING_FREE_TIER') !== 'true') {
+                if (notExist) {
+                    const { proceed } = await inquirer.prompt([
+                        {
+                            type: 'confirm',
+                            name: 'proceed',
+                            message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                            default: true,
+                        }
+                    ]);
 
-                if (!proceed) {
-                    console.log('Migration cancelled.');
-                    process.exit(0);
-                } else {
-                    await runner.createSchema();
-                    console.log(`Database "${notExist}" created successfully.`);
-                    await runner.migrateInit();
+                    if (!proceed) {
+                        console.log('Migration cancelled.');
+                        process.exit(0);
+                    } else {
+                        await runner.createSchema();
+                        console.log(`Database "${notExist}" created successfully.`);
+                        await runner.migrateInit();
+                    }
                 }
             }
             await runner.dropAllTables();
@@ -247,24 +250,25 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            const notExist = await runner.isSchemaNotExist();
-            if (notExist) {
-                const { proceed } = await inquirer.prompt([
-                    {
-                        type: 'confirm',
-                        name: 'proceed',
-                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
-                        default: true, // true means "Yes" is the default option
-                    }
-                ]);
+            if (env('USING_FREE_TIER') !== 'true') {
+                if (notExist) {
+                    const { proceed } = await inquirer.prompt([
+                        {
+                            type: 'confirm',
+                            name: 'proceed',
+                            message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                            default: true,
+                        }
+                    ]);
 
-                if (!proceed) {
-                    console.log('Migration cancelled.');
-                    process.exit(0);
-                } else {
-                    await runner.createSchema();
-                    console.log(`Database "${notExist}" created successfully.`);
-                    await runner.migrateInit();
+                    if (!proceed) {
+                        console.log('Migration cancelled.');
+                        process.exit(0);
+                    } else {
+                        await runner.createSchema();
+                        console.log(`Database "${notExist}" created successfully.`);
+                        await runner.migrateInit();
+                    }
                 }
             }
             await runner.rollback();
