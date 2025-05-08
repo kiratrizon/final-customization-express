@@ -12,11 +12,14 @@ class MiddlewareHandler {
 
 
     #middleware() {
-        // middleware name => [DefaultMiddleware, guard]
-        return {
+        /**
+         * @type {Object.<string, [typeof import('../main/express/defaults/middleware/jwt-middleware.mjs').default, string]>}
+         */
+        const middleware = {
             'user': [JWTMiddleware, 'jwt_user'],
             'admin': [JWTMiddleware, 'jwt_admin'],
         };
+        return middleware;
     }
 
     getMiddleware(name) {

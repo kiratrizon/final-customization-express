@@ -15,8 +15,10 @@ class RouteGroup {
         patch: [],
         all: [],
     };
+    #groupName = '';
     constructor(config = {}) {
-        const { as = null, middleware } = config;
+        const { as = null, middleware, groupName } = config;
+        this.#groupName = groupName;
         this.#name(as);
         this.#middleware(middleware);
     }
@@ -37,6 +39,7 @@ class RouteGroup {
             as: this.#as,
             middlewares: this.#middlewares,
             childRoutes: this.#childRoutes,
+            groupName: this.#groupName,
         };
     }
     pushRoute(method, id) {

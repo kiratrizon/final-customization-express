@@ -402,17 +402,18 @@ class Server {
 
 				// console.log(data)
 				// for group
-				const groupKeys = Object.keys(group);
-				for (const key of groupKeys) {
+				const groupIds = Object.keys(group);
+				const gaDf = Server.express.Router();
+				for (const id of groupIds) {
 					const grDf = Server.express.Router({
 						mergeParams: true
 					});
-					const gaDf = Server.express.Router();
-					const groupRoute = key;
+					const instancedGroup = group[id];
+					const { as = [], middlewares, childRoutes, groupName } = instancedGroup.getGroup();
+					const groupRoute = groupName;
 					let arrangeGroupRoute = groupRoute.replace(/\*\d+\*/g, '') || '/';
 					arrangeGroupRoute = arrangeGroupRoute.replace(/\/+/g, '/');
-					const instancedGroup = group[key];
-					const { as = [], middlewares, childRoutes } = instancedGroup.getGroup();
+
 					let groupAs = as.join('.');
 					// filterChildRoutes
 					const filteredChildRoutes = Object.entries(childRoutes)
@@ -458,19 +459,20 @@ class Server {
 									const regexMiddleware = regexHandler.applyRegex();
 									internal_middlewares.unshift(regexMiddleware);
 								}
-								grDf[method](url, ...internal_middlewares, callback);
+								const allMiddlewares = [...middlewares, ...internal_middlewares];
+								grDf[method](url, ...allMiddlewares, callback);
 								if (is_array(match) && !empty(match)) {
 									for (const m of match) {
-										grDf[m](url, ...internal_middlewares, callback);
+										grDf[m](url, ...allMiddlewares, callback);
 									}
 								}
 							}
 						}
 					}
 
-					gaDf.use(arrangeGroupRoute, ...middlewares, grDf);
-					Server.app.use(routePrefix, gaDf);
+					gaDf.use(arrangeGroupRoute, grDf);
 				}
+				Server.app.use(routePrefix, gaDf);
 
 				// for default route
 				const filteredKeys = Object.entries(default_route)
