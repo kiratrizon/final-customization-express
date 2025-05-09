@@ -18,11 +18,11 @@ class GuardInitiator {
         }
     }
 
-    init() {
+    init(header) {
         if (this.#driverType === 'eloquent') {
-            return new Guard(this.#driver, this.#model, this.#driverType);
+            return new Guard(this.#driver, this.#model, this.#driverType, header);
         } else {
-            return new Guard(this.#driver, this.#table, this.#driverType);
+            return new Guard(this.#driver, this.#table, this.#driverType, header);
         }
     }
 

@@ -1,7 +1,6 @@
 // Load environment variables
 import fs from 'fs';
 import path from 'path';
-import ExpressView from '../http/ExpressView.mjs';
 import dotenv from 'dotenv';
 import { DateTime } from 'luxon';
 import axios from 'axios';
@@ -344,7 +343,7 @@ class Carbon {
         'z': 'o', // Day of the year
     };
 
-    static #timeAlters = {
+    #timeAlters = {
         "weeks": 0,
         "months": 0,
         "days": 0,
@@ -353,71 +352,70 @@ class Carbon {
         "seconds": 0,
         "years": 0,
     };
-    static addDays(days = 0) {
-        Carbon.#timeAlters['days'] += days;
-        return Carbon;
+    addDays(days = 0) {
+        this.#timeAlters['days'] += days;
+        return this;
     }
 
-    static addHours(hours = 0) {
-        Carbon.#timeAlters['hours'] += hours;
-        return Carbon;
+    addHours(hours = 0) {
+        this.#timeAlters['hours'] += hours;
+        return this;
     }
 
-    static addMinutes(minutes = 0) {
-        Carbon.#timeAlters['minutes'] += minutes;
-        return Carbon;
+    addMinutes(minutes = 0) {
+        this.#timeAlters['minutes'] += minutes;
+        return this;
     }
 
-    static addSeconds(seconds = 0) {
-        Carbon.#timeAlters['seconds'] += seconds;
-        return Carbon;
+    addSeconds(seconds = 0) {
+        this.#timeAlters['seconds'] += seconds;
+        return this;
     }
 
-    static addYears(years = 0) {
-        Carbon.#timeAlters['years'] += years;
-        return Carbon;
+    addYears(years = 0) {
+        this.#timeAlters['years'] += years;
+        return this;
     }
 
-    static addMonths(months = 0) {
-        Carbon.#timeAlters['months'] += months;
-        return Carbon;
+    addMonths(months = 0) {
+        this.#timeAlters['months'] += months;
+        return this;
     }
 
-    static addWeeks(weeks = 0) {
-        Carbon.#timeAlters['weeks'] += weeks;
-        return Carbon;
+    addWeeks(weeks = 0) {
+        this.#timeAlters['weeks'] += weeks;
+        return this;
     }
 
-    static #generateDateTime() {
+    #generateDateTime() {
         const getDateTime = DateTime.now().plus({
-            years: Carbon.#timeAlters.years,
-            months: Carbon.#timeAlters.months,
-            weeks: Carbon.#timeAlters.weeks,
-            days: Carbon.#timeAlters.days,
-            hours: Carbon.#timeAlters.hours,
-            minutes: Carbon.#timeAlters.minutes,
-            seconds: Carbon.#timeAlters.seconds,
+            years: this.#timeAlters.years,
+            months: this.#timeAlters.months,
+            weeks: this.#timeAlters.weeks,
+            days: this.#timeAlters.days,
+            hours: this.#timeAlters.hours,
+            minutes: this.#timeAlters.minutes,
+            seconds: this.#timeAlters.seconds,
         }).setZone(configApp.timezone || 'UTC');
-        Carbon.#reset();
         return getDateTime;
     }
 
-    static getDateTime() {
-        return Carbon.#getByFormat(configApp.datetime_format || 'Y-m-d H:i:s');
+    getDateTime() {
+        return this.#getByFormat(configApp.datetime_format || 'Y-m-d H:i:s');
     }
 
-    static getDate() {
-        return Carbon.#getByFormat(configApp.date_format || 'Y-m-d');
+    getDate() {
+        return this.#getByFormat(configApp.date_format || 'Y-m-d');
     }
 
-    static getTime() {
-        return Carbon.#getByFormat(configApp.time_format || 'H:i:s');
+    getTime() {
+        return this.#getByFormat(configApp.time_format || 'H:i:s');
     }
-    static #getByFormat(format) {
+    #getByFormat(format) {
         if (typeof format != 'string') {
             throw new Error(`Invalid format`);
         }
-        const time = Carbon.#generateDateTime();
+        const time = this.#generateDateTime();
         const formattings = Object.keys(Carbon.#formatMapping);
         let newFormat = '';
         for (let i = 0; i < format.length; i++) {
@@ -430,23 +428,11 @@ class Carbon {
         return time.toFormat(newFormat);
     }
 
-    static getByFormat(format) {
-        return Carbon.#getByFormat(format);
+    getByFormat(format) {
+        return this.#getByFormat(format);
     }
 
-    static #reset() {
-        Carbon.#timeAlters = {
-            "weeks": 0,
-            "months": 0,
-            "days": 0,
-            "hours": 0,
-            "minutes": 0,
-            "seconds": 0,
-            "years": 0,
-        };
-    }
-
-    static getByUnixTimestamp(unixTimestamp, format) {
+    getByUnixTimestamp(unixTimestamp, format) {
         if (typeof unixTimestamp !== 'number') {
             throw new Error(`Invalid Unix timestamp: ${unixTimestamp}`);
         }
@@ -469,10 +455,11 @@ class Carbon {
 }
 
 functionDesigner('DATE', (format = 'Y-m-d H:i:s', unixTimestamp = null) => {
+    const carbon = new Carbon();
     if (unixTimestamp !== null) {
-        return Carbon.getByUnixTimestamp(unixTimestamp, format);
+        return carbon.getByUnixTimestamp(unixTimestamp, format);
     }
-    return Carbon.getByFormat(format);
+    return carbon.getByFormat(format);
 });
 
 functionDesigner('date', DATE);
@@ -494,23 +481,6 @@ functionDesigner('transferFile', (oldPath = '', newPath = '') => {
         return;
     }
 });
-
-/** Placeholder for a function that will render views or templates. */
-functionDesigner('view', (viewName, data = {}, mergeData = {}) => {
-    const newData = { ...data, ...mergeData };
-    // Add old() helper to data
-    newData['old'] = function (key) {
-        // Here you can return old input from session or fallback
-        return 'test'; // Stubbed for now
-    };
-
-    const newView = new ExpressView(newData);
-    newView.element(viewName);
-    console.log('View:', viewName);
-    return newView;
-});
-
-// import path from 'path';
 
 import version from '../../../version.mjs';
 define('FRAMEWORK_VERSION', version, false);

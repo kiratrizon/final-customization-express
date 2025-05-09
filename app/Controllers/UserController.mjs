@@ -1,15 +1,15 @@
 import Controller from "../../main/base/Controller.mjs";
 
 
-class {{ ControllerName }} extends Controller {
+class UserController extends Controller {
     // Create methods here 
 
     /**
      * @param {import('../../main/express/http/ExpressRequest').default} request
      */
-    async index(request){
-        
+    async index(request) {
+
     }
 }
 
-export default {{ ControllerName }};
+export default UserController;

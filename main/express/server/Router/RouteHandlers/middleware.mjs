@@ -4,6 +4,7 @@ import ExpressError from "../../../http/ExpressError.mjs";
 import ExpressRedirect from "../../../http/ExpressRedirect.mjs";
 import ExpressResponse from "../../../http/ExpressResponse.mjs";
 import ExpressView from "../../../http/ExpressView.mjs";
+import Auth from "../../Auth.mjs";
 
 
 class RouteMiddleware {
@@ -36,7 +37,8 @@ class RouteMiddleware {
         }
         if (isset(middleware) && is_function(middleware)) {
             const newCallback = async (req, res, next) => {
-                const rq = request();
+                const rq = req.request;
+                rq.auth = () => new Auth(rq);
                 const middlewareInitiator = () => {
                     return new ExpressClosure();
                 }
@@ -57,7 +59,7 @@ class RouteMiddleware {
                     } else {
                         message = expressResponse.error;
                     }
-                    if (isRequest()) {
+                    if (rq.isRequest()) {
                         res.setHeader('Content-Type', 'text/html');
                         res.status(500).send(expressResponse);
                     } else {
@@ -100,10 +102,10 @@ class RouteMiddleware {
                     }
                 } else {
                     res.status(200);
-                    res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                    res.set('Content-Type', rq.isRequest() ? 'application/json' : 'text/html');
                     json_dump.push(expressResponse)
                     html_dump.push(expressResponse);
-                    if (isRequest()) {
+                    if (rq.isRequest()) {
                         res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
                     }
                     else {

@@ -1,15 +1,15 @@
-import Auth from "../../server/Auth.mjs";
-
-
 class JWTMiddleware {
 
     guard;
     constructor(guard) {
         this.guard = guard;
     }
+    /**
+     * @param {import('../../http/ExpressRequest').default} request
+     */
     async handle(request, next) {
-        Auth.shouldUse(this.guard);
-        if (!Auth.check() && !(await Auth.user())) {
+        request.auth().shouldUse(this.guard);
+        if (!request.auth().check() && !(await request.auth().user())) {
             return response().json({ message: 'Unauthorized' }, 401);
         }
 
