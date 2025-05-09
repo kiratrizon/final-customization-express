@@ -85,14 +85,15 @@ class ExpressRequest {
         const validator = await Validator.make(data, rules);
         if (validator.fails()) {
             this.custom_error(validator.getErrors(), data);
+            return;
         }
         return data;
     }
 
     user;
 
-    auth; // Auth instance
-    isRequest; // define if it is a request
+    auth;
+    isRequest;
     dump;
     dd;
     custom_error;

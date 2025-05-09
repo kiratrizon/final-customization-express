@@ -1,6 +1,5 @@
 import MiddlewareHandler from "../../../../../app/MiddlewareHandler.mjs";
 import ExpressClosure from "../../../http/ExpressClosure.mjs";
-import ExpressError from "../../../http/ExpressError.mjs";
 import ExpressRedirect from "../../../http/ExpressRedirect.mjs";
 import ExpressResponse from "../../../http/ExpressResponse.mjs";
 import ExpressView from "../../../http/ExpressView.mjs";
@@ -43,28 +42,33 @@ class RouteMiddleware {
                     return new ExpressClosure();
                 }
                 let expressResponse = null;
+                let good = true;
                 try {
                     expressResponse = await middleware(rq, middlewareInitiator);
                 } catch (error) {
-                    expressResponse = new ExpressError(error);
+                    good = false;
+                    expressResponse = error;
                 }
                 const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
                     return;
                 }
-                if (expressResponse instanceof ExpressError) {
+                if (!good) {
                     let message;
-                    if (expressResponse.error instanceof Error) {
-                        message = expressResponse.error.message;
+                    let stack;
+                    if (expressResponse instanceof Error) {
+                        message = expressResponse.message;
+                        stack = expressResponse.stack.split('\n').map(line => line.trim());
                     } else {
-                        message = expressResponse.error;
+                        message = expressResponse;
                     }
-                    if (rq.isRequest()) {
+                    if (!rq.isRequest()) {
                         res.setHeader('Content-Type', 'text/html');
-                        res.status(500).send(expressResponse);
+                        res.status(500).send('Server Error');
                     } else {
-                        res.status(500).json({ message });
+                        res.status(500).json({ message: 'Server Error' });
                     }
+                    log({ message, stack }, 'error', `${date('Y-m-d H:i:s')} Request URI ${rq.request.originalUrl} - ${rq.request.method}`);
                     return;
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressClosure || expressResponse instanceof ExpressView)) {

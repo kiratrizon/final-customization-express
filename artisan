@@ -59,6 +59,18 @@ class Generator {
         console.log(`Migration created at ${migrationPath}`);
     }
 
+    // Create a factory
+    createFactory(name) {
+        const factoryStub = path.join(defaultStubPath, 'Factory.stub');
+        let factoryContent = fs.readFileSync(factoryStub, 'utf-8').replace(/{{ Classname }}/g, name);
+        const modelName = name.replace('Factory', '');
+        factoryContent = factoryContent.replace(/{{ ModelName }}/g, modelName);
+        const factoryPath = databasePath(`factories/${name}.mjs`);
+        this.#writeFile(factoryPath, factoryContent);
+
+        console.log(`Factory created at ${factoryPath}`);
+    }
+
     // Write content to a file and ensure directories exist
     #writeFile(filePath, content) {
         const dir = path.dirname(filePath);
@@ -141,6 +153,14 @@ program
     .option('--resource', 'Generate a resource controller')
     .action((name, options) => {
         generator.createController(name, options.resource);
+        process.exit(0);
+    });
+
+// Command to generate a controller
+program
+    .command('make:factory <name>')
+    .action((name) => {
+        generator.createFactory(name);
         process.exit(0);
     });
 
