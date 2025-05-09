@@ -17,7 +17,7 @@ class Boot {
     }
 
     static hasher() {
-        return 'bcrypt';
+        return 'bcryptjs';
     }
 
     static async init() {
