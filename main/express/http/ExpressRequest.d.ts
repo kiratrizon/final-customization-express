@@ -1,16 +1,31 @@
+import Auth from "../server/Auth";
 import ExpressHeader from "./ExpressHeader";
+import { IncomingHttpHeaders } from "http";
+import ExpressRedirect from "./ExpressRedirect";
 
+export interface RequestData {
+  method: string;
+  headers: IncomingHttpHeaders;
+  body: Record<string, any>;
+  query: Record<string, any>;
+  cookies: Record<string, any>;
+  path: string;
+  originalUrl: string;
+  ip: string;
+  protocol: string;
+  files: Record<string, any>;
+}
 /**
  * ExpressRequest class that encapsulates HTTP request data.
  */
 declare class ExpressRequest {
-  constructor(rq: Record<string, any>);
+  constructor(rq: RequestData);
 
   /** The original Express request object */
   request: Record<string, any>;
 
   /** An instance of the ExpressHeader class for managing request headers */
-  headers: ExpressHeader;
+  headers: InstanceType<typeof ExpressHeader>;
 
   /**
    * A function to access headers by key or all headers if no key is passed
@@ -52,6 +67,23 @@ declare class ExpressRequest {
 
   /** Get the authenticated user */
   user(): Promise<any>;
+
+  /**
+   * Check if the request is an AJAX or XMLHttpRequest or from API
+   */
+  isRequest(): boolean;
+  /** Placeholder for a function that will dump variable contents for debugging. */
+  dump: (variable: any) => void;
+
+  /** Placeholder for a function that will dump and die, halting execution after dumping. */
+  dd: (variable: any) => void;
+
+  auth: () => InstanceType<typeof Auth>;
+
+  custom_error: (error: Record<string, any>, data?: any) => void;
+
+  /** Placeholder for a function that will handle redirection to a given URL. */
+  redirect: (url: string) => InstanceType<typeof ExpressRedirect>;
 }
 
 export default ExpressRequest;

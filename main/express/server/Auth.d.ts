@@ -3,7 +3,7 @@
 import Guard from "./GuardInitiator";
 
 // Type alias for the Guard instance
-type GuardInstance = ReturnType<InstanceType<typeof Guard>['init']>;
+type GuardInstance = ReturnType<InstanceType<typeof Guard>["init"]>;
 
 /**
  * Auth class is responsible for handling user authentication logic,
@@ -17,7 +17,7 @@ declare class Auth {
    * @param remember - Optional flag indicating if the login should persist.
    * @returns A token or authentication result.
    */
-  static attempt(credentials: Record<string, any>, remember?: boolean): any;
+  attempt(credentials: Record<string, any>, remember?: boolean): any;
 
   /**
    * Logs in a user by setting the user information in the session.
@@ -25,7 +25,7 @@ declare class Auth {
    * @param remember - Optional flag indicating if the login should persist.
    * @returns The authentication result.
    */
-  static login(user: any, remember?: boolean): any;
+  login(user: any, remember?: boolean): any;
 
   /**
    * Logs in a user using their user ID.
@@ -33,7 +33,7 @@ declare class Auth {
    * @param remember - Optional flag indicating if the login should persist.
    * @returns The authentication result.
    */
-  static loginUsingId(id: any, remember?: boolean): any;
+  loginUsingId(id: any, remember?: boolean): any;
 
   /**
    * Performs a one-time authentication attempt with the provided credentials.
@@ -41,7 +41,7 @@ declare class Auth {
    * @param credentials - The user credentials.
    * @returns The authentication result.
    */
-  static once(credentials: Record<string, any>): any;
+  once(credentials: Record<string, any>): any;
 
   /**
    * Performs a one-time login using the provided user ID.
@@ -49,69 +49,69 @@ declare class Auth {
    * @param id - The user ID.
    * @returns The authentication result.
    */
-  static onceUsingId(id: any): any;
+  onceUsingId(id: any): any;
 
   /**
    * Logs out the currently authenticated user.
    * @returns The logout result.
    */
-  static logout(): any;
+  logout(): any;
 
   /**
    * Checks if a user is currently authenticated.
    * @returns True if the user is authenticated, otherwise false.
    */
-  static check(): boolean;
+  check(): boolean;
 
   /**
    * Checks if the current user is a guest (not authenticated).
    * @returns True if the user is a guest, otherwise false.
    */
-  static guest(): boolean;
+  guest(): boolean;
 
   /**
    * Retrieves the current authenticated user's ID.
    * @returns The user's ID or null if not authenticated.
    */
-  static id(): any;
+  id(): any;
 
   /**
    * Retrieves the currently authenticated user.
    * @returns The authenticated user or null if not authenticated.
    */
-  static user(): any;
+  user(): any;
 
   /**
    * Validates the provided credentials, typically for login.
    * @param credentials - The user credentials to validate.
    * @returns True if the credentials are valid, otherwise false.
    */
-  static validate(credentials: Record<string, any>): boolean;
+  validate(credentials: Record<string, any>): boolean;
 
   /**
    * Checks if a user is set or authenticated.
    * @returns True if there is a user, otherwise false.
    */
-  static hasUser(): boolean;
+  hasUser(): boolean;
 
   /**
    * Sets the authenticated user manually.
    * @param user - The user to set as authenticated.
    */
-  static setUser(user: any): void;
+  setUser(user: any): void;
 
   /**
    * Specifies which guard to use for authentication.
    * @param guardName - The name of the guard to use.
    */
-  static shouldUse(guardName: string): void;
+  shouldUse(guardName: string): void;
 
   /**
    * Retrieves the guard instance for the specified guard name or default guard.
    * @param name - Optional name of the guard to retrieve. If null or omitted, the default guard is used.
    * @returns The guard instance.
    */
-  static guard(name?: string | null): GuardInstance;
+  guard(name?: string | null): GuardInstance;
 }
 
 export default Auth;

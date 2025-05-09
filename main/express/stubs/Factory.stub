@@ -1,0 +1,13 @@
+import Factory from '../../base/Factory.mjs';
+import {{ ModelName }} from '../../../models/{{ ModelName }}.mjs';
+class {{ Classname }} extends Factory {
+
+    model = {{ ModelName }};
+    definition(){
+        return {
+            
+        }
+    }
+}
+
+export default {{ Classname }};

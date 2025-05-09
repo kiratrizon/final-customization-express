@@ -3,11 +3,13 @@ import Controller from "../../main/base/Controller.mjs";
 
 class {{ ControllerName }} extends Controller {
     // Create methods here 
-    /*
-     * All methods related to Routes must be asynchronous
-    */
 
-    
+    /**
+     * @param {import('../../main/express/http/ExpressRequest').default} request
+     */
+    async index(request){
+        
+    }
 }
 
 export default {{ ControllerName }};

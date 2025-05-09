@@ -149,7 +149,6 @@ const shutdown = async () => {
 
     const db = new DatabaseManager();
     await db.close();
-    console.log('Database connection closed.');
     process.exit(0);
 };
 

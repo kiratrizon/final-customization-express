@@ -1,7 +1,8 @@
 class ExpressHeader {
 
-    #header = {};
-    constructor(header = {}) {
+    #header;
+    constructor(header) {
+        /** @type {import('http').IncomingHttpHeaders} */
         this.#header = header;
     }
     all() {

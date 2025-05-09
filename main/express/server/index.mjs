@@ -11,11 +11,13 @@ import { createClient } from 'redis';
 import { RedisStore } from 'connect-redis';
 import express from 'express';
 import util from 'util';
-import Auth from './Auth.mjs';
 import fs from 'fs';
-import Configure from '../../../libraries/Materials/Configure.mjs';
 
 // type
+/**
+ * @type {typeof import('../../../libraries/Materials/Configure').default}
+ */
+const Configure = (await import('../../../libraries/Materials/Configure.mjs')).default;
 /**
  * @type {typeof import('../http/ExpressFileHandler').default}
  */
@@ -82,39 +84,11 @@ class Server {
 		Server.app.set('view engine', viewEngine);
 		Server.app.set('views', viewPath());
 		Server.app.set('trust proxy', true);
-
+		// console.log(redirect());
 
 		// Global request/response handlers
 		Server.app.use(async (req, res, next) => {
-
-			// reset Configure always
 			Configure.reset();
-			$_POST = req.body || {};
-			$_GET = req.query || {};
-			$_FILES = req.files || {};
-			$_COOKIE = req.cookies || {};
-			const methodType = req.method.toUpperCase();
-			const REQUEST = {
-				method: methodType,
-				headers: req.headers,
-				body: $_POST,
-				query: $_GET,
-				cookies: $_COOKIE,
-				path: req.path,
-				originalUrl: req.originalUrl,
-				ip: req.ip,
-				protocol: req.protocol,
-				files: $_FILES,
-			};
-			const rq = new ExpressRequest(REQUEST);
-			request = (getInput) => {
-				if (!is_string(getInput)) {
-					return rq;
-				} else {
-					return rq.input(getInput);
-				}
-			}
-
 			const toStr = (val) =>
 				Array.isArray(val) ? val.join(', ') : (val || 'unknown').toString();
 
@@ -123,7 +97,7 @@ class Server {
 				SERVER_ADDR: req.socket.localAddress || 'unknown',
 				SERVER_PORT: req.socket.localPort?.toString() || 'unknown',
 				SERVER_PROTOCOL: req.protocol || 'http',
-				REQUEST_METHOD: methodType,
+				REQUEST_METHOD: req.method,
 				QUERY_STRING: req.originalUrl.split('?')[1] || '',
 				REQUEST_URI: req.originalUrl,
 				DOCUMENT_ROOT: basePath(),
@@ -143,37 +117,125 @@ class Server {
 				HTTP_ACCEPT: toStr(req.headers['accept']),
 				'X-Request-ID': toStr(req.headers['x-request-id'] || Server.#generateRequestId()),
 			};
+			req.globals = {};
+			req.phpGlobals = {
+				$_SERVER: forServer,
+				$_POST: {},
+				$_GET: {},
+				$_FILES: {},
+				$_COOKIE: {},
+			};
+			req.phpGlobals.$_POST = req.body || {};
+			req.phpGlobals.$_GET = req.query || {};
+			req.phpGlobals.$_FILES = req.files || {};
+			req.phpGlobals.$_COOKIE = req.cookies || {};
+			const methodType = req.method.toUpperCase();
 
-			$_SERVER = forServer;
+			/**
+			 * @type {import("../http/ExpressRequest").RequestData}
+			 */
+			const REQUEST = {
+				method: methodType,
+				headers: req.headers,
+				body: req.phpGlobals.$_POST,
+				query: req.phpGlobals.$_GET,
+				cookies: req.phpGlobals.$_COOKIE,
+				path: req.path,
+				originalUrl: req.originalUrl,
+				ip: req.ip,
+				protocol: req.protocol,
+				files: req.phpGlobals.$_FILES,
+			};
+			const rq = new ExpressRequest(REQUEST);
 
 			Boot.register();
 
-			// determine if it's an API request or AJAX request
-			isRequest = () => {
-				// Check if it's an AJAX request (XHR)
+
+			rq.isRequest = () => {
 				if (req.xhr) {
 					return true;
 				}
 
-				// Check if the path starts with '/api' to identify API routes
 				if (req.path.startsWith('/api/')) {
 					return true;
 				}
 
-				// Check if the request's 'Accept' header includes 'application/json'
 				if (req.headers['accept'] && req.headers['accept'].includes('application/json')) {
 					return true;
 				}
 
-				// Check if the request is expecting JSON content, commonly used in APIs
 				if (req.is('json')) {
 					return true;
 				}
 
-				return false; // Default to false if none of the conditions match
+				return false;
 			};
 
-			const renderData = (data, res, dumped = false) => {
+			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+
+			// always refresh every request
+			res.responses = {};
+			res.responses.html_dump = [];
+			res.responses.json_dump = [];
+
+			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
+			if (!isDefined('route')) {
+				define('route', (name, args = {}) => {
+					if (name in Server.#routes) {
+						const { full_path, required = [], optional = [] } = Server.#routes[name];
+						required.forEach((key) => {
+							if (!(key in args)) {
+								throw new Error(`Missing required parameter: ${key}`);
+							}
+						});
+
+						let url = '';
+						const allparams = [...required, ...optional];
+						allparams.forEach((key) => {
+							if (key in args) {
+								url = full_path.replace(`:${key}/`, `${args[key]}/`);
+							} else {
+								url = full_path.replace(`:${key}/`, '/');
+							}
+						})
+
+						// Remove trailing slash if present
+						if (url.endsWith('/')) {
+							url = url.slice(0, -1);
+						}
+						// Remove double slashes
+						url = url.replace(/\/+/g, '/');
+						// Add base URL
+						url = path.join(Server.#baseUrl, url);
+						return url;
+					}
+					return null;
+				}, false);
+			}
+
+			const back = () => {
+				return req.get('Referrer') || '/';
+			};
+			const redirect = (url = null) => {
+				const instance = new ExpressRedirect(url);
+
+				instance.back = () => {
+					instance.url = back();
+					return instance;
+				};
+
+				instance.route = (name, args = {}) => {
+					instance.url = route(name, args);
+					return instance;
+				};
+
+				return instance;
+			}
+
+			rq.redirect = redirect;
+
+			req.request = rq;
+			const renderData = (data, dumped = false) => {
 				const html = `
 					<style>
 						body { background: #f8fafc; color: #1a202c; font-family: sans-serif; padding: 2rem; }
@@ -195,7 +257,7 @@ class Server {
 					if (res.headersSent) {
 						return;
 					}
-					if (!isRequest()) {
+					if (!rq.isRequest()) {
 						res.setHeader('Content-Type', 'text/html');
 						res.send(html);
 					} else {
@@ -205,85 +267,19 @@ class Server {
 					res.end();
 				}
 			};
-
-			req.headers['full-url'] = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-
-			// always refresh every request
-			res.responses = {};
-			res.responses.html_dump = [];
-			res.responses.json_dump = [];
-
-			dump = (data) => renderData(data, res, true);
-			dd = (data) => {
-				renderData(data, res);
+			rq.dump = (data) => renderData(data, true);
+			rq.dd = (data) => {
+				renderData(data);
 			};
 
-			if (!isDefined('auth')) {
-				define('auth', () => Auth, false);
-			}
-
-			Server.#baseUrl = `${req.protocol}://${req.get('host')}`;
-			route = (name, args = {}) => {
-				if (name in Server.#routes) {
-					const { full_path, required = [], optional = [] } = Server.#routes[name];
-					required.forEach((key) => {
-						if (!(key in args)) {
-							throw new Error(`Missing required parameter: ${key}`);
-						}
-					});
-
-					let url = '';
-					const allparams = [...required, ...optional];
-					allparams.forEach((key) => {
-						if (key in args) {
-							url = full_path.replace(`:${key}/`, `${args[key]}/`);
-						} else {
-							url = full_path.replace(`:${key}/`, '/');
-						}
-					})
-
-					// Remove trailing slash if present
-					if (url.endsWith('/')) {
-						url = url.slice(0, -1);
-					}
-					// Remove double slashes
-					url = url.replace(/\/+/g, '/');
-					// Add base URL
-					url = path.join(Server.#baseUrl, url);
-					return url;
-				}
-				return null;
-			};
-
-			// req.flash('hello', 'world');
-			redirect = (url = null) => {
-				const instance = new ExpressRedirect(url);
-
-				instance.back = () => {
-					instance.url = req.get('Referrer') || '/';
-					return instance;
-				};
-
-				instance.route = (name, args = {}) => {
-					instance.url = route(name, args);
-					return instance;
-				};
-
-				return instance;
-			}
-			const back = () => {
-				return req.get('Referrer') || '/';
-			};
-
-			custom_error = (errors = {}) => {
-				if (isRequest()) {
-					res.status(422).json({ errors });
+			rq.custom_error = function (errors = {}, data = {}) {
+				if (rq.isRequest()) {
+					res.status(422).json({ errors, data });
 				} else {
 					req.flash('errors', errors);
 					res.redirect(422, back());
 				}
 			}
-
 			next();
 		});
 
@@ -351,7 +347,7 @@ class Server {
 	static #finishBoot() {
 		if (typeof Boot['notFound'] === 'function') {
 			Server.app.use(async (req, res) => {
-				const expressResponse = await Boot['notFound']();
+				const expressResponse = await Boot['notFound'](req.request);
 				if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressView)) {
 					if (expressResponse instanceof ExpressResponse) {
 						const { html, statusCode, json, headers, returnType } = expressResponse.accessData();

@@ -59,6 +59,18 @@ class Generator {
         console.log(`Migration created at ${migrationPath}`);
     }
 
+    // Create a factory
+    createFactory(name) {
+        const factoryStub = path.join(defaultStubPath, 'Factory.stub');
+        let factoryContent = fs.readFileSync(factoryStub, 'utf-8').replace(/{{ Classname }}/g, name);
+        const modelName = name.replace('Factory', '');
+        factoryContent = factoryContent.replace(/{{ ModelName }}/g, modelName);
+        const factoryPath = databasePath(`factories/${name}.mjs`);
+        this.#writeFile(factoryPath, factoryContent);
+
+        console.log(`Factory created at ${factoryPath}`);
+    }
+
     // Write content to a file and ensure directories exist
     #writeFile(filePath, content) {
         const dir = path.dirname(filePath);
@@ -104,6 +116,33 @@ class Generator {
             console.log(`Created .env.example and added JWT_SECRET_KEY`);
         }
     }
+
+    async prompterMigrate(runner) {
+        if (env('USING_FREE_TIER') !== 'true') {
+            const notExist = await runner.isSchemaNotExist();
+            if (notExist) {
+                const { proceed } = await inquirer.prompt([
+                    {
+                        type: 'confirm',
+                        name: 'proceed',
+                        message: `Database "${notExist}" does not exist. Do you want to add it?`,
+                        default: true,
+                    }
+                ]);
+
+                if (!proceed) {
+                    console.log('Migration cancelled.');
+                    process.exit(0);
+                } else {
+                    await runner.createSchema();
+                    console.log(`Database "${notExist}" created successfully.`);
+                    await runner.migrateInit();
+                }
+            }
+        } else {
+            await runner.migrateInit();
+        }
+    }
 }
 
 const generator = new Generator();
@@ -114,6 +153,14 @@ program
     .option('--resource', 'Generate a resource controller')
     .action((name, options) => {
         generator.createController(name, options.resource);
+        process.exit(0);
+    });
+
+// Command to generate a controller
+program
+    .command('make:factory <name>')
+    .action((name) => {
+        generator.createFactory(name);
         process.exit(0);
     });
 
@@ -163,28 +210,7 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            const notExist = await runner.isSchemaNotExist();
-            if (env('USING_FREE_TIER') !== 'true') {
-                if (notExist) {
-                    const { proceed } = await inquirer.prompt([
-                        {
-                            type: 'confirm',
-                            name: 'proceed',
-                            message: `Database "${notExist}" does not exist. Do you want to add it?`,
-                            default: true,
-                        }
-                    ]);
-
-                    if (!proceed) {
-                        console.log('Migration cancelled.');
-                        process.exit(0);
-                    } else {
-                        await runner.createSchema();
-                        console.log(`Database "${notExist}" created successfully.`);
-                        await runner.migrateInit();
-                    }
-                }
-            }
+            await generator.prompterMigrate(runner);
             await runner.run();
         } catch (e) {
             console.error('Migration failed:', e);
@@ -207,27 +233,7 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            if (env('USING_FREE_TIER') !== 'true') {
-                if (notExist) {
-                    const { proceed } = await inquirer.prompt([
-                        {
-                            type: 'confirm',
-                            name: 'proceed',
-                            message: `Database "${notExist}" does not exist. Do you want to add it?`,
-                            default: true,
-                        }
-                    ]);
-
-                    if (!proceed) {
-                        console.log('Migration cancelled.');
-                        process.exit(0);
-                    } else {
-                        await runner.createSchema();
-                        console.log(`Database "${notExist}" created successfully.`);
-                        await runner.migrateInit();
-                    }
-                }
-            }
+            await generator.prompterMigrate(runner);
             await runner.dropAllTables();
         } catch (e) {
             console.error('Migration failed:', e);
@@ -250,27 +256,7 @@ program
     .action(async (options) => {
         try {
             const runner = new MigrationRunner();
-            if (env('USING_FREE_TIER') !== 'true') {
-                if (notExist) {
-                    const { proceed } = await inquirer.prompt([
-                        {
-                            type: 'confirm',
-                            name: 'proceed',
-                            message: `Database "${notExist}" does not exist. Do you want to add it?`,
-                            default: true,
-                        }
-                    ]);
-
-                    if (!proceed) {
-                        console.log('Migration cancelled.');
-                        process.exit(0);
-                    } else {
-                        await runner.createSchema();
-                        console.log(`Database "${notExist}" created successfully.`);
-                        await runner.migrateInit();
-                    }
-                }
-            }
+            await generator.prompterMigrate(runner);
             await runner.rollback();
         } catch (e) {
             console.error('Migration refresh failed:', e);
@@ -289,11 +275,20 @@ program
 // Command to start the development server
 program
     .command('serve')
-    .description('Run the application in development mode')
-    .action(() => {
-        console.log('Starting the development server...');
+    .description('Run the application in development mode on port 7000')
+    .option('-p, --port <port>', 'Port to run the development server on', '7000')
+    .action((options) => {
+        const port = options.port || 7000
+        console.log(`Starting the development server on port ${port}...`);
 
-        const devProcess = spawn('npm', ['run', 'dev'], { stdio: 'inherit', shell: !0 });
+        const devProcess = spawn('npm', ['run', 'dev'], {
+            stdio: 'inherit',
+            shell: true,
+            env: {
+                ...process.env,
+                PORT: port, // set PORT environment variable
+            },
+        });
 
         devProcess.on('close', (code) => {
             if (code === 0) {
@@ -303,5 +298,6 @@ program
             }
         });
     });
+
 
 program.parse(process.argv);

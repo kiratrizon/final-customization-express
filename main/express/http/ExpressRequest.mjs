@@ -1,5 +1,4 @@
 import Validator from "../../../libraries/Services/Validator.mjs";
-import Auth from "../server/Auth.mjs";
 import ExpressHeader from "./ExpressHeader.mjs";
 
 
@@ -8,16 +7,19 @@ class ExpressRequest {
     #get;
     #files;
     #cookies;
-    headers;
     header;
     route;
-    constructor(rq = {}) {
+
+    /**
+     * @param {import("../http/ExpressRequest").RequestData} rq 
+     */
+    constructor(rq) {
         this.#post = rq.body || {};
         this.#get = rq.query || {};
         this.#files = rq.files || {};
         this.#cookies = rq.cookies || {};
         this.request = rq;
-        this.headers = new ExpressHeader(rq.headers || {});
+        this.headers = new ExpressHeader(rq.headers);
         this.header = function (key = '') {
             if (key === '') return this.headers.all();
             return this.headers.all()[key] || null;
@@ -82,14 +84,20 @@ class ExpressRequest {
         const data = this.only(keys);
         const validator = await Validator.make(data, rules);
         if (validator.fails()) {
-            custom_error(validator.getErrors());
+            this.custom_error(validator.getErrors(), data);
+            return;
         }
         return data;
     }
-    async user() {
-        const user = await Auth.user();
-        return user;
-    }
+
+    user;
+
+    auth;
+    isRequest;
+    dump;
+    dd;
+    custom_error;
+    redirect;
 }
 
 export default ExpressRequest;

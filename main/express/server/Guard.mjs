@@ -11,7 +11,14 @@ class Guard {
     #model;
     #isModel;
     #table;
-    constructor(driver, modelOrTable, driverProvider) {
+    #header;
+    /**
+     * @param {string} driver 
+     * @param {string|Object} modelOrTable 
+     * @param {string} driverProvider 
+     * @param {ReturnType<import('../http/ExpressHeader').default['all']>} header
+     */
+    constructor(driver, modelOrTable, driverProvider, header) {
         let isModel = driverProvider === 'eloquent';
         this.#driver = driver;
         this.#isModel = isModel;
@@ -20,6 +27,7 @@ class Guard {
         } else {
             this.#table = modelOrTable;
         }
+        this.#header = header;
     }
 
     async attempt(data = {}, remember = false) {
@@ -79,7 +87,7 @@ class Guard {
     check() {
         if (this.#driver === 'jwt') {
             // Get token from Authorization header
-            const token = request().header('authorization');
+            const token = this.#header['authorization'];
             // If no token is provided, return null
             if (empty(token)) {
                 return null;

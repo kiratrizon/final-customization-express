@@ -4,41 +4,47 @@ import GuardInitiator from "./GuardInitiator.mjs";
 const defaultGuard = await config('auth.default.guard');
 class Auth {
 
-    static #defaultGuard;
-    static attempt(credentials, remember = false) {
+    #defaultGuard = defaultGuard;
+    #header;
+
+    /**
+     * @param {import('../../express/http/ExpressRequest').default} request
+     */
+    constructor(request) {
+        this.#header = request.header();
+    }
+
+    attempt(credentials, remember = false) {
         return this.guard(this.#defaultGuard).attempt(credentials, remember);
     }
 
-    static logout() {
+    logout() {
         return this.guard(this.#defaultGuard).logout();
     }
 
-    static check() {
+    check() {
         return this.guard(this.#defaultGuard).check();
     }
 
-    static id() {
+    id() {
         return this.guard(this.#defaultGuard).id();
     }
 
-    static user() {
+    user() {
         return this.guard(this.#defaultGuard).user();
     }
 
-    static shouldUse(guardName) {
+    shouldUse(guardName) {
         this.#defaultGuard = guardName;
     }
 
-    static guard(name = Auth.#defaultGuard) {
+    guard(name = this.#defaultGuard) {
         if (empty(name)) {
             throw new Error('Guard name is empty');
         }
         const guard = new GuardInitiator(name);
-        return guard.init();
+        return guard.init(this.#header);
     }
 }
-
-// Set the default guard
-Auth.shouldUse(defaultGuard);
 
 export default Auth;

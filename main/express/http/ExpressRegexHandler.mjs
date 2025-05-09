@@ -33,7 +33,7 @@ class ExpressRegexHandler {
                 return;
             }
             if (errors.length) {
-                if (isRequest()) {
+                if (req.reqquest.isRequest()) {
                     res.setHeader('Content-Type', 'application/json');
                     res.status(422).json({
                         message: 'Validation error',

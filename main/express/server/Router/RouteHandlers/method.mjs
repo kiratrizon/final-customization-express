@@ -3,6 +3,7 @@ import ExpressRedirect from '../../../http/ExpressRedirect.mjs';
 import ExpressView from '../../../http/ExpressView.mjs';
 import RouteMiddleware from './middleware.mjs';
 import Configure from '../../../../../libraries/Materials/Configure.mjs';
+import Auth from '../../Auth.mjs';
 
 
 class RouteMethod {
@@ -22,16 +23,42 @@ class RouteMethod {
         const pathChecker = [currentGroup, url].join('').replace(/[{}]/g, '').replace(/\*\d+\*/g, '').replace(/\/+/g, '/');
         if (is_function(callback)) {
             newCallback = async (req, res) => {
-                request().request.params = { ...req.params }
-                const rq = request();
+                req.request.request.params = { ...req.params }
+                const rq = req.request;
+                rq.auth = () => new Auth(rq);
                 const keys = [...pathChecker.matchAll(/:([a-zA-Z0-9_]+)/g)].map(match => match[1]);
                 const params = {};
                 keys.forEach((key) => {
                     params[key] = rq.request.params[key] || null;
                 })
-                const expressResponse = await callback(rq, ...Object.values(params));
+                let expressResponse = null;
+                let good = true;
+                try {
+                    expressResponse = await callback(rq, ...Object.values(params));
+                } catch (error) {
+                    good = false;
+                    expressResponse = error;
+                }
                 const { html_dump, json_dump } = res.responses;
                 if (res.headersSent) {
+                    return;
+                }
+                if (!good) {
+                    let message;
+                    let stack;
+                    if (expressResponse instanceof Error) {
+                        message = expressResponse.message;
+                        stack = expressResponse.stack.split('\n').map(line => line.trim());
+                    } else {
+                        message = expressResponse;
+                    }
+                    if (!rq.isRequest()) {
+                        res.setHeader('Content-Type', 'text/html');
+                        res.status(500).send('Server Error');
+                    } else {
+                        res.status(500).json({ message: 'Server Error' });
+                    }
+                    log({ message, stack }, 'error', `${date('Y-m-d H:i:s')} Request URI ${rq.request.originalUrl} - ${rq.request.method}`);
                     return;
                 }
                 if (is_object(expressResponse) && (expressResponse instanceof ExpressResponse || expressResponse instanceof ExpressRedirect || expressResponse instanceof ExpressView)) {
@@ -65,10 +92,10 @@ class RouteMethod {
                     }
                 } else {
                     res.status(200);
-                    res.set('Content-Type', isRequest() ? 'application/json' : 'text/html');
+                    res.set('Content-Type', rq.isRequest() ? 'application/json' : 'text/html');
                     json_dump.push(expressResponse)
                     html_dump.push(JSON.stringify(expressResponse));
-                    if (isRequest()) {
+                    if (rq.isRequest()) {
                         res.json(json_dump.length === 1 ? json_dump[0] : json_dump);
                     }
                     else {
