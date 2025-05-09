@@ -20,7 +20,7 @@ class UserController extends Controller {
      */
     async users(request) {
         const users = await User.all();
-        return response().json({ users: users.map(user => user.toArray()) });
+        return response().json({ users });
     }
 }
 

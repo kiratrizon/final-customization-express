@@ -24,8 +24,8 @@ class User extends Authenticatable {
 
     getJWTCustomClaims() {
         return {
-            'sub': this.id,
-            'email': this.email,
+            'sub': this['id'],
+            'email': this['email'],
         };
     }
 };

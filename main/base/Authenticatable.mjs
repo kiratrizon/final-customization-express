@@ -5,8 +5,6 @@ const Model = (await import('./core/BaseModel.mjs')).default;
 
 
 class Authenticatable extends Model {
-    password;
-
     getAuthIdentifierName() {
         return 'id';
     }
@@ -16,7 +14,7 @@ class Authenticatable extends Model {
     }
 
     getAuthPassword() {
-        return this.password;
+        return this['password'];
     }
 
     getRememberToken() {
