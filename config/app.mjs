@@ -12,7 +12,7 @@ const constant = {
             password: env('MYSQL_PASSWORD', ''),
             database: env('MYSQL_DB', 'express'),
             charset: 'utf8mb4',
-            connectionLimit: 4,
+            connectionLimit: env('USING_FREE_TIER', 'true') === 'true' ? 4 : null,
             waitForConnections: true,
             dateStrings: true
         },

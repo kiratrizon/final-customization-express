@@ -54,9 +54,9 @@ class RouteMethod {
                     }
                     if (!rq.isRequest()) {
                         res.setHeader('Content-Type', 'text/html');
-                        res.status(500).send('Server Error');
+                        res.status(404).send('Server Error');
                     } else {
-                        res.status(500).json({ message: 'Server Error' });
+                        res.status(404).json({ message: 'Server Error' });
                     }
                     log({ message, stack }, 'error', `${date('Y-m-d H:i:s')} Request URI ${rq.request.originalUrl} - ${rq.request.method}`);
                     return;
