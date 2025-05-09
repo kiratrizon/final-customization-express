@@ -3,6 +3,7 @@ import JWT from "../../../libraries/Services/JWT.mjs";
 import DB from "../../database/Manager/DB.mjs";
 import MemoryCache from "../../../vendor/MemoryCache.mjs";
 import Collection from "../../database/Manager/Collection.mjs";
+import Argon from "../../../libraries/Services/Argon.mjs";
 
 const jwtObj = await config('jwt');
 
@@ -61,7 +62,8 @@ class Guard {
                 user = DB.table(this.#table).where(key, data[key]).first();
             }
             if (user) {
-                if (Hash.check(data.password, user.password)) {
+                const isMatch = await this.#passwordCheck(data.password, user.password);
+                if (isMatch) {
                     if (this.#driver === 'jwt') {
                         let filtered = user.getJWTCustomClaims();
                         const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}`;
@@ -156,6 +158,20 @@ class Guard {
             }
         }
         return null;
+    }
+
+    async #passwordCheck(password, hash) {
+        let isMatch = false;
+        if (Hash.check(password, hash)) {
+            isMatch = true;
+        }
+        if (!isMatch) {
+            let argonMatched = await Argon.check(password, hash);
+            if (argonMatched) {
+                isMatch = true;
+            }
+        }
+        return isMatch;
     }
 }
 
