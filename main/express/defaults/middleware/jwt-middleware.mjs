@@ -6,15 +6,14 @@ class JWTMiddleware {
     }
     /**
      * @param {import('../../http/ExpressRequest').default} request
+     * @param  {InstanceType<typeof import('../../http/ExpressClosure').default>['next']} next
      */
     async handle(request, next) {
-        request.auth().shouldUse(this.guard);
-        if (!request.auth().check() && !(await request.auth().user())) {
+        if (!request.auth().check() && !(await request.auth().guard(this.guard).user())) {
             return response().json({ message: 'Unauthorized' }, 401);
         }
 
         return next(request);
-
     }
 }
 

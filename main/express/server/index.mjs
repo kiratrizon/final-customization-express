@@ -12,6 +12,7 @@ import { RedisStore } from 'connect-redis';
 import express from 'express';
 import util from 'util';
 import fs from 'fs';
+import Auth from './Auth.mjs';
 
 // type
 /**
@@ -234,7 +235,6 @@ class Server {
 
 			rq.redirect = redirect;
 
-			req.request = rq;
 			const renderData = (data, dumped = false) => {
 				const html = `
 					<style>
@@ -280,6 +280,10 @@ class Server {
 					res.redirect(422, back());
 				}
 			}
+			rq.auth = () => {
+				return new Auth(rq);
+			};
+			req.request = rq;
 			next();
 		});
 

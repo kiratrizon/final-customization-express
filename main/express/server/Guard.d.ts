@@ -1,11 +1,6 @@
 // Guard.d.ts
 
 declare class Guard {
-  private driver: string;
-  private model: any;
-  private table: string;
-  private driverType: string;
-
   constructor(driver: string, modelOrTable: any, driverProvider: string);
 
   /**
@@ -22,5 +17,17 @@ declare class Guard {
    * @returns object | false The decoded token if valid, false otherwise
    */
   check(): object | false;
+  /**
+   * Get the ID of the authenticated user.
+   *
+   * @returns string | null The user ID if authenticated, null otherwise
+   */
+  id(): string | null;
+  /**
+   * Get the authenticated user.
+   *
+   * @returns object | null The user object if authenticated, null otherwise
+   */
+  user(): Promise<object | null>;
 }
 export default Guard;

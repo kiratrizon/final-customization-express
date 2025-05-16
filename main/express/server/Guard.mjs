@@ -2,7 +2,6 @@ import Hash from "../../../libraries/Services/Hash.mjs";
 import JWT from "../../../libraries/Services/JWT.mjs";
 import DB from "../../database/Manager/DB.mjs";
 import MemoryCache from "../../../vendor/MemoryCache.mjs";
-import Collection from "../../database/Manager/Collection.mjs";
 import Argon from "../../../libraries/Services/Argon.mjs";
 
 const jwtObj = await config('jwt');
@@ -59,7 +58,7 @@ class Guard {
             if (this.#isModel) {
                 user = await this.#model.where(key, data[key]).first();
             } else {
-                user = DB.table(this.#table).where(key, data[key]).first();
+                user = await DB.table(this.#table).where(key, data[key]).first();
             }
             if (user) {
                 const isMatch = await this.#passwordCheck(data.password, user.password);
@@ -68,17 +67,13 @@ class Guard {
                         let filtered = user.getJWTCustomClaims();
                         const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}`;
                         filtered.role = keyName;
-                        const cache = new MemoryCache();
                         let expiration = jwtObj.expiration.default * 60;
                         if (remember) {
                             expiration = expiration * 30;
                         }
-                        cache.setExpiration(expiration);
-                        // save to cache
-                        await cache.set(`${keyName}__${user.id}`, user.makeVisible('password').toJson());
                         return JWT.generateToken(filtered, jwtObj.secret_key, expiration, jwtObj.algorithm);
                     } else if (this.#driver === 'session') {
-                        return user;
+                        return true;
                     }
                 }
             }
@@ -114,24 +109,9 @@ class Guard {
         const check = this.check();
         if (check) {
             if (this.#driver === 'jwt') {
-                const cache = new MemoryCache();
-                const keyName = `${new this.#model().table || generateTableNames(this.#model.name)}`;
-                const user = await cache.get(`${keyName}_${check.sub}`);
-                if (user) {
-                    console.log('user from cache', user);
-                    return new Collection(this.#model).one([user]);
-                } else {
-                    // If not found in cache, fetch from database
-                    const model = this.#model;
-                    const userFromDB = await model.find(check.sub);
-                    if (userFromDB) {
-                        // Store in cache for future use
-                        cache.setExpiration(null);
-                        await cache.set(`${keyName}_${check.sub}`, userFromDB.makeVisible('password').toArray());
-                        userFromDB.makeHidden('password');
-                        return userFromDB;
-                    }
-                }
+                const model = this.#model;
+                const userFromDB = await model.find(check.sub);
+                return userFromDB;
             }
         }
         return null;

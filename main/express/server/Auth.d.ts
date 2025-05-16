@@ -1,5 +1,6 @@
 // Auth.d.ts
 
+import ExpressRequest from "../http/ExpressRequest";
 import Guard from "./GuardInitiator";
 
 // Type alias for the Guard instance
@@ -11,6 +12,9 @@ type GuardInstance = ReturnType<InstanceType<typeof Guard>["init"]>;
  * It provides various methods for interacting with guards and validating user credentials.
  */
 declare class Auth {
+  constructor(
+    header: ReturnType<InstanceType<typeof ExpressRequest>["headers"]["all"]>
+  );
   /**
    * Attempts to authenticate a user based on the provided credentials.
    * @param credentials - The user credentials (e.g., username and password).
@@ -33,7 +37,7 @@ declare class Auth {
    * @param remember - Optional flag indicating if the login should persist.
    * @returns The authentication result.
    */
-  loginUsingId(id: any, remember?: boolean): any;
+  // loginUsingId(id: any, remember?: boolean): any;
 
   /**
    * Performs a one-time authentication attempt with the provided credentials.
@@ -41,7 +45,7 @@ declare class Auth {
    * @param credentials - The user credentials.
    * @returns The authentication result.
    */
-  once(credentials: Record<string, any>): any;
+  // once(credentials: Record<string, any>): any;
 
   /**
    * Performs a one-time login using the provided user ID.
@@ -49,7 +53,7 @@ declare class Auth {
    * @param id - The user ID.
    * @returns The authentication result.
    */
-  onceUsingId(id: any): any;
+  // onceUsingId(id: any): any;
 
   /**
    * Logs out the currently authenticated user.
@@ -67,7 +71,7 @@ declare class Auth {
    * Checks if the current user is a guest (not authenticated).
    * @returns True if the user is a guest, otherwise false.
    */
-  guest(): boolean;
+  // guest(): boolean;
 
   /**
    * Retrieves the current authenticated user's ID.
@@ -86,19 +90,19 @@ declare class Auth {
    * @param credentials - The user credentials to validate.
    * @returns True if the credentials are valid, otherwise false.
    */
-  validate(credentials: Record<string, any>): boolean;
+  // validate(credentials: Record<string, any>): boolean;
 
   /**
    * Checks if a user is set or authenticated.
    * @returns True if there is a user, otherwise false.
    */
-  hasUser(): boolean;
+  // hasUser(): boolean;
 
   /**
    * Sets the authenticated user manually.
    * @param user - The user to set as authenticated.
    */
-  setUser(user: any): void;
+  // setUser(user: any): void;
 
   /**
    * Specifies which guard to use for authentication.

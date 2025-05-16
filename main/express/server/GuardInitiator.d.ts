@@ -3,12 +3,6 @@
 import Guard from "./Guard";
 
 declare class GuardInitiator {
-  private guard: string;
-  private driver: string;
-  private model?: any;
-  private table?: string;
-  private driverType: string;
-
   constructor(guard: string);
 
   /**
@@ -18,7 +12,7 @@ declare class GuardInitiator {
    *
    * @returns Guard The initialized Guard instance
    */
-  init(): Guard;
+  init(): InstanceType<typeof Guard>;
 }
 
 export default GuardInitiator;

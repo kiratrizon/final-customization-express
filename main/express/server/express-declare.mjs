@@ -23,5 +23,5 @@ functionDesigner('view', (viewName, data = {}, mergeData = {}) => {
 const dfunc = () => {
 
 }
-
+// response
 define('setcookie', dfunc)

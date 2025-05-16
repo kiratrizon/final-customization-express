@@ -45,6 +45,9 @@ class Auth {
         const guard = new GuardInitiator(name);
         return guard.init(this.#header);
     }
+    login(user, remember = false) {
+        // return this.guard(this.#defaultGuard).login(user, remember);
+    }
 }
 
 export default Auth;
